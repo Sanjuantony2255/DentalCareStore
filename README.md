@@ -92,3 +92,4 @@ To ensure the web app can upload, reschedule, sync to Google Calendar, and searc
    - Click **Allow** (Grants permission to save files to Google Drive, create Calendar events, and append to Sheets).
 7. Copy the **Web App URL** ending in `/exec`.
 8. Ensure this URL matches `SCRIPT_URL` in `script.js`, `search.js`, `appointments.js`, and `patients.js`.
+# manjalydentalcare
