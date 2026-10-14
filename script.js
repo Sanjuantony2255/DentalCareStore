@@ -475,6 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayAddress = inv.address || inv.email || 'N/A';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
         const sealSrc = (typeof window !== 'undefined' && window.INVOICE_SEAL_BASE64) ? window.INVOICE_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/Sign.jpg';
+        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DRSEAL_BASE64) ? window.INVOICE_DRSEAL_BASE64 : 'assets/img/drseal.jpg';
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -485,7 +487,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .invoice-box { max-width: 680px; margin: auto; border: 2px solid #000; padding: 24px; border-radius: 6px; }
         .hospital-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
         .hospital-logo { max-height: 55px; max-width: 180px; display: block; margin: 0 auto 8px auto; object-fit: contain; }
-        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; }
+        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; mix-blend-mode: multiply; }
+        .dr-sign-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; min-height: 65px; }
+        .dr-sign-img { max-height: 55px; max-width: 100px; object-fit: contain; mix-blend-mode: multiply; }
+        .dr-seal-img { max-height: 55px; max-width: 110px; object-fit: contain; mix-blend-mode: multiply; }
         .hospital-name { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; color: #000; }
         .hospital-sub { font-size: 12px; font-weight: 600; color: #222; margin-top: 4px; }
         .hospital-contact { font-size: 11px; color: #444; margin-top: 3px; }
@@ -503,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         td.amt { text-align: right; font-weight: 600; }
         th.amt { text-align: right; }
         tr.total td { font-size: 14px; font-weight: bold; color: #000; border-top: 2px solid #000; border-bottom: 3px double #000; background: #fafafa; }
-        .signatures { display: flex; justify-content: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
+        .signatures { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
         .sign-col { text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .sign-line { height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px; }
         .footer { text-align: center; font-size: 10.5px; color: #333; margin-top: 15px; border-top: 1px solid #000; padding-top: 8px; font-style: italic; }
@@ -554,9 +559,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </table>
         <div class="signatures">
             <div class="sign-col">
-                <img src="${sealSrc}" alt="Authorized Hospital Seal" class="hospital-seal">
+                <div class="dr-sign-wrap">
+                    <img src="${signSrc}" alt="Doctor Signature" class="dr-sign-img">
+                    <img src="${drSealSrc}" alt="Doctor Seal" class="dr-seal-img">
+                </div>
                 <div class="sign-line"></div>
-                Authorized Doctor / Hospital Seal
+                Doctor's Sign & Seal
+            </div>
+            <div class="sign-col">
+                <img src="${sealSrc}" alt="Hospital Seal" class="hospital-seal">
+                <div class="sign-line"></div>
+                Hospital Seal
             </div>
         </div>
         <div class="footer">* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</div>
