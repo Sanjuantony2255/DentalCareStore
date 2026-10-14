@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Patient Registration and Revisit Portal">
+    <title>Patient Registration and Revisit</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d9488'%3E%3Cpath d='M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z'/%3E%3C/svg%3E" type="image/svg+xml">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon">
+                    <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="sidebar-brand-logo">
+                </div>
+                <div class="sidebar-brand-info">
+                    <h2>Manjaly</h2>
+                    <span>Multi Speciality Dental Care</span>
+                </div>
+                <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimize Sidebar" aria-label="Minimize sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+
+            <div class="sidebar-status-pill">
+                <span class="status-dot"></span>
+                <span>Live Clinic Portal</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="index.html" class="sidebar-link active" data-tooltip="Registration & Revisit">
+                    <span class="nav-icon">📋</span>
+                    <span>Registration & Revisit</span>
+                </a>
+                <a href="appointments.html" class="sidebar-link" data-tooltip="Appointments & Calendar">
+                    <span class="nav-icon">📅</span>
+                    <span>Appointments & Calendar</span>
+                </a>
+                <a href="patients.html" class="sidebar-link" data-tooltip="Patient Directory">
+                    <span class="nav-icon">👥</span>
+                    <span>Patient Directory</span>
+                </a>
+                <a href="search.html" class="sidebar-link" data-tooltip="Search Records & Invoices">
+                    <span class="nav-icon">🔍</span>
+                    <span>Search Records & Invoices</span>
+                </a>
+                <a href="accounts.html" class="sidebar-link" data-tooltip="Accounts & Revenue">
+                    <span class="nav-icon">📊</span>
+                    <span>Accounts & Revenue</span>
+                </a>
+                <a href="pharmacy.html" class="sidebar-link" data-tooltip="Pharmacy & Stock" style="display: none !important;">
+                    <span class="nav-icon">💊</span>
+                    <span>Pharmacy & Stock</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-doctor-card">
+                    <div class="doctor-avatar-circle">👨‍⚕️</div>
+                    <div class="doctor-meta-info">
+                        <div class="doc-name">Attending Doctor</div>
+                        <div class="doc-email">sanjuantony01@gmail.com</div>
+                    </div>
+                <div class="sidebar-brand-credit">
+                    <div class="credit-clinic-name">Manjaly Multi Speciality Dental Care</div>
+                    <div class="credit-developer">Developed with ❤️ by <strong>Sanju Antony</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Top Navigation Bar -->
+        <header class="mobile-top-bar">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <div class="mobile-brand-title">
+                <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="mobile-logo-img">
+                <span>Manjaly Dental Care</span>
+            </div>
+            <a href="search.html" class="mobile-action-link" title="Search Patients">
+                <span>🔍</span> Search
+            </a>
+        </header>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content Area -->
+        <div class="app-main-content">
+            <div class="container fade-in">
+
+        <header class="header">
+            <div class="clinic-brand-hero">
+                <img src="assets/img/logo.png" alt="Manjaly Multi Speciality Dental Care" class="clinic-main-logo">
+                <div class="clinic-brand-headings">
+                    <span class="clinic-pill-badge">Manjaly Multi Speciality Dental Care</span>
+                    <h1>Patient Registration and Revisit</h1>
+                    <p>Register patient details, record revisit consultations & billing</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="form-wrapper glass-panel">
+            <!-- Celebratory In-Page Success Banner -->
+            <div id="formSuccessBanner" class="form-success-banner">
+                <div class="success-banner-card">
+                    <div class="success-banner-header">
+                        <div class="success-check-circle">✓</div>
+                        <div>
+                            <h3 id="successBannerTitle">Patient Registered Successfully!</h3>
+                            <p id="successBannerSubtitle">Patient record, clinical consultation, and invoice safely recorded in Google Sheet & Google Drive.</p>
+                        </div>
+                    </div>
+                    <div class="success-details-chips" id="successDetailsChips">
+                        <!-- Populated by script.js -->
+                    </div>
+                    <div class="success-actions-row">
+                        <button type="button" class="success-btn primary" id="bannerViewInvoiceBtn">
+                            <span>🧾</span> View & Print Invoice
+                        </button>
+                        <a href="appointments.html" class="success-btn secondary">
+                            <span>📅</span> Book Appointment
+                        </a>
+                        <button type="button" class="success-btn secondary" id="bannerNewPatientBtn">
+                            <span>➕</span> Register Next Patient
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <form id="patientForm" class="patient-form">
+                
+                <!-- Section 1: Personal Information -->
+                <div class="form-section">
+                    <h2><span class="icon">👤</span> Personal Information</h2>
+                    
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <input type="text" id="fullName" name="fullName" required placeholder=" ">
+                            <label for="fullName">Full Name</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="tel" id="phone" name="phone" required placeholder=" ">
+                            <label for="phone">Phone Number</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="address" name="address" placeholder=" ">
+                            <label for="address">Address of Patient</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="age" name="age" min="1" max="125" required placeholder=" ">
+                            <label for="age">Age (Years)</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="opNumber" name="opNumber" placeholder=" " autocomplete="off">
+                            <label for="opNumber">OP Number</label>
+                        </div>
+                        <div class="input-group">
+                            <select id="gender" name="gender" required>
+                                <option value="" disabled selected>Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="gender" class="active-label">Gender</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Clinical & Visit History -->
+                <div class="form-section">
+                    <h2><span class="icon">📋</span> Disease & Visit History</h2>
+                    
+                    <div class="input-grid">
+                        <div class="input-group full-width">
+                            <select id="medicalHistorySelect" name="medicalHistorySelect">
+                                <option value="None" selected>None / No Significant Medical History</option>
+                                <option value="Diabetes">Diabetes Mellitus</option>
+                                <option value="Hypertension">Hypertension (High BP)</option>
+                                <option value="Diabetes & Hypertension">Diabetes & Hypertension</option>
+                                <option value="Cardiac Condition">Cardiac / Heart Condition</option>
+                                <option value="Asthma / Respiratory">Asthma / Respiratory</option>
+                                <option value="Bleeding Disorder">Bleeding / Clotting Disorder</option>
+                                <option value="Thyroid Disorder">Thyroid Disorder</option>
+                                <option value="Epilepsy / Seizures">Epilepsy / Seizures</option>
+                                <option value="Kidney / Liver Disease">Kidney / Liver Disease</option>
+                                <option value="Other">Other Condition (Specify below)</option>
+                            </select>
+                            <label for="medicalHistorySelect" class="active-label">Medical History Option</label>
+                        </div>
+                        <div class="input-group full-width" id="medicalHistoryInputGroup">
+                            <input type="text" id="medicalHistory" name="medicalHistory" placeholder=" " value="None">
+                            <label for="medicalHistory">Medical History / Clinical Notes</label>
+                        </div>
+                        <div class="input-group full-width">
+                            <input type="text" id="drugAllergies" name="drugAllergies" placeholder=" " value="None">
+                            <label for="drugAllergies">Drug Allergies (e.g. Penicillin, Sulfa, NSAIDs, Local Anesthesia, or None)</label>
+                            <input type="hidden" id="diseaseHistory" name="diseaseHistory" value="None">
+                        </div>
+                        <div class="input-group">
+                            <input type="date" id="lastVisitDate" name="lastVisitDate" placeholder=" ">
+                            <label for="lastVisitDate" class="active-label">Date of Last Clinic Visit</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="doctorConsulted" name="doctorConsulted" placeholder=" ">
+                            <label for="doctorConsulted">Doctor Consulted</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Billing & Charges -->
+                <div class="form-section">
+                    <h2><span class="icon">💳</span> Billing & Charges (Consultation, X-Ray, Pharmacy)</h2>
+                    
+                    <div class="charge-presets-row" style="margin-bottom: 1.2rem;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #475569; display: flex; align-items: center;">Quick Add:</span>
+                        <button type="button" class="preset-chip" data-type="consultation" data-amt="300">+ ₹300 Consultation</button>
+                        <button type="button" class="preset-chip" data-type="consultation" data-amt="500">+ ₹500 Specialist</button>
+                        <button type="button" class="preset-chip" data-type="xray" data-amt="250">+ ₹250 X-Ray</button>
+                        <button type="button" class="preset-chip" data-type="pharmacy" data-amt="200">+ ₹200 Pharmacy</button>
+                        <button type="button" class="preset-chip" data-action="clear" style="color: #ef4444; border-color: #fca5a5;">Reset Charges</button>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <input type="number" id="consultationCharge" name="consultationCharge" min="0" step="any" placeholder=" ">
+                            <label for="consultationCharge">Consultation Charge (₹ / $)</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="xrayCharge" name="xrayCharge" min="0" step="any" placeholder=" ">
+                            <label for="xrayCharge">X-Ray Charge (₹ / $)</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="pharmacyCharge" name="pharmacyCharge" min="0" step="any" placeholder=" ">
+                            <label for="pharmacyCharge">Pharmacy / Medicines Charge (₹ / $)</label>
+                        </div>
+                        <div class="input-group">
+                            <select id="paymentMode" name="paymentMode">
+                                <option value="Cash" selected>Cash</option>
+                                <option value="UPI / Online">UPI / Online</option>
+                                <option value="Card">Card</option>
+                                <option value="Pending">Payment Pending</option>
+                            </select>
+                            <label for="paymentMode" class="active-label">Payment Mode</label>
+                        </div>
+                        <div class="input-group full-width">
+                            <div class="total-summary-banner">
+                                <span class="total-label">Total Amount Due</span>
+                                <span class="total-amount-val" id="displayTotal">0.00</span>
+                            </div>
+                            <input type="hidden" id="totalAmount" name="totalAmount" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <span class="btn-text">Submit Registration / Revisit</span>
+                        <div class="loader" id="btnLoader" style="display: none;"></div>
+                    </button>
+                </div>
+                
+                <div id="formMessage" class="form-message"></div>
+            </form>
+        </main>
+        </div><!-- /.container -->
+        </div><!-- /.app-main-content -->
+    </div><!-- /.app-layout -->
+
+    <!-- Invoice Modal -->
+    <div id="invoiceModalOverlay" class="invoice-modal-overlay">
+        <div class="invoice-modal">
+            <div class="modal-header-bar">
+                <h3><span>🧾</span> Patient Invoice Receipt</h3>
+                <button type="button" class="btn-close-modal" id="closeInvoiceModalBtn">&times;</button>
+            </div>
+            
+            <div class="invoice-paper" id="invoicePaper">
+                <!-- Hospital Name & Branding -->
+                <div class="inv-hospital-brand">
+                    <img src="assets/img/logo.png" alt="Manjaly Dental Care Logo" class="inv-brand-logo-img">
+                    <div class="inv-hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</div>
+                    <div class="inv-hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
+                    <div class="inv-hospital-contact">Phone: +91 6238497517 • Email: manjalymdc@gmail.com</div>
+                </div>
+
+                <div class="inv-doc-header">
+                    <div>
+                        <div class="inv-doc-title"><span>🏥</span> Clinical Patient Invoice</div>
+                        <div class="inv-doc-sub">Official Consultation & Medical Services Receipt</div>
+                    </div>
+                    <div class="inv-doc-meta">
+                        <div class="inv-num-tag" id="invModalNumber">INV-20261013-0000</div>
+                        <div class="inv-date-tag" id="invModalDate">Date: 2026-10-13</div>
+                    </div>
+                </div>
+
+                <div class="inv-patient-card">
+                    <div>
+                        <div class="inv-field-label">Patient Name</div>
+                        <div class="inv-field-val" id="invModalPatientName">-</div>
+                    </div>
+                    <div>
+                        <div class="inv-field-label">Phone Number</div>
+                        <div class="inv-field-val" id="invModalPhone">-</div>
+                    </div>
+                    <div>
+                        <div class="inv-field-label">Age</div>
+                        <div class="inv-field-val" id="invModalDob">-</div>
+                    </div>
+                    <div>
+                        <div class="inv-field-label">Doctor Consulted</div>
+                        <div class="inv-field-val" id="invModalDoctor">-</div>
+                    </div>
+                    <div>
+                        <div class="inv-field-label">Payment Status</div>
+                        <div class="inv-field-val" id="invModalPayment">PAID (Cash)</div>
+                    </div>
+                    <div>
+                        <div class="inv-field-label">OP Number / Mode</div>
+                        <div class="inv-field-val" id="invModalOp">Official Receipt</div>
+                    </div>
+                </div>
+
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Doctor Consultation Charge</td>
+                            <td id="invModalConsultation">0.00</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>X-Ray Examination Charge</td>
+                            <td id="invModalXray">0.00</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Pharmacy / Medicines Charge</td>
+                            <td id="invModalPharmacy">0.00</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="2" style="text-align: right;">Total Amount:</td>
+                            <td id="invModalTotal">0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Signatures & Hospital Seal Row for Black and White Printing -->
+                <div class="inv-signatures-row" style="justify-content: flex-end;">
+                    <div class="inv-sign-col">
+                        <img src="assets/img/seal.jpg" alt="Hospital Seal" class="inv-seal-img" id="invModalSeal">
+                        <div class="inv-sign-space" style="height: 15px;"></div>
+                        <div class="inv-sign-label">Authorized Doctor / Hospital Seal</div>
+                    </div>
+                </div>
+
+                <div class="inv-hospital-footer">
+                    * Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and medical claim purposes.
+                </div>
+
+                <div class="inv-drive-notice" id="invDriveNotice" style="display: none;">
+                    <span>📁</span> 
+                    <span>Stored in Google Drive: <a href="#" target="_blank" id="invDriveLink">Open File in Google Drive</a></span>
+                </div>
+            </div>
+
+            <div class="modal-footer-actions">
+                <button type="button" class="btn-bw-toggle" id="toggleBwModeBtn" title="Toggle Black & White print preview">
+                    <span>🌓</span> B&W Mode
+                </button>
+                <button type="button" class="btn-print-inv" id="printInvoiceBtn">
+                    <span>🖨️</span> Print Invoice (B&W Compatible)
+                </button>
+                <button type="button" class="btn-download-inv" id="downloadInvoiceBtn">
+                    <span>📥</span> Download Invoice
+                </button>
+                <button type="button" class="btn-close-inv" id="doneInvoiceBtn">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="assets/img/invoice-assets.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

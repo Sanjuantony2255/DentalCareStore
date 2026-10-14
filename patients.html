@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Registered Patients Directory & Clinical History">
+    <title>Registered Patients List & Directory</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d9488'%3E%3Cpath d='M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z'/%3E%3C/svg%3E" type="image/svg+xml">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon">
+                    <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="sidebar-brand-logo">
+                </div>
+                <div class="sidebar-brand-info">
+                    <h2>Manjaly</h2>
+                    <span>Multi Speciality Dental Care</span>
+                </div>
+                <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimize Sidebar" aria-label="Minimize sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+
+            <div class="sidebar-status-pill">
+                <span class="status-dot"></span>
+                <span>Live Clinic Portal</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="index.html" class="sidebar-link" data-tooltip="Registration & Revisit">
+                    <span class="nav-icon">📋</span>
+                    <span>Registration & Revisit</span>
+                </a>
+                <a href="appointments.html" class="sidebar-link" data-tooltip="Appointments & Calendar">
+                    <span class="nav-icon">📅</span>
+                    <span>Appointments & Calendar</span>
+                </a>
+                <a href="patients.html" class="sidebar-link active" data-tooltip="Patient Directory">
+                    <span class="nav-icon">👥</span>
+                    <span>Patient Directory</span>
+                </a>
+                <a href="search.html" class="sidebar-link" data-tooltip="Search Records & Invoices">
+                    <span class="nav-icon">🔍</span>
+                    <span>Search Records & Invoices</span>
+                </a>
+                <a href="accounts.html" class="sidebar-link" data-tooltip="Accounts & Revenue">
+                    <span class="nav-icon">📊</span>
+                    <span>Accounts & Revenue</span>
+                </a>
+                <a href="pharmacy.html" class="sidebar-link" data-tooltip="Pharmacy & Stock" style="display: none !important;">
+                    <span class="nav-icon">💊</span>
+                    <span>Pharmacy & Stock</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-doctor-card">
+                    <div class="doctor-avatar-circle">👨‍⚕️</div>
+                    <div class="doctor-meta-info">
+                        <div class="doc-name">Attending Doctor</div>
+                        <div class="doc-email">sanjuantony01@gmail.com</div>
+                    </div>
+                </div>
+                <div class="sidebar-brand-credit">
+                    <div class="credit-clinic-name">Manjaly Multi Speciality Dental Care</div>
+                    <div class="credit-developer">Developed with ❤️ by <strong>Sanju Antony</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Top Navigation Bar -->
+        <header class="mobile-top-bar">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <div class="mobile-brand-title">
+                <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="mobile-logo-img">
+                <span>Manjaly Dental Care</span>
+            </div>
+            <a href="search.html" class="mobile-action-link" title="Search Patients">
+                <span>🔍</span> Search
+            </a>
+        </header>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content Area -->
+        <div class="app-main-content">
+            <div class="container fade-in" style="max-width: 960px;">
+
+        <header class="header">
+            <div class="clinic-brand-hero">
+                <img src="assets/img/logo.png" alt="Manjaly Multi Speciality Dental Care" class="clinic-main-logo">
+                <div class="clinic-brand-headings">
+                    <span class="clinic-pill-badge">Manjaly Multi Speciality Dental Care</span>
+                    <h1>Registered Patients Directory</h1>
+                    <p>Browse all patient files, clinical histories, and visit records</p>
+                </div>
+            </div>
+            
+            <!-- Summary Stats Bar -->
+            <div class="patients-stats-bar">
+                <div class="stat-pill">
+                    <span class="stat-icon">👥</span>
+                    <span class="stat-label">Total Patients:</span>
+                    <strong class="stat-value" id="totalPatientsBadge">0</strong>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-icon">🏥</span>
+                    <span class="stat-label">Total Visits:</span>
+                    <strong class="stat-value" id="totalVisitsBadge">0</strong>
+                </div>
+            </div>
+        </header>
+
+        <main class="form-wrapper glass-panel">
+            <!-- Search & Filters Command Console for Registered Patients -->
+            <div class="patients-search-console no-print">
+                <div class="patients-search-header">
+                    <div class="search-console-badge">👥</div>
+                    <div>
+                        <h2>Search Registered Patient Directory</h2>
+                        <p class="search-console-hint">Lookup registered patients instantly by <strong>Name</strong>, <strong>10-digit Phone Number</strong>, <strong>Doctor</strong>, or <strong>Medical Record</strong></p>
+                    </div>
+                </div>
+
+                <div class="patient-search-bar-row">
+                    <div class="patient-search-input-box">
+                        <span class="patient-search-prefix-icon">🔎</span>
+                        <input type="text" id="patientFilterInput" placeholder="Enter patient name, phone number, doctor, or keyword to filter..." autocomplete="off">
+                        <button type="button" class="patient-filter-clear-btn" id="patientFilterClearBtn" title="Clear filter query" style="display: none;">&times;</button>
+                    </div>
+                    <button type="button" id="refreshPatientsBtn" class="patient-sync-btn" title="Sync live patient records from Google Sheets">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Sync Sheet</span>
+                        <div class="loader loader-small" id="patientsLoader" style="display: none;"></div>
+                    </button>
+                </div>
+
+                <div class="patient-filter-actions-bar">
+                    <div class="patient-filter-pills">
+                        <span class="filter-group-label">Category:</span>
+                        <button type="button" class="patient-dir-pill active" data-filter="all">
+                            <span class="pill-status-dot"></span> All Patients (<span id="countAllPill">0</span>)
+                        </button>
+                        <button type="button" class="patient-dir-pill" data-filter="male">
+                            <span>👨</span> Male (<span id="countMalePill">0</span>)
+                        </button>
+                        <button type="button" class="patient-dir-pill" data-filter="female">
+                            <span>👩</span> Female (<span id="countFemalePill">0</span>)
+                        </button>
+                        <button type="button" class="patient-dir-pill" data-filter="billed">
+                            <span>🧾</span> With Billing (<span id="countBilledPill">0</span>)
+                        </button>
+                    </div>
+                    <div class="patient-directory-count-badge" id="directoryResultsCounter">
+                        Loading directory...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Area -->
+            <div id="patientsMessage" class="search-message" style="display: none; margin-top: 1rem;"></div>
+
+            <!-- Patients Directory Cards Container -->
+            <div id="patientsCardsContainer" style="margin-top: 1.2rem;">
+                <div style="text-align: center; padding: 3rem; color: #64748b;">
+                    <div class="loader" style="margin: auto; margin-bottom: 0.8rem;"></div>
+                    <p style="font-weight: 500;">Loading registered patients from Google Sheet...</p>
+                </div>
+            </div>
+        </main>
+        </div><!-- /.app-main-content -->
+    </div><!-- /.app-layout -->
+
+    <!-- View Patient Details Modal -->
+    <div id="viewPatientModalOverlay" class="invoice-modal-overlay">
+        <div class="invoice-modal" style="max-width: 650px;">
+            <div class="modal-header-bar">
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                    <div class="patient-modal-avatar" id="modalPatientAvatar">PA</div>
+                    <div>
+                        <h3 id="modalPatientName" style="margin: 0; font-size: 1.25rem;">Patient Details</h3>
+                        <div style="font-size: 0.82rem; color: #64748b;" id="modalPatientPhone">-</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" id="closePatientModalBtn">&times;</button>
+            </div>
+            
+            <div style="padding: 1.5rem 2rem; max-height: 70vh; overflow-y: auto;">
+                <!-- Profile Grid -->
+                <div class="patient-modal-info-grid">
+                    <div class="info-cell">
+                        <span class="info-label">Phone Number</span>
+                        <span class="info-val" id="modalPhoneVal">-</span>
+                    </div>
+                    <div class="info-cell">
+                        <span class="info-label">Email Address</span>
+                        <span class="info-val" id="modalEmailVal">-</span>
+                    </div>
+                    <div class="info-cell">
+                        <span class="info-label">Date of Birth</span>
+                        <span class="info-val" id="modalDobVal">-</span>
+                    </div>
+                    <div class="info-cell">
+                        <span class="info-label">Gender</span>
+                        <span class="info-val" id="modalGenderVal">-</span>
+                    </div>
+                    <div class="info-cell">
+                        <span class="info-label">Attending Doctor</span>
+                        <span class="info-val" id="modalDoctorVal">-</span>
+                    </div>
+                    <div class="info-cell">
+                        <span class="info-label">Total Visits</span>
+                        <span class="info-val" id="modalVisitsCountVal">0</span>
+                    </div>
+                    <div class="info-cell" style="grid-column: 1 / -1;">
+                        <span class="info-label">Medical History</span>
+                        <span class="info-val" id="modalMedicalVal">None reported</span>
+                    </div>
+                    <div class="info-cell" style="grid-column: 1 / -1;">
+                        <span class="info-label">Disease History</span>
+                        <span class="info-val" id="modalDiseaseVal">None reported</span>
+                    </div>
+                </div>
+
+                <!-- Billing & Invoices Section -->
+                <div style="margin-top: 1.5rem;">
+                    <h4 style="font-size: 1rem; color: #1e3a8a; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <span>🧾</span> Billing & Invoices Summary
+                    </h4>
+                    <div id="modalBillingSummary">
+                        <!-- Summary injected here -->
+                    </div>
+                </div>
+
+                <!-- Visits Timeline Section -->
+                <div style="margin-top: 1.5rem;">
+                    <h4 style="font-size: 1rem; color: #0f766e; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <span>📅</span> Recorded Visits & History
+                    </h4>
+                    <div id="modalVisitsTimeline">
+                        <!-- Visits injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer-actions">
+                <button type="button" class="mini-btn" id="modalBookAptBtn" style="background: #e0e7ff; color: #4338ca; padding: 0.65rem 1.2rem; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; font-family: inherit;">
+                    <span>📅</span> Book Appointment
+                </button>
+                <button type="button" class="mini-btn" id="modalSearchBtn" style="background: #0d9488; color: white; padding: 0.65rem 1.2rem; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; font-family: inherit;">
+                    <span>🔍</span> Search & Invoices
+                </button>
+                <button type="button" class="btn-print-inv" id="modalPrintBtn">
+                    <span>🖨️</span> Print Profile
+                </button>
+                <button type="button" class="btn-close-inv" id="donePatientModalBtn">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="sidebar.js"></script>
+    <script src="patients.js"></script>
+</body>
+</html>

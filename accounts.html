@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Accounts and Revenue Management Dashboard - Dental Care Clinic & Hospital">
+    <title>Accounts & Revenue Dashboard - Dental Care Clinic</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d9488'%3E%3Cpath d='M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z'/%3E%3C/svg%3E" type="image/svg+xml">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon">
+                    <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="sidebar-brand-logo">
+                </div>
+                <div class="sidebar-brand-info">
+                    <h2>Manjaly</h2>
+                    <span>Multi Speciality Dental Care</span>
+                </div>
+                <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Minimize Sidebar" aria-label="Minimize sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">&times;</button>
+            </div>
+
+            <div class="sidebar-status-pill">
+                <span class="status-dot"></span>
+                <span>Live Clinic Portal</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="index.html" class="sidebar-link" data-tooltip="Registration & Revisit">
+                    <span class="nav-icon">📋</span>
+                    <span>Registration & Revisit</span>
+                </a>
+                <a href="appointments.html" class="sidebar-link" data-tooltip="Appointments & Calendar">
+                    <span class="nav-icon">📅</span>
+                    <span>Appointments & Calendar</span>
+                </a>
+                <a href="patients.html" class="sidebar-link" data-tooltip="Patient Directory">
+                    <span class="nav-icon">👥</span>
+                    <span>Patient Directory</span>
+                </a>
+                <a href="search.html" class="sidebar-link" data-tooltip="Search Records & Invoices">
+                    <span class="nav-icon">🔍</span>
+                    <span>Search Records & Invoices</span>
+                </a>
+                <a href="accounts.html" class="sidebar-link active" data-tooltip="Accounts & Revenue">
+                    <span class="nav-icon">📊</span>
+                    <span>Accounts & Revenue</span>
+                </a>
+                <a href="pharmacy.html" class="sidebar-link" data-tooltip="Pharmacy & Stock" style="display: none !important;">
+                    <span class="nav-icon">💊</span>
+                    <span>Pharmacy & Stock</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-doctor-card">
+                    <div class="doctor-avatar-circle">👨‍⚕️</div>
+                    <div class="doctor-meta-info">
+                        <div class="doc-name">Attending Doctor</div>
+                        <div class="doc-email">sanjuantony01@gmail.com</div>
+                    </div>
+                <div class="sidebar-brand-credit">
+                    <div class="credit-clinic-name">Manjaly Multi Speciality Dental Care</div>
+                    <div class="credit-developer">Developed with ❤️ by <strong>Sanju Antony</strong></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Top Navigation Bar -->
+        <header class="mobile-top-bar">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <div class="mobile-brand-title">
+                <img src="assets/img/logo.png" alt="Manjaly Dental Care" class="mobile-logo-img">
+                <span>Manjaly Dental Care</span>
+            </div>
+            <a href="search.html" class="mobile-action-link" title="Search Patients">
+                <span>🔍</span> Search
+            </a>
+        </header>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content Area -->
+        <main class="app-main-content">
+            <div class="container wide-container fade-in">
+                <!-- Page Header & Period Selector -->
+                <div class="accounts-header-card">
+                    <div class="clinic-brand-hero" style="margin-bottom: 0;">
+                        <img src="assets/img/logo.png" alt="Manjaly Multi Speciality Dental Care" class="clinic-main-logo">
+                        <div class="clinic-brand-headings">
+                            <span class="clinic-pill-badge">Manjaly Multi Speciality Dental Care</span>
+                            <h1 style="font-size: 2rem; color: #1e3a8a; font-weight: 700; margin: 0 0 0.2rem 0;">Accounts & Revenue Dashboard</h1>
+                            <p style="color: #0f766e; font-size: 0.95rem; margin: 0; font-weight: 500;">
+                                Real-time tracking of daily, weekly, monthly clinic collections & department billing
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
+                        <div class="period-pill-group" id="periodFilterGroup">
+                            <button type="button" class="period-pill-btn active" data-period="all">All-Time</button>
+                            <button type="button" class="period-pill-btn" data-period="today">Today</button>
+                            <button type="button" class="period-pill-btn" data-period="week">This Week</button>
+                            <button type="button" class="period-pill-btn" data-period="month">This Month</button>
+                        </div>
+                        <button type="button" class="btn-report-action" id="refreshAccountsBtn" style="background: white; border: 1px solid #cbd5e1; color: #334155;">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner & Notification Messages -->
+                <div id="accountsLoader" style="display: none; text-align: center; margin: 2rem 0;">
+                    <div class="loader-spinner" style="margin: 0 auto 0.8rem auto; width: 40px; height: 40px; border: 3px solid rgba(13, 148, 136, 0.2); border-top-color: #0d9488; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="color: #0f766e; font-weight: 600;">Calculating revenue across departments...</p>
+                </div>
+                <div id="accountsMessage" class="message-banner" style="display: none; margin-bottom: 1.5rem;"></div>
+
+                <!-- 1. Four Core Revenue Metric Cards -->
+                <section class="revenue-metrics-grid">
+                    <!-- Daily Card -->
+                    <div class="revenue-stat-card card-daily">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Today's Revenue</span>
+                            <span class="stat-card-icon">☀️</span>
+                        </div>
+                        <div class="stat-card-amount" id="dailyTotalDisplay">₹0.00</div>
+                        <div class="stat-card-sub">
+                            <span id="dailyDateLabel">Today</span>
+                            <span id="dailyVisitsCount">0 invoices</span>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Card -->
+                    <div class="revenue-stat-card card-weekly">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">This Week</span>
+                            <span class="stat-card-icon">📅</span>
+                        </div>
+                        <div class="stat-card-amount" id="weeklyTotalDisplay">₹0.00</div>
+                        <div class="stat-card-sub">
+                            <span>Current Week</span>
+                            <span id="weeklyVisitsCount">0 invoices</span>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Card -->
+                    <div class="revenue-stat-card card-monthly">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">This Month</span>
+                            <span class="stat-card-icon">🗓️</span>
+                        </div>
+                        <div class="stat-card-amount" id="monthlyTotalDisplay">₹0.00</div>
+                        <div class="stat-card-sub">
+                            <span id="monthNameLabel">Current Month</span>
+                            <span id="monthlyVisitsCount">0 invoices</span>
+                        </div>
+                    </div>
+
+                    <!-- All-Time Total Card -->
+                    <div class="revenue-stat-card card-alltime">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Total Lifetime Collections</span>
+                            <span class="stat-card-icon">💎</span>
+                        </div>
+                        <div class="stat-card-amount" id="alltimeTotalDisplay">₹0.00</div>
+                        <div class="stat-card-sub">
+                            <span>All Registered Patients</span>
+                            <span id="alltimeVisitsCount">0 total visits</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Revenue Breakdown by Category -->
+                <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.3rem; color: #1e3a8a; font-weight: 700; margin: 0;">
+                        <span>🔬</span> Revenue by Category (<span id="activeCategoryPeriodLabel">All-Time</span>)
+                    </h2>
+                    <span style="font-size: 0.85rem; color: #64748b;">Departments: Consultation • X-Ray • Pharmacy</span>
+                </div>
+
+                <section class="category-revenue-grid">
+                    <!-- Doctor Consultation -->
+                    <div class="category-revenue-card cat-consultation">
+                        <div class="cat-header">
+                            <div class="cat-icon-badge">🩺</div>
+                            <div class="cat-title-text">
+                                <h3>Doctor Consultation</h3>
+                                <span>OPD & Specialist Fees</span>
+                            </div>
+                        </div>
+                        <div class="cat-amount-display">
+                            <span class="cat-amount-val" id="catConsultationAmount">₹0.00</span>
+                            <span class="cat-percent-tag" id="catConsultationPercent">0%</span>
+                        </div>
+                        <div class="cat-progress-bar">
+                            <div class="cat-progress-fill" id="catConsultationBar" style="width: 0%;"></div>
+                        </div>
+                        <div class="cat-sub-details">
+                            <div class="cat-sub-item">
+                                <span>Patient Consultations:</span>
+                                <strong id="catConsultationCount">0</strong>
+                            </div>
+                            <div class="cat-sub-item">
+                                <span>Avg. Fee / Patient:</span>
+                                <strong id="catConsultationAvg">₹0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- X-Ray & Diagnostics -->
+                    <div class="category-revenue-card cat-xray">
+                        <div class="cat-header">
+                            <div class="cat-icon-badge">🩻</div>
+                            <div class="cat-title-text">
+                                <h3>X-Ray & Radiology</h3>
+                                <span>Dental Imaging & Scans</span>
+                            </div>
+                        </div>
+                        <div class="cat-amount-display">
+                            <span class="cat-amount-val" id="catXrayAmount">₹0.00</span>
+                            <span class="cat-percent-tag" id="catXrayPercent">0%</span>
+                        </div>
+                        <div class="cat-progress-bar">
+                            <div class="cat-progress-fill" id="catXrayBar" style="width: 0%;"></div>
+                        </div>
+                        <div class="cat-sub-details">
+                            <div class="cat-sub-item">
+                                <span>X-Rays Performed:</span>
+                                <strong id="catXrayCount">0</strong>
+                            </div>
+                            <div class="cat-sub-item">
+                                <span>Avg. Scan Charge:</span>
+                                <strong id="catXrayAvg">₹0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pharmacy & Medicines -->
+                    <div class="category-revenue-card cat-pharmacy">
+                        <div class="cat-header">
+                            <div class="cat-icon-badge">💊</div>
+                            <div class="cat-title-text">
+                                <h3>Pharmacy & Medicines</h3>
+                                <span>Prescriptions & Consumables</span>
+                            </div>
+                        </div>
+                        <div class="cat-amount-display">
+                            <span class="cat-amount-val" id="catPharmacyAmount">₹0.00</span>
+                            <span class="cat-percent-tag" id="catPharmacyPercent">0%</span>
+                        </div>
+                        <div class="cat-progress-bar">
+                            <div class="cat-progress-fill" id="catPharmacyBar" style="width: 0%;"></div>
+                        </div>
+                        <div class="cat-sub-details">
+                            <div class="cat-sub-item">
+                                <span>Pharmacy Dispenses:</span>
+                                <strong id="catPharmacyCount">0</strong>
+                            </div>
+                            <div class="cat-sub-item">
+                                <span>Avg. Bill / Visit:</span>
+                                <strong id="catPharmacyAvg">₹0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Payment Mode Breakdown -->
+                <section class="payment-modes-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div>
+                            <h3 style="font-size: 1.15rem; color: #1e3a8a; font-weight: 700; margin: 0 0 0.2rem 0;">
+                                💳 Payment Mode Breakdown
+                            </h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin: 0;">Collections across payment channels</p>
+                        </div>
+                        <div style="font-size: 0.9rem; font-weight: 600; color: #0f766e;" id="totalPaymentModeSum">
+                            Total: ₹0.00
+                        </div>
+                    </div>
+
+                    <div class="payment-modes-grid">
+                        <div class="payment-mode-pill">
+                            <span class="mode-title">💵 Cash</span>
+                            <span class="mode-amount" id="payCashAmount">₹0.00</span>
+                            <span style="font-size: 0.75rem; color: #64748b;" id="payCashCount">0 transactions</span>
+                        </div>
+                        <div class="payment-mode-pill">
+                            <span class="mode-title">📱 UPI / Online</span>
+                            <span class="mode-amount" id="payUpiAmount">₹0.00</span>
+                            <span style="font-size: 0.75rem; color: #64748b;" id="payUpiCount">0 transactions</span>
+                        </div>
+                        <div class="payment-mode-pill">
+                            <span class="mode-title">💳 Debit / Credit Card</span>
+                            <span class="mode-amount" id="payCardAmount">₹0.00</span>
+                            <span style="font-size: 0.75rem; color: #64748b;" id="payCardCount">0 transactions</span>
+                        </div>
+                        <div class="payment-mode-pill">
+                            <span class="mode-title">⏳ Pending / Credit</span>
+                            <span class="mode-amount" id="payPendingAmount" style="color: #dc2626;">₹0.00</span>
+                            <span style="font-size: 0.75rem; color: #64748b;" id="payPendingCount">0 transactions</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Detailed Transaction Ledger & Financial Audit -->
+                <section class="ledger-card">
+                    <div class="ledger-toolbar">
+                        <div>
+                            <h3 style="font-size: 1.2rem; color: #1e3a8a; font-weight: 700; margin: 0 0 0.2rem 0;">
+                                📑 Billing Transaction Ledger
+                            </h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin: 0;">Itemized billing records and receipts</p>
+                        </div>
+
+                        <div class="ledger-btn-group">
+                            <button type="button" class="btn-report-action btn-report-print" id="printReportBtn">
+                                <span>🖨️</span> Print Statement
+                            </button>
+                            <button type="button" class="btn-report-action btn-report-export" id="exportCsvBtn">
+                                <span>📥</span> Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.8rem; margin-bottom: 1.2rem; flex-wrap: wrap;">
+                        <div class="ledger-search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="ledgerSearchInput" placeholder="Filter by patient name, phone, doctor, or invoice...">
+                        </div>
+                        <select id="paymentFilterSelect" style="padding: 0.65rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: 0.88rem; outline: none; background: white;">
+                            <option value="all">All Payment Modes</option>
+                            <option value="cash">Cash</option>
+                            <option value="upi">UPI / Online</option>
+                            <option value="card">Card</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="ledgerTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice #</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th class="amount-col">Consultation (₹)</th>
+                                    <th class="amount-col">X-Ray (₹)</th>
+                                    <th class="amount-col">Pharmacy (₹)</th>
+                                    <th class="amount-col">Total (₹)</th>
+                                    <th>Mode</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledgerTableBody">
+                                <!-- Transactions injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="sidebar.js"></script>
+    <script src="accounts.js"></script>
+</body>
+</html>
