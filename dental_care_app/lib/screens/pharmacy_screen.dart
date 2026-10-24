@@ -82,7 +82,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: category,
+                  initialValue: category,
                   decoration: const InputDecoration(labelText: 'Category', prefixIcon: Icon(Icons.category)),
                   items: _categories
                       .where((c) => c != 'all')
@@ -165,7 +165,9 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                     );
 
                     await widget.storage.saveInventoryItem(item);
+                    if (!ctx.mounted) return;
                     Navigator.pop(ctx);
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Added ${item.name} to pharmacy inventory!')),
                     );

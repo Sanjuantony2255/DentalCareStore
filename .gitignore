@@ -15,6 +15,7 @@ dental_care_app/.dart_tool/
 **/android/*.iml
 **/android/app/*.iml
 **/android/.idea/
+**/android/.kotlin/
 *.keystore
 *.jks
 

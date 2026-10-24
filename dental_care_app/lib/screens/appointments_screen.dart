@@ -110,7 +110,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: doctor,
+                  initialValue: doctor,
                   decoration: const InputDecoration(labelText: 'Attending Doctor', prefixIcon: Icon(Icons.medical_services_outlined)),
                   items: doctors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
                   onChanged: (v) => setModalState(() => doctor = v ?? doctors[0]),
@@ -138,7 +138,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: timeSlot,
+                        initialValue: timeSlot,
                         decoration: const InputDecoration(labelText: 'Time Slot', prefixIcon: Icon(Icons.access_time)),
                         items: timeSlots.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                         onChanged: (v) => setModalState(() => timeSlot = v ?? timeSlots[0]),
@@ -181,7 +181,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                     await widget.storage.saveAppointment(apt);
                     ApiService.syncAppointmentOnline(apt);
 
+                    if (!ctx.mounted) return;
                     Navigator.pop(ctx);
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Appointment booked for ${apt.patientName}!'),
@@ -235,7 +237,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: timeSlots.contains(timeSlot) ? timeSlot : timeSlots[0],
+                  initialValue: timeSlots.contains(timeSlot) ? timeSlot : timeSlots[0],
                   decoration: const InputDecoration(labelText: 'New Time Slot', prefixIcon: Icon(Icons.access_time)),
                   items: timeSlots.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                   onChanged: (v) => setDialogState(() => timeSlot = v ?? timeSlots[0]),
@@ -263,7 +265,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   apt.doctor,
                   notesCtrl.text.trim(),
                 );
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Appointment rescheduled successfully!')),
                 );
@@ -531,6 +535,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       ElevatedButton(
                         onPressed: () async {
                           await widget.storage.updateAppointmentStatus(apt.id, 'Completed');
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Marked as Completed')),
                           );

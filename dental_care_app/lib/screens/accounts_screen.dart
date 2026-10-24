@@ -44,7 +44,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
         final lifetimeVisits = summary['lifetimeVisits'] as int;
 
         final filteredRevenue = summary['filteredRevenue'] as double;
-        final filteredVisits = summary['filteredVisits'] as int;
         final consultationTotal = summary['consultationTotal'] as double;
         final xrayTotal = summary['xrayTotal'] as double;
         final pharmacyTotal = summary['pharmacyTotal'] as double;

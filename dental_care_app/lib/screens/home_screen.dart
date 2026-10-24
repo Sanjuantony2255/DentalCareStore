@@ -54,9 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryTeal, size: 20),
             ),
             const SizedBox(width: 10),
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Manjaly Dental Care',
                   style: TextStyle(
@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 28),
@@ -167,17 +167,17 @@ class _HomeScreenState extends State<HomeScreen> {
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
             Container(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: const Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     backgroundColor: AppTheme.primarySubtle,
                     child: Text('👨‍⚕️', style: TextStyle(fontSize: 18)),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text('Attending Doctor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                         Text('sanjuantony01@gmail.com', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                       ],
@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: AppTheme.primarySubtle.withOpacity(0.5),
+      selectedTileColor: AppTheme.primarySubtle.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       onTap: () {

@@ -236,7 +236,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryTeal.withOpacity(0.25),
+                      color: AppTheme.primaryTeal.withValues(alpha: 0.25),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -247,7 +247,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 28),
@@ -296,7 +296,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             color: !_isRevisit ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: !_isRevisit
-                                ? [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)]
                                 : [],
                           ),
                           alignment: Alignment.center,
@@ -320,7 +320,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             color: _isRevisit ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: _isRevisit
-                                ? [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)]
                                 : [],
                           ),
                           alignment: Alignment.center,
@@ -386,7 +386,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _gender,
+                              initialValue: _gender,
                               decoration: const InputDecoration(
                                 labelText: 'Gender',
                                 prefixIcon: Icon(Icons.wc_outlined, size: 20),
@@ -453,7 +453,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: Column(
                     children: [
                       DropdownButtonFormField<String>(
-                        value: _doctor,
+                        initialValue: _doctor,
                         decoration: const InputDecoration(
                           labelText: 'Attending Doctor *',
                           prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
@@ -463,7 +463,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
-                        value: _medicalHistory,
+                        initialValue: _medicalHistory,
                         decoration: const InputDecoration(
                           labelText: 'Systemic Medical Condition',
                           prefixIcon: Icon(Icons.favorite_border, size: 20),
@@ -563,7 +563,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                       // Payment Mode
                       DropdownButtonFormField<String>(
-                        value: _paymentMode,
+                        initialValue: _paymentMode,
                         decoration: const InputDecoration(
                           labelText: 'Payment Mode',
                           prefixIcon: Icon(Icons.payments_outlined, size: 20),

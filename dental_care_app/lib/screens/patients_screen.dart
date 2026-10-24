@@ -257,7 +257,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppTheme.primarySubtle,
                               shape: BoxShape.circle,
                             ),
@@ -423,7 +423,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               // Patients List
               Expanded(
                 child: filtered.isEmpty
-                    ? EmptyStateView(
+                    ? const EmptyStateView(
                         icon: Icons.person_search_outlined,
                         title: 'No Patients Match',
                         message: 'Try adjusting your search query or filter criteria.',
@@ -539,7 +539,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

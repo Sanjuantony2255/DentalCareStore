@@ -69,10 +69,10 @@ Contact: +91 98450 12345 | sanjuantony01@gmail.com
                     child: const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryTeal, size: 28),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'DENTAL CARE CLINIC & HOSPITAL',
                           style: TextStyle(
