@@ -3,6 +3,7 @@ import 'package:dental_care_app/models/patient.dart';
 import 'package:dental_care_app/models/appointment.dart';
 import 'package:dental_care_app/models/invoice.dart';
 import 'package:dental_care_app/services/storage_service.dart';
+import 'package:dental_care_app/constants/treatments.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -111,6 +112,19 @@ void main() {
         (a) => a.reason.toLowerCase().contains('root canal'),
       ).toList();
       expect(aptMatches.isNotEmpty, true);
+    });
+
+    test('All requested clinic dental treatments are registered', () {
+      expect(kDentalTreatments.contains('POST & CORE'), true);
+      expect(kDentalTreatments.contains('CROWN METAL'), true);
+      expect(kDentalTreatments.contains('CROWN PFM'), true);
+      expect(kDentalTreatments.contains('CROWN PFZ'), true);
+      expect(kDentalTreatments.contains('EMAX CROWN, VENEER, INLAY'), true);
+      expect(kDentalTreatments.contains('SCALING'), true);
+      expect(kDentalTreatments.contains('RCT'), true);
+      expect(kDentalTreatments.contains('CLEAR ALIGNERS'), true);
+      expect(kDentalTreatments.contains('DENTAL IMPLANTS'), true);
+      expect(kDentalTreatments.length, greaterThanOrEqualTo(50));
     });
   });
 }

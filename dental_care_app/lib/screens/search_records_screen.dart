@@ -35,8 +35,12 @@ class _SearchRecordsScreenState extends State<SearchRecordsScreen> {
     '9845012345',
     'OP-401',
     'INV-2026-001',
-    'Root Canal',
-    'Dr. Sanju Antony',
+    'RCT',
+    'CROWN PFM',
+    'POST & CORE',
+    'SCALING',
+    'CLEAR ALIGNERS',
+    'DENTAL IMPLANTS',
   ];
 
   @override

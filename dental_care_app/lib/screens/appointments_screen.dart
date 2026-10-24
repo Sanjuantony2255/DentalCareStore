@@ -6,6 +6,7 @@ import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state_view.dart';
+import '../constants/treatments.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   final StorageService storage;
@@ -47,10 +48,124 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     }
   }
 
+  void _openTreatmentSelectSheet(BuildContext parentCtx, void Function(String) onSelect) {
+    final searchCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final query = searchCtrl.text.trim().toLowerCase();
+          final filtered = kDentalTreatments.where((t) {
+            if (query.isEmpty) return true;
+            return t.toLowerCase().contains(query);
+          }).toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.7,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Select Treatment for Appointment',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: searchCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search from ${kDentalTreatments.length} treatments...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                searchCtrl.clear();
+                                setSheetState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('No treatments matched your search.'))
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 6),
+                            itemBuilder: (context, idx) {
+                              final treatment = filtered[idx];
+
+                              return ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.primarySubtle,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.healing_outlined,
+                                    size: 16,
+                                    color: AppTheme.primaryDark,
+                                  ),
+                                ),
+                                title: Text(
+                                  treatment,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(ctx);
+                                  onSelect(treatment);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _openBookAppointmentModal([String? patientName, String? phone]) {
     final nameCtrl = TextEditingController(text: patientName ?? '');
     final phoneCtrl = TextEditingController(text: phone ?? '');
-    final reasonCtrl = TextEditingController(text: 'Routine Dental Consultation');
+    final reasonCtrl = TextEditingController(text: 'CONSULTATION');
     final notesCtrl = TextEditingController();
     DateTime date = DateTime.now();
     String timeSlot = '10:00 AM';
@@ -150,9 +265,65 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   ],
                 ),
                 const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Treatment / Procedure',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                    ),
+                    InkWell(
+                      onTap: () => _openTreatmentSelectSheet(ctx, (t) {
+                        setModalState(() => reasonCtrl.text = t);
+                      }),
+                      child: const Text(
+                        'Browse All 58 Treatments →',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      'CONSULTATION',
+                      'SCALING',
+                      'RCT',
+                      'COMPOSITE',
+                      'CROWN PFM',
+                      'POST & CORE',
+                      'NORMAL EXTRACTION',
+                      'CLEAR ALIGNERS',
+                    ].map((t) {
+                      final isSel = reasonCtrl.text == t;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          label: Text(t, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.w700 : FontWeight.w500, color: isSel ? AppTheme.primaryDark : const Color(0xFF334155))),
+                          backgroundColor: isSel ? AppTheme.primarySubtle : const Color(0xFFF1F5F9),
+                          side: BorderSide(color: isSel ? AppTheme.primaryTeal : const Color(0xFFCBD5E1)),
+                          onPressed: () => setModalState(() => reasonCtrl.text = t),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: reasonCtrl,
-                  decoration: const InputDecoration(labelText: 'Reason for Visit', prefixIcon: Icon(Icons.healing_outlined)),
+                  decoration: InputDecoration(
+                    labelText: 'Treatment / Reason *',
+                    prefixIcon: const Icon(Icons.healing_outlined),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.list_alt_rounded, color: AppTheme.primaryTeal),
+                      tooltip: 'Select treatment',
+                      onPressed: () => _openTreatmentSelectSheet(ctx, (t) {
+                        setModalState(() => reasonCtrl.text = t);
+                      }),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(

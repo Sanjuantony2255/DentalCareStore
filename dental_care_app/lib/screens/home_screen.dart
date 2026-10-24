@@ -24,6 +24,40 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _currentIndex = 1);
   }
 
+  void _handleSyncGoogleSheet(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('Syncing with Google Sheet...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final success = await widget.storage.syncWithGoogleSheet();
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? '✓ Synced with Google Sheet! (${widget.storage.patients.length} patients, ${widget.storage.appointments.length} appointments, ${widget.storage.invoices.length} invoices)'
+              : 'Sync complete (using cached offline records)',
+        ),
+        backgroundColor: success ? AppTheme.primaryTeal : const Color(0xFF64748B),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -78,6 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sync_rounded, color: AppTheme.primaryTeal),
+            tooltip: 'Sync with Google Sheet',
+            onPressed: () => _handleSyncGoogleSheet(context),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 14),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -164,6 +203,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   _drawerItem(3, Icons.search_outlined, 'Search Records & Invoices'),
                   _drawerItem(4, Icons.bar_chart_outlined, 'Accounts & Revenue'),
                   _drawerItem(5, Icons.medication_outlined, 'Pharmacy & Stock'),
+                  const Divider(height: 16, color: Color(0xFFE2E8F0)),
+                  ListTile(
+                    leading: const Icon(Icons.sync_rounded, color: AppTheme.primaryTeal),
+                    title: const Text(
+                      'Sync with Google Sheet',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
+                    ),
+                    subtitle: const Text(
+                      'docs.google.com/spreadsheets/d/1Muzymft...',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _handleSyncGoogleSheet(context);
+                    },
+                  ),
                 ],
               ),
             ),

@@ -7,8 +7,7 @@
  *    via (Extensions > Apps Script), it automatically connects to your sheet. Leave SPREADSHEET_ID empty.
  * 2. Standalone script: If created at script.google.com, copy your Google Sheet ID
  *    from its URL (https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit) and paste below.
- */
-var SPREADSHEET_ID = ""; // Optional: Paste your Spreadsheet ID if using standalone Apps Script
+var SPREADSHEET_ID = "1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls";
 
 // CLINIC NOTIFICATION & GOOGLE CALENDAR EMAIL
 var CLINIC_NOTIFICATION_EMAIL = "sanjuantony01@gmail.com";

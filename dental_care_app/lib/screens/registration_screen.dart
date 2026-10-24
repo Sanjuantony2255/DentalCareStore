@@ -6,6 +6,7 @@ import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/invoice_receipt_dialog.dart';
+import '../constants/treatments.dart';
 
 class RegistrationScreen extends StatefulWidget {
   final StorageService storage;
@@ -231,6 +232,128 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 onTap: () {
                                   Navigator.pop(ctx);
                                   _populatePatientData(p);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openTreatmentPickerModal() {
+    final searchCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final query = searchCtrl.text.trim().toLowerCase();
+          final filteredTreatments = kDentalTreatments.where((t) {
+            if (query.isEmpty) return true;
+            return t.toLowerCase().contains(query);
+          }).toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.7,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Select Dental Treatment',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: searchCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search from ${kDentalTreatments.length} treatments (e.g. RCT, CROWN, ALIGNER)...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                searchCtrl.clear();
+                                setModalState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setModalState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filteredTreatments.isEmpty
+                        ? const Center(child: Text('No treatments matched your search.'))
+                        : ListView.separated(
+                            itemCount: filteredTreatments.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 6),
+                            itemBuilder: (context, idx) {
+                              final treatment = filteredTreatments[idx];
+                              final isSelected = _diseaseHistoryController.text == treatment;
+
+                              return ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppTheme.primaryTeal : AppTheme.primarySubtle,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.healing_outlined,
+                                    size: 16,
+                                    color: isSelected ? Colors.white : AppTheme.primaryDark,
+                                  ),
+                                ),
+                                title: Text(
+                                  treatment,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                    color: isSelected ? AppTheme.primaryDark : const Color(0xFF0F172A),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle, color: AppTheme.primaryTeal, size: 20)
+                                    : null,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(
+                                    color: isSelected ? AppTheme.primaryTeal : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(ctx);
+                                  setState(() {
+                                    _diseaseHistoryController.text = treatment;
+                                  });
                                 },
                               );
                             },
@@ -616,13 +739,62 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Treatment / Procedure',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                          ),
+                          InkWell(
+                            onTap: _openTreatmentPickerModal,
+                            child: const Text(
+                              'Browse All 58 Treatments →',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            'CONSULTATION',
+                            'SCALING',
+                            'RCT',
+                            'COMPOSITE',
+                            'CROWN PFM',
+                            'POST & CORE',
+                            'NORMAL EXTRACTION',
+                            'CLEAR ALIGNERS',
+                          ].map((t) {
+                            final isSel = _diseaseHistoryController.text == t;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ActionChip(
+                                label: Text(t, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.w700 : FontWeight.w500, color: isSel ? AppTheme.primaryDark : const Color(0xFF334155))),
+                                backgroundColor: isSel ? AppTheme.primarySubtle : const Color(0xFFF1F5F9),
+                                side: BorderSide(color: isSel ? AppTheme.primaryTeal : const Color(0xFFCBD5E1)),
+                                onPressed: () => setState(() => _diseaseHistoryController.text = t),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _diseaseHistoryController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Chief Complaint / Treatment History',
-                          prefixIcon: Icon(Icons.edit_note_outlined, size: 20),
-                          hintText: 'e.g. Tooth sensitivity, Root canal followup, Cavity restoration',
+                        decoration: InputDecoration(
+                          labelText: 'Chief Complaint / Treatment History *',
+                          prefixIcon: const Icon(Icons.edit_note_outlined, size: 20),
+                          hintText: 'Select treatment above or enter complaint',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.list_alt_rounded, color: AppTheme.primaryTeal),
+                            tooltip: 'Browse treatments',
+                            onPressed: _openTreatmentPickerModal,
+                          ),
                         ),
                       ),
                     ],

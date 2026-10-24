@@ -6,6 +6,7 @@ import '../models/patient.dart';
 import '../models/appointment.dart';
 import '../models/invoice.dart';
 import '../models/inventory_item.dart';
+import 'api_service.dart';
 
 class StorageService extends ChangeNotifier {
   static final StorageService _instance = StorageService._internal();
@@ -75,6 +76,64 @@ class StorageService extends ChangeNotifier {
 
     _initialized = true;
     notifyListeners();
+
+    // Auto-sync with connected Google Sheet in background
+    syncWithGoogleSheet();
+  }
+
+  /// Syncs app state directly with the connected Google Sheet
+  Future<bool> syncWithGoogleSheet() async {
+    try {
+      final data = await ApiService.fetchGoogleSheetData();
+      final sheetPatients = data['patients'] as List<Patient>? ?? [];
+      final sheetAppointments = data['appointments'] as List<Appointment>? ?? [];
+      final sheetInvoices = data['invoices'] as List<Invoice>? ?? [];
+
+      bool changed = false;
+
+      // Merge Patients from Google Sheet
+      for (final sp in sheetPatients) {
+        final idx = _patients.indexWhere((p) =>
+            (p.phone.isNotEmpty && p.phone == sp.phone) ||
+            p.name.toLowerCase() == sp.name.toLowerCase());
+        if (idx >= 0) {
+          if (sp.visits.isNotEmpty && _patients[idx].visits.isEmpty) {
+            _patients[idx] = sp;
+            changed = true;
+          }
+        } else {
+          _patients.add(sp);
+          changed = true;
+        }
+      }
+
+      // Merge Appointments from Google Sheet
+      for (final sa in sheetAppointments) {
+        final idx = _appointments.indexWhere((a) => a.id == sa.id);
+        if (idx < 0) {
+          _appointments.add(sa);
+          changed = true;
+        }
+      }
+
+      // Merge Invoices from Google Sheet
+      for (final si in sheetInvoices) {
+        final idx = _invoices.indexWhere((i) => i.id == si.id);
+        if (idx < 0) {
+          _invoices.add(si);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        await _persist();
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Google Sheet sync notice: $e');
+      return false;
+    }
   }
 
   // --- CRUD Operations ---
