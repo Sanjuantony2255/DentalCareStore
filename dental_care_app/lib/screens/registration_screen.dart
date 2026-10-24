@@ -94,37 +94,155 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   void _onPhoneChanged(String val) {
-    if (val.trim().length >= 10) {
+    final qDigits = val.replaceAll(RegExp(r'\D'), '');
+    if (qDigits.length >= 10) {
       final existing = widget.storage.patients.firstWhere(
-        (p) => p.phone.contains(val.trim()),
+        (p) {
+          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+          return pDigits == qDigits || pDigits.contains(qDigits) || qDigits.contains(pDigits);
+        },
         orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
       );
       if (existing.id.isNotEmpty && !_isRevisit) {
-        setState(() {
-          _isRevisit = true;
-          _nameController.text = existing.name;
-          _opController.text = existing.opNumber;
-          _ageController.text = existing.age > 0 ? existing.age.toString() : '';
-          _emailController.text = existing.email;
-          _addressController.text = existing.address;
-          _gender = existing.gender;
-          _doctor = existing.doctor;
-          _diseaseHistoryController.text = existing.diseaseHistory;
-          _drugAllergiesController.text = existing.drugAllergies;
-          if (_medicalHistoryOptions.contains(existing.medicalHistory)) {
-            _medicalHistory = existing.medicalHistory;
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Found returning patient: ${existing.name} (${existing.opNumber})'),
-            backgroundColor: AppTheme.primaryTeal,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        _populatePatientData(existing);
       }
     }
+  }
+
+  void _populatePatientData(Patient existing) {
+    setState(() {
+      _isRevisit = true;
+      _nameController.text = existing.name;
+      _phoneController.text = existing.phone;
+      _opController.text = existing.opNumber;
+      _ageController.text = existing.age > 0 ? existing.age.toString() : '';
+      _emailController.text = existing.email;
+      _addressController.text = existing.address;
+      _gender = existing.gender.isNotEmpty ? existing.gender : 'Male';
+      _doctor = existing.doctor.isNotEmpty ? existing.doctor : 'Dr. Sanju Antony';
+      _diseaseHistoryController.text = existing.diseaseHistory;
+      _drugAllergiesController.text = existing.drugAllergies;
+      if (_medicalHistoryOptions.contains(existing.medicalHistory)) {
+        _medicalHistory = existing.medicalHistory;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Found returning patient: ${existing.name} (${existing.opNumber})'),
+        backgroundColor: AppTheme.primaryTeal,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _openPatientLookupModal() {
+    final searchCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final query = searchCtrl.text.trim().toLowerCase();
+          final qDigits = query.replaceAll(RegExp(r'\D'), '');
+
+          final matched = widget.storage.patients.where((p) {
+            if (query.isEmpty) return true;
+            final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+            return p.name.toLowerCase().contains(query) ||
+                p.phone.contains(query) ||
+                (qDigits.length >= 3 && pDigits.contains(qDigits)) ||
+                p.opNumber.toLowerCase().contains(query) ||
+                p.doctor.toLowerCase().contains(query);
+          }).toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.65,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Select Patient for Revisit',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: searchCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search by Name, Phone, or OP #...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                searchCtrl.clear();
+                                setModalState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setModalState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: matched.isEmpty
+                        ? const Center(child: Text('No matching registered patients found.'))
+                        : ListView.separated(
+                            itemCount: matched.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, idx) {
+                              final p = matched[idx];
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: AppTheme.primarySubtle,
+                                  child: Text(
+                                    p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
+                                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.primaryDark),
+                                  ),
+                                ),
+                                title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                subtitle: Text('${p.opNumber} • ${p.phone} • ${p.doctor}'),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(ctx);
+                                  _populatePatientData(p);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _submitForm() async {
@@ -339,6 +457,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
               ),
               const SizedBox(height: 18),
+
+              if (_isRevisit) ...[
+                OutlinedButton.icon(
+                  onPressed: _openPatientLookupModal,
+                  icon: const Icon(Icons.person_search_rounded, color: AppTheme.primaryTeal),
+                  label: const Text(
+                    'Search & Select Returning Patient',
+                    style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.w700),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.primaryTeal, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
 
               // Section 1: Demographics
               _sectionTitle('1. Patient Demographics & Contact'),

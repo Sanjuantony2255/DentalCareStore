@@ -36,7 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
         storage: widget.storage,
         onBookAppointment: _onBookAppointmentFromPatient,
       ),
-      SearchRecordsScreen(storage: widget.storage),
+      SearchRecordsScreen(
+        storage: widget.storage,
+        onBookAppointment: _onBookAppointmentFromPatient,
+      ),
       AccountsScreen(storage: widget.storage),
       PharmacyScreen(storage: widget.storage),
     ];

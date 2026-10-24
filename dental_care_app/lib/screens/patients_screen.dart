@@ -338,13 +338,20 @@ class _PatientsScreenState extends State<PatientsScreen> {
       builder: (context, _) {
         final allPatients = widget.storage.patients;
         final query = _searchController.text.trim().toLowerCase();
+        final qDigits = query.replaceAll(RegExp(r'\D'), '');
 
         final filtered = allPatients.where((p) {
+          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
           final matchesQuery = query.isEmpty ||
               p.name.toLowerCase().contains(query) ||
               p.phone.contains(query) ||
+              (qDigits.length >= 3 && pDigits.contains(qDigits)) ||
               p.opNumber.toLowerCase().contains(query) ||
-              p.doctor.toLowerCase().contains(query);
+              p.doctor.toLowerCase().contains(query) ||
+              p.diseaseHistory.toLowerCase().contains(query) ||
+              p.medicalHistory.toLowerCase().contains(query) ||
+              p.drugAllergies.toLowerCase().contains(query) ||
+              p.address.toLowerCase().contains(query);
 
           if (!matchesQuery) return false;
 

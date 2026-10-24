@@ -19,6 +19,8 @@ class AppointmentsScreen extends StatefulWidget {
 class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = DateTime.now();
+  final _searchController = TextEditingController();
+  bool _showSearch = false;
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
 
   @override
   void dispose() {
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -302,9 +305,62 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         final selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
         final datewiseApts = allApts.where((a) => a.date == selectedDateStr).toList();
 
+        final query = _searchController.text.trim().toLowerCase();
+        final qDigits = query.replaceAll(RegExp(r'\D'), '');
+
+        bool matchesQuery(Appointment a) {
+          if (query.isEmpty) return true;
+          final aDigits = a.phone.replaceAll(RegExp(r'\D'), '');
+          return a.patientName.toLowerCase().contains(query) ||
+              a.phone.contains(query) ||
+              (qDigits.length >= 3 && aDigits.contains(qDigits)) ||
+              a.doctor.toLowerCase().contains(query) ||
+              a.reason.toLowerCase().contains(query) ||
+              a.status.toLowerCase().contains(query) ||
+              a.notes.toLowerCase().contains(query);
+        }
+
+        final filteredToday = todayApts.where(matchesQuery).toList();
+        final filteredUpcoming = upcomingApts.where(matchesQuery).toList();
+        final filteredDatewise = datewiseApts.where(matchesQuery).toList();
+        final filteredAll = allApts.where(matchesQuery).toList();
+
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Appointments & Calendar'),
+            title: _showSearch
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Color(0xFF0F172A), fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: 'Search patient, doctor, reason...',
+                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      border: InputBorder.none,
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  )
+                : const Text('Appointments & Calendar'),
+            actions: [
+              IconButton(
+                icon: Icon(_showSearch ? Icons.close : Icons.search),
+                tooltip: _showSearch ? 'Close Search' : 'Search Appointments',
+                onPressed: () {
+                  setState(() {
+                    _showSearch = !_showSearch;
+                    if (!_showSearch) _searchController.clear();
+                  });
+                },
+              ),
+            ],
             bottom: TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -312,10 +368,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
               unselectedLabelColor: const Color(0xFF64748B),
               indicatorColor: AppTheme.primaryTeal,
               tabs: [
-                Tab(text: 'Today (${todayApts.length})'),
-                Tab(text: 'Upcoming (${upcomingApts.length})'),
+                Tab(text: 'Today (${filteredToday.length})'),
+                Tab(text: 'Upcoming (${filteredUpcoming.length})'),
                 const Tab(text: 'Date Filter'),
-                Tab(text: 'All (${allApts.length})'),
+                Tab(text: 'All (${filteredAll.length})'),
               ],
             ),
           ),
@@ -329,10 +385,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             controller: _tabController,
             children: [
               // Tab 1: Today
-              _buildAppointmentsList(todayApts, 'No appointments scheduled for today.'),
+              _buildAppointmentsList(
+                filteredToday,
+                query.isNotEmpty
+                    ? 'No appointments today matched "$query".'
+                    : 'No appointments scheduled for today.',
+              ),
 
               // Tab 2: Upcoming
-              _buildAppointmentsList(upcomingApts, 'No upcoming appointments.'),
+              _buildAppointmentsList(
+                filteredUpcoming,
+                query.isNotEmpty
+                    ? 'No upcoming appointments matched "$query".'
+                    : 'No upcoming appointments.',
+              ),
 
               // Tab 3: Date Filter
               Column(
@@ -384,15 +450,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   Expanded(
                     child: _buildAppointmentsList(
-                      datewiseApts,
-                      'No appointments for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.',
+                      filteredDatewise,
+                      query.isNotEmpty
+                          ? 'No appointments on ${DateFormat('dd MMM yyyy').format(_selectedDate)} matched "$query".'
+                          : 'No appointments for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.',
                     ),
                   ),
                 ],
               ),
 
               // Tab 4: All
-              _buildAppointmentsList(allApts, 'No appointment history available.'),
+              _buildAppointmentsList(
+                filteredAll,
+                query.isNotEmpty
+                    ? 'No appointments matched "$query".'
+                    : 'No appointment history available.',
+              ),
             ],
           ),
         );
