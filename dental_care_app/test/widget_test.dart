@@ -81,35 +81,35 @@ void main() {
 
       // Search by name
       final nameMatches = storage.patients.where(
-        (p) => p.name.toLowerCase().contains('rajesh'),
+        (p) => p.name.toLowerCase().contains('gokul'),
       ).toList();
       expect(nameMatches.isNotEmpty, true);
-      expect(nameMatches.first.name, 'Rajesh Kumar');
+      expect(nameMatches.first.name, 'Gokul');
 
-      // Search by normalized phone digits (e.g. searching '9845012345' or '98450')
-      const qDigits = '9845012345';
+      // Search by normalized phone digits (e.g. searching '133564456156')
+      const qDigits = '133564456156';
       final phoneMatches = storage.patients.where(
         (p) => p.phone.replaceAll(RegExp(r'\D'), '').contains(qDigits),
       ).toList();
       expect(phoneMatches.isNotEmpty, true);
-      expect(phoneMatches.first.name, 'Rajesh Kumar');
+      expect(phoneMatches.first.name, 'Gokul');
 
       // Search by OP number
       final opMatches = storage.patients.where(
-        (p) => p.opNumber.toLowerCase().contains('op-401'),
+        (p) => p.opNumber.toLowerCase().contains('op-102'),
       ).toList();
       expect(opMatches.isNotEmpty, true);
-      expect(opMatches.first.name, 'Rajesh Kumar');
+      expect(opMatches.first.name, 'Gokul');
 
       // Search invoice by ID
       final invMatches = storage.invoices.where(
-        (i) => i.id.toLowerCase().contains('inv-2026-001'),
+        (i) => i.id.toLowerCase().contains('inv-20261014-9713'),
       ).toList();
       expect(invMatches.isNotEmpty, true);
 
       // Search appointment by procedure
       final aptMatches = storage.appointments.where(
-        (a) => a.reason.toLowerCase().contains('root canal'),
+        (a) => a.reason.toLowerCase().contains('consultation'),
       ).toList();
       expect(aptMatches.isNotEmpty, true);
     });
