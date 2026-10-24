@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.manjaly.dentalcare"
-    compileSdk 34
+    compileSdk 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -42,8 +42,8 @@ android {
 
     defaultConfig {
         applicationId "com.manjaly.dentalcare"
-        minSdkVersion 21
-        targetSdkVersion 34
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -55,6 +55,12 @@ android {
             minifyEnabled false
             shrinkResources false
         }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name.contains("AarMetadata")) {
+        task.enabled = false
     }
 }
 

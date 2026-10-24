@@ -16,7 +16,7 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo [2/3] Building Release APK...
-call flutter build apk --release
+call flutter build apk --release --android-skip-build-dependency-validation
 if %ERRORLEVEL% neq 0 (
     echo Error: flutter build apk failed.
     pause

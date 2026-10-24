@@ -12,9 +12,6 @@ dental_care_app/.dart_tool/
 **/android/.gradle/
 **/android/local.properties
 **/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/gradle/
 **/android/*.iml
 **/android/app/*.iml
 **/android/.idea/
