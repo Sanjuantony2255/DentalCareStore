@@ -646,20 +646,32 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
 
   Widget _buildAppointmentsList(List<Appointment> list, String emptyMessage) {
     if (list.isEmpty) {
-      return EmptyStateView(
-        icon: Icons.event_available_outlined,
-        title: 'No Appointments Found',
-        message: emptyMessage,
-        buttonText: 'Book New Appointment',
-        onButtonPressed: () => _openBookAppointmentModal(),
+      return RefreshIndicator(
+        onRefresh: () => widget.storage.syncWithCloud(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 400,
+            child: EmptyStateView(
+              icon: Icons.event_available_outlined,
+              title: 'No Appointments Found',
+              message: emptyMessage,
+              buttonText: 'Book New Appointment',
+              onButtonPressed: () => _openBookAppointmentModal(),
+            ),
+          ),
+        ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
+    return RefreshIndicator(
+      onRefresh: () => widget.storage.syncWithCloud(),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
         final apt = list[index];
         final isCompleted = apt.status == 'Completed';
         final isCancelled = apt.status == 'Cancelled';
@@ -798,6 +810,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 }

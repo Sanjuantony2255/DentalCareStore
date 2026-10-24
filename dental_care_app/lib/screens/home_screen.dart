@@ -35,21 +35,21 @@ class _HomeScreenState extends State<HomeScreen> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 12),
-            Text('Syncing with Google Sheet...'),
+            Text('Syncing with GitHub Cloud & Google Sheet...'),
           ],
         ),
         duration: Duration(seconds: 2),
       ),
     );
 
-    final success = await widget.storage.syncWithGoogleSheet();
+    final success = await widget.storage.syncWithCloud();
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
-              ? '✓ Synced with Google Sheet! (${widget.storage.patients.length} patients, ${widget.storage.appointments.length} appointments, ${widget.storage.invoices.length} invoices)'
+              ? '✓ Synced with GitHub Cloud & Google Sheet! (${widget.storage.patients.length} patients, ${widget.storage.appointments.length} appointments, ${widget.storage.invoices.length} invoices)'
               : 'Sync complete (using cached offline records)',
         ),
         backgroundColor: success ? AppTheme.primaryTeal : const Color(0xFF64748B),
@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.sync_rounded, color: AppTheme.primaryTeal),
-            tooltip: 'Sync with Google Sheet',
+            tooltip: 'Sync with GitHub Cloud & Google Sheet',
             onPressed: () => _handleSyncGoogleSheet(context),
           ),
           Container(
@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 5),
                 const Text(
-                  'Clinic Portal',
+                  'Cloud Live',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
                 ),
               ],
@@ -205,13 +205,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   _drawerItem(5, Icons.medication_outlined, 'Pharmacy & Stock'),
                   const Divider(height: 16, color: Color(0xFFE2E8F0)),
                   ListTile(
-                    leading: const Icon(Icons.sync_rounded, color: AppTheme.primaryTeal),
+                    leading: const Icon(Icons.cloud_sync_rounded, color: AppTheme.primaryTeal),
                     title: const Text(
-                      'Sync with Google Sheet',
+                      'Sync with Cloud',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
                     ),
                     subtitle: const Text(
-                      'docs.google.com/spreadsheets/d/1Muzymft...',
+                      'GitHub Cloud & Google Sheet Live Sync',
                       style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                       overflow: TextOverflow.ellipsis,
                     ),

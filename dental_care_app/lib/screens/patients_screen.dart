@@ -430,16 +430,28 @@ class _PatientsScreenState extends State<PatientsScreen> {
               // Patients List
               Expanded(
                 child: filtered.isEmpty
-                    ? const EmptyStateView(
-                        icon: Icons.person_search_outlined,
-                        title: 'No Patients Match',
-                        message: 'Try adjusting your search query or filter criteria.',
+                    ? RefreshIndicator(
+                        onRefresh: () => widget.storage.syncWithCloud(),
+                        child: const SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 350,
+                            child: EmptyStateView(
+                              icon: Icons.person_search_outlined,
+                              title: 'No Patients Match',
+                              message: 'Try adjusting your search query or filter criteria.',
+                            ),
+                          ),
+                        ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
+                    : RefreshIndicator(
+                        onRefresh: () => widget.storage.syncWithCloud(),
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
                           final p = filtered[index];
                           final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
@@ -534,6 +546,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           );
                         },
                       ),
+                    ),
               ),
             ],
           ),

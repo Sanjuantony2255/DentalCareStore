@@ -1,0 +1,607 @@
+{
+  "version": "1.0.0",
+  "cloudSource": "https://github.com/Sanjuantony2255/DentalCareStore",
+  "lastUpdated": "2026-10-24T16:15:00+05:30",
+  "patients": [
+    {
+      "id": "PAT-1001",
+      "opNumber": "OP-401",
+      "name": "Rajesh Kumar",
+      "phone": "9845012345",
+      "email": "rajesh.k@gmail.com",
+      "dob": "1988-04-12",
+      "age": 38,
+      "gender": "Male",
+      "address": "MG Road, Bangalore",
+      "doctor": "Dr. Sanju Antony",
+      "medicalHistory": "Hypertension",
+      "drugAllergies": "Penicillin",
+      "diseaseHistory": "RCT - Root Canal & Crown",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 3,
+      "totalBilled": 2150.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr. Sanju Antony",
+          "notes": "Root Canal filling checkup & cleaning",
+          "invoiceId": "INV-2026-001",
+          "amount": 850.0
+        },
+        {
+          "date": "2026-10-20",
+          "doctor": "Dr. Sanju Antony",
+          "notes": "Composite restoration tooth 16",
+          "invoiceId": "INV-2026-005",
+          "amount": 800.0
+        },
+        {
+          "date": "2026-10-14",
+          "doctor": "Dr. Sanju Antony",
+          "notes": "First consultation and RVG X-Ray",
+          "invoiceId": "INV-2026-012",
+          "amount": 500.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-133564456156",
+      "opNumber": "OP-102",
+      "name": "Gokul",
+      "phone": "133564456156",
+      "email": "",
+      "dob": "1994-06-12",
+      "age": 32,
+      "gender": "Male",
+      "address": "Clinic Outstation",
+      "doctor": "JS",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "SCALING & DENTAL RADIOGRAPHS",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 1000.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "JS",
+          "notes": "Consultation & X-Ray checkup",
+          "invoiceId": "INV-20261014-9713",
+          "amount": 1000.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-8921399907-M",
+      "opNumber": "OP-103",
+      "name": "Manu",
+      "phone": "8921399907",
+      "email": "157 gorge rd east",
+      "dob": "2006-03-10",
+      "age": 20,
+      "gender": "Male",
+      "address": "157 Gorge Rd East",
+      "doctor": "sa",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "CROWN PFM",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 950.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "sa",
+          "notes": "Crown fitting & occlusion review",
+          "invoiceId": "INV-20261014-4626",
+          "amount": 950.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-7356511107-A",
+      "opNumber": "OP-104",
+      "name": "Anju",
+      "phone": "7356511107",
+      "email": "157 gorge rd east",
+      "dob": "2008-07-22",
+      "age": 18,
+      "gender": "Female",
+      "address": "157 Gorge Rd East",
+      "doctor": "Neha",
+      "medicalHistory": "Thyroid Disorder",
+      "drugAllergies": "None",
+      "diseaseHistory": "CLEAR ALIGNERS Consultation",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 950.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Neha",
+          "notes": "Orthodontic evaluation and scanning",
+          "invoiceId": "INV-20261014-6363",
+          "amount": 950.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-8921399908",
+      "opNumber": "OP-105",
+      "name": "Albin",
+      "phone": "8921399908",
+      "email": "157 gorge rd north",
+      "dob": "1996-01-15",
+      "age": 30,
+      "gender": "Male",
+      "address": "157 Gorge Rd North",
+      "doctor": "Anu",
+      "medicalHistory": "Kidney / Liver Disease",
+      "drugAllergies": "None",
+      "diseaseHistory": "NORMAL EXTRACTION",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 450.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Anu",
+          "notes": "Post extraction checkup & dressing",
+          "invoiceId": "INV-20261014-5916",
+          "amount": 450.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-7827789812",
+      "opNumber": "OP-106",
+      "name": "Akhil",
+      "phone": "7827789812",
+      "email": "akhil@gmail.com",
+      "dob": "1998-11-20",
+      "age": 28,
+      "gender": "Male",
+      "address": "Town Square",
+      "doctor": "Dr. Sanju Antony",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "COMPOSITE & BLEACHING",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 950.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr. Sanju Antony",
+          "notes": "Aesthetic composite veneer and bleaching",
+          "invoiceId": "INV-20261014-4185",
+          "amount": 950.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-7356511107-D",
+      "opNumber": "OP-107",
+      "name": "Deepak",
+      "phone": "7356511107",
+      "email": "deepak@gmail.com",
+      "dob": "1996-02-01",
+      "age": 30,
+      "gender": "Male",
+      "address": "Clinic Vicinity",
+      "doctor": "Dr Sanju",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "SCALING & POLISHING",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 2,
+      "totalBilled": 350.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr Sanju",
+          "notes": "Ultrasonic scaling & polishing",
+          "invoiceId": "INV-20261013-3882",
+          "amount": 300.0
+        },
+        {
+          "date": "2026-10-18",
+          "doctor": "js",
+          "notes": "Consultation",
+          "invoiceId": "INV-20261013-2386",
+          "amount": 50.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-8921399907-S",
+      "opNumber": "OP-108",
+      "name": "Sanju",
+      "phone": "8921399907",
+      "email": "sanjuantony01@gmail.com",
+      "dob": "2001-02-02",
+      "age": 25,
+      "gender": "Male",
+      "address": "Manjaly House",
+      "doctor": "Dr. Jeswin",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "DENTAL RADIOGRAPHS & RVG",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 2,
+      "totalBilled": 200.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "sa",
+          "notes": "Dental radiograph series",
+          "invoiceId": "INV-20261013-2595",
+          "amount": 100.0
+        },
+        {
+          "date": "2026-10-20",
+          "doctor": "ds",
+          "notes": "Pharmacy medication delivery",
+          "invoiceId": "INV-20261013-4516",
+          "amount": 100.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-8921399907-SAM",
+      "opNumber": "OP-109",
+      "name": "Sam",
+      "phone": "8921399907",
+      "email": "sam@gmail.com",
+      "dob": "2001-02-02",
+      "age": 25,
+      "gender": "Male",
+      "address": "Central Street",
+      "doctor": "Dr. JJ",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "CONSULTATION",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 350.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr. JJ",
+          "notes": "Full oral examination",
+          "invoiceId": "INV-20261024-101",
+          "amount": 350.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-9072467117",
+      "opNumber": "OP-110",
+      "name": "Jeswin Jose",
+      "phone": "9072467117",
+      "email": "jeswin@gmail.com",
+      "dob": "1997-05-17",
+      "age": 29,
+      "gender": "Male",
+      "address": "High Street",
+      "doctor": "Dr. Sanju Antony",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "SPECIALIST CONSULTATION & RVG",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 300.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr. Sanju Antony",
+          "notes": "OPG Digital X-Ray",
+          "invoiceId": "INV-20261013-4322",
+          "amount": 300.0
+        }
+      ]
+    },
+    {
+      "id": "PAT-9876543210",
+      "opNumber": "OP-111",
+      "name": "Ramesh Kumar",
+      "phone": "9876543210",
+      "email": "ramesh@example.com",
+      "dob": "1990-05-15",
+      "age": 36,
+      "gender": "Male",
+      "address": "Brigade Road",
+      "doctor": "Dr. Anita",
+      "medicalHistory": "None",
+      "drugAllergies": "None",
+      "diseaseHistory": "RCT & POST & CORE",
+      "registrationDate": "2026-10-24",
+      "totalVisits": 1,
+      "totalBilled": 1000.0,
+      "visits": [
+        {
+          "date": "2026-10-24",
+          "doctor": "Dr. Anita",
+          "notes": "Root Canal obturation and core buildup",
+          "invoiceId": "INV-20261013-3604",
+          "amount": 1000.0
+        }
+      ]
+    }
+  ],
+  "appointments": [
+    {
+      "id": "APT-20261024-001",
+      "patientName": "Sam",
+      "phone": "8921399907",
+      "doctor": "Dr. JJ",
+      "date": "2026-10-24",
+      "timeSlot": "10:00 AM",
+      "reason": "CONSULTATION",
+      "notes": "Scheduled clinical consultation",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261024-002",
+      "patientName": "Rajesh Kumar",
+      "phone": "9845012345",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-10-24",
+      "timeSlot": "11:30 AM",
+      "reason": "RCT - Root Canal Filling",
+      "notes": "Final seating and checkup",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261025-001",
+      "patientName": "Neha",
+      "phone": "3235646544",
+      "doctor": "Dr. Sarah Mathew (Orthodontist)",
+      "date": "2026-10-25",
+      "timeSlot": "10:00 AM",
+      "reason": "CLEAR ALIGNERS",
+      "notes": "Aligner tray delivery",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261026-001",
+      "patientName": "Deepak",
+      "phone": "7356511107",
+      "doctor": "Dr. Jacob Thomas (Endodontist)",
+      "date": "2026-10-26",
+      "timeSlot": "11:00 AM",
+      "reason": "CROWN PFM",
+      "notes": "Crown cementation",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261028-001",
+      "patientName": "Deepak",
+      "phone": "7356511107",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-10-28",
+      "timeSlot": "10:00 AM",
+      "reason": "SCALING",
+      "notes": "Ultrasonic scaling session 2",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261101-001",
+      "patientName": "Sanju",
+      "phone": "8921399907",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-11-01",
+      "timeSlot": "10:30 AM",
+      "reason": "DENTAL RADIOGRAPHS",
+      "notes": "Follow-up RVG",
+      "status": "Upcoming"
+    },
+    {
+      "id": "APT-20261113-001",
+      "patientName": "Deepak",
+      "phone": "7356511107",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-11-13",
+      "timeSlot": "10:00 AM",
+      "reason": "EMAX CROWN, VENEER, INLAY",
+      "notes": "Veneer evaluation",
+      "status": "Upcoming"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "INV-2026-001",
+      "patientName": "Rajesh Kumar",
+      "phone": "9845012345",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-10-24",
+      "consultationCharge": 350.0,
+      "xrayCharge": 200.0,
+      "pharmacyCharge": 300.0,
+      "totalAmount": 850.0,
+      "paymentMode": "UPI / Online",
+      "notes": "Root Canal filling checkup & cleaning"
+    },
+    {
+      "id": "INV-20261014-9713",
+      "patientName": "Gokul",
+      "phone": "133564456156",
+      "doctor": "JS",
+      "date": "2026-10-24",
+      "consultationCharge": 200.0,
+      "xrayCharge": 300.0,
+      "pharmacyCharge": 500.0,
+      "totalAmount": 1000.0,
+      "paymentMode": "Cash",
+      "notes": "General checkup & antibiotics"
+    },
+    {
+      "id": "INV-20261014-4626",
+      "patientName": "Manu",
+      "phone": "8921399907",
+      "doctor": "sa",
+      "date": "2026-10-24",
+      "consultationCharge": 500.0,
+      "xrayCharge": 250.0,
+      "pharmacyCharge": 200.0,
+      "totalAmount": 950.0,
+      "paymentMode": "Cash",
+      "notes": "CROWN PFM treatment"
+    },
+    {
+      "id": "INV-20261014-6363",
+      "patientName": "Anju",
+      "phone": "7356511107",
+      "doctor": "Neha",
+      "date": "2026-10-24",
+      "consultationCharge": 500.0,
+      "xrayCharge": 250.0,
+      "pharmacyCharge": 200.0,
+      "totalAmount": 950.0,
+      "paymentMode": "Card",
+      "notes": "Orthodontic examination"
+    },
+    {
+      "id": "INV-20261014-5916",
+      "patientName": "Albin",
+      "phone": "8921399908",
+      "doctor": "Anu",
+      "date": "2026-10-24",
+      "consultationCharge": 0.0,
+      "xrayCharge": 250.0,
+      "pharmacyCharge": 200.0,
+      "totalAmount": 450.0,
+      "paymentMode": "Cash",
+      "notes": "Extraction and medication"
+    },
+    {
+      "id": "INV-20261014-4185",
+      "patientName": "Akhil",
+      "phone": "7827789812",
+      "doctor": "Dr. Sanju Antony",
+      "date": "2026-10-24",
+      "consultationCharge": 500.0,
+      "xrayCharge": 250.0,
+      "pharmacyCharge": 200.0,
+      "totalAmount": 950.0,
+      "paymentMode": "Cash",
+      "notes": "Bleaching and aesthetic filling"
+    },
+    {
+      "id": "INV-20261013-3604",
+      "patientName": "Ramesh Kumar",
+      "phone": "9876543210",
+      "doctor": "Dr. Anita",
+      "date": "2026-10-24",
+      "consultationCharge": 500.0,
+      "xrayCharge": 300.0,
+      "pharmacyCharge": 200.0,
+      "totalAmount": 1000.0,
+      "paymentMode": "UPI / Online",
+      "notes": "RCT & obturation"
+    },
+    {
+      "id": "INV-20261013-3882",
+      "patientName": "Deepak",
+      "phone": "7356511107",
+      "doctor": "Dr Sanju",
+      "date": "2026-10-24",
+      "consultationCharge": 300.0,
+      "xrayCharge": 0.0,
+      "pharmacyCharge": 0.0,
+      "totalAmount": 300.0,
+      "paymentMode": "Cash",
+      "notes": "Ultrasonic scaling"
+    }
+  ],
+  "inventory": [
+    {
+      "id": "MED-1001",
+      "name": "Amoxicillin 500mg (Cap)",
+      "category": "Antibiotics",
+      "batch": "AMX-2026-A1",
+      "expiryDate": "2027-06-30",
+      "unitPrice": 8.50,
+      "quantity": 250,
+      "minThreshold": 50,
+      "supplier": "Apex Pharma"
+    },
+    {
+      "id": "MED-1002",
+      "name": "Aceclofenac + Paracetamol (Tab)",
+      "category": "Analgesics",
+      "batch": "ACP-2026-B4",
+      "expiryDate": "2027-10-15",
+      "unitPrice": 6.00,
+      "quantity": 320,
+      "minThreshold": 60,
+      "supplier": "Sun Health"
+    },
+    {
+      "id": "MED-1003",
+      "name": "Metronidazole 400mg (Tab)",
+      "category": "Antibiotics",
+      "batch": "MTZ-2026-09",
+      "expiryDate": "2027-12-31",
+      "unitPrice": 4.50,
+      "quantity": 180,
+      "minThreshold": 40,
+      "supplier": "Cipla Med"
+    },
+    {
+      "id": "MED-1004",
+      "name": "Lidocaine 2% + Adrenaline (Vial)",
+      "category": "Anesthesia",
+      "batch": "LID-2026-C8",
+      "expiryDate": "2027-04-20",
+      "unitPrice": 45.00,
+      "quantity": 75,
+      "minThreshold": 20,
+      "supplier": "Neon Labs"
+    },
+    {
+      "id": "MED-1005",
+      "name": "Chlorhexidine 0.2% Mouthwash 150ml",
+      "category": "Antiseptic Oral",
+      "batch": "CHX-2026-D1",
+      "expiryDate": "2027-08-30",
+      "unitPrice": 110.00,
+      "quantity": 45,
+      "minThreshold": 15,
+      "supplier": "ICPA Health"
+    },
+    {
+      "id": "MED-1008",
+      "name": "Cotton Rolls Pack 500s",
+      "category": "Consumables",
+      "batch": "COT-2026-01",
+      "expiryDate": "2029-01-01",
+      "unitPrice": 160.00,
+      "quantity": 35,
+      "minThreshold": 10,
+      "supplier": "HealthCare Supplies"
+    },
+    {
+      "id": "MED-1009",
+      "name": "Dental Disposable Needles 30G",
+      "category": "Surgical Consumables",
+      "batch": "NDL-2026-N9",
+      "expiryDate": "2028-06-30",
+      "unitPrice": 5.00,
+      "quantity": 400,
+      "minThreshold": 100,
+      "supplier": "Unolok Med"
+    },
+    {
+      "id": "MED-1010",
+      "name": "Orthodontic Relief Wax Pack",
+      "category": "Oral Hygiene",
+      "batch": "WAX-2026-W3",
+      "expiryDate": "2028-12-31",
+      "unitPrice": 40.00,
+      "quantity": 60,
+      "minThreshold": 15,
+      "supplier": "Ortho Care"
+    }
+  ]
+}

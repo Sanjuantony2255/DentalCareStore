@@ -40,7 +40,7 @@ class StorageService extends ChangeNotifier {
         _patients.clear();
         _patients.addAll(list.map((e) => Patient.fromJson(e)));
       } else {
-        _seedPatients();
+        _seedRealClinicPatients();
       }
 
       if (appointmentsJson != null && appointmentsJson.isNotEmpty) {
@@ -48,7 +48,7 @@ class StorageService extends ChangeNotifier {
         _appointments.clear();
         _appointments.addAll(list.map((e) => Appointment.fromJson(e)));
       } else {
-        _seedAppointments();
+        _seedRealClinicAppointments();
       }
 
       if (invoicesJson != null && invoicesJson.isNotEmpty) {
@@ -56,7 +56,7 @@ class StorageService extends ChangeNotifier {
         _invoices.clear();
         _invoices.addAll(list.map((e) => Invoice.fromJson(e)));
       } else {
-        _seedInvoices();
+        _seedRealClinicInvoices();
       }
 
       if (inventoryJson != null && inventoryJson.isNotEmpty) {
@@ -64,76 +64,96 @@ class StorageService extends ChangeNotifier {
         _inventory.clear();
         _inventory.addAll(list.map((e) => InventoryItem.fromJson(e)));
       } else {
-        _seedInventory();
+        _seedRealClinicInventory();
       }
     } catch (e) {
-      // In case of any error in prefs, fallback to demo seed
-      _seedPatients();
-      _seedAppointments();
-      _seedInvoices();
-      _seedInventory();
+      _seedRealClinicPatients();
+      _seedRealClinicAppointments();
+      _seedRealClinicInvoices();
+      _seedRealClinicInventory();
     }
 
     _initialized = true;
     notifyListeners();
 
-    // Auto-sync with connected Google Sheet in background
-    syncWithGoogleSheet();
+    // Auto-sync with connected GitHub Cloud & Google Sheet in background
+    syncWithCloud();
   }
 
-  /// Syncs app state directly with the connected Google Sheet
-  Future<bool> syncWithGoogleSheet() async {
+  /// Syncs app state directly with GitHub Cloud repository and Google Sheet
+  Future<bool> syncWithCloud() async {
     try {
-      final data = await ApiService.fetchGoogleSheetData();
-      final sheetPatients = data['patients'] as List<Patient>? ?? [];
-      final sheetAppointments = data['appointments'] as List<Appointment>? ?? [];
-      final sheetInvoices = data['invoices'] as List<Invoice>? ?? [];
+      final data = await ApiService.fetchCloudData();
+      final cloudPatients = data['patients'] as List<Patient>? ?? [];
+      final cloudAppointments = data['appointments'] as List<Appointment>? ?? [];
+      final cloudInvoices = data['invoices'] as List<Invoice>? ?? [];
+      final cloudInventory = data['inventory'] as List<InventoryItem>? ?? [];
 
       bool changed = false;
 
-      // Merge Patients from Google Sheet
-      for (final sp in sheetPatients) {
+      // Merge Patients
+      for (final cp in cloudPatients) {
         final idx = _patients.indexWhere((p) =>
-            (p.phone.isNotEmpty && p.phone == sp.phone) ||
-            p.name.toLowerCase() == sp.name.toLowerCase());
+            (p.phone.isNotEmpty && p.phone == cp.phone) ||
+            (p.name.isNotEmpty && p.name.toLowerCase() == cp.name.toLowerCase()));
         if (idx >= 0) {
-          if (sp.visits.isNotEmpty && _patients[idx].visits.isEmpty) {
-            _patients[idx] = sp;
+          if (cp.visits.isNotEmpty && _patients[idx].visits.isEmpty) {
+            _patients[idx] = cp;
             changed = true;
           }
         } else {
-          _patients.add(sp);
+          _patients.add(cp);
           changed = true;
         }
       }
 
-      // Merge Appointments from Google Sheet
-      for (final sa in sheetAppointments) {
-        final idx = _appointments.indexWhere((a) => a.id == sa.id);
+      // Merge Appointments
+      for (final ca in cloudAppointments) {
+        final idx = _appointments.indexWhere((a) => a.id == ca.id);
+        if (idx >= 0) {
+          _appointments[idx] = ca;
+          changed = true;
+        } else {
+          _appointments.add(ca);
+          changed = true;
+        }
+      }
+
+      // Merge Invoices
+      for (final ci in cloudInvoices) {
+        final idx = _invoices.indexWhere((i) => i.id == ci.id);
         if (idx < 0) {
-          _appointments.add(sa);
+          _invoices.add(ci);
           changed = true;
         }
       }
 
-      // Merge Invoices from Google Sheet
-      for (final si in sheetInvoices) {
-        final idx = _invoices.indexWhere((i) => i.id == si.id);
-        if (idx < 0) {
-          _invoices.add(si);
+      // Merge Inventory
+      for (final cItem in cloudInventory) {
+        final idx = _inventory.indexWhere((it) => it.id == cItem.id);
+        if (idx >= 0) {
+          _inventory[idx] = cItem;
+          changed = true;
+        } else {
+          _inventory.add(cItem);
           changed = true;
         }
       }
 
-      if (changed) {
+      if (changed || _patients.isNotEmpty) {
         await _persist();
         notifyListeners();
       }
       return true;
     } catch (e) {
-      debugPrint('Google Sheet sync notice: $e');
+      debugPrint('Cloud sync notice: $e');
       return false;
     }
+  }
+
+  /// Alias for backward compatibility
+  Future<bool> syncWithGoogleSheet() async {
+    return syncWithCloud();
   }
 
   // --- CRUD Operations ---
@@ -158,6 +178,9 @@ class StorageService extends ChangeNotifier {
     }
     await _persist();
     notifyListeners();
+
+    // Push to Google Cloud in background
+    ApiService.syncAppointmentOnline(apt);
   }
 
   Future<void> updateAppointmentStatus(String id, String newStatus) async {
@@ -166,6 +189,9 @@ class StorageService extends ChangeNotifier {
       apt.status = newStatus;
       await _persist();
       notifyListeners();
+
+      // Push update to Google Cloud
+      ApiService.updateAppointmentStatusOnline(apt.id, newStatus);
     }
   }
 
@@ -177,6 +203,9 @@ class StorageService extends ChangeNotifier {
       apt.notes = notes;
       await _persist();
       notifyListeners();
+
+      // Push reschedule to Google Cloud
+      ApiService.rescheduleAppointmentOnline(apt.id, apt.phone, newDate, newTime, doctor, notes);
     }
   }
 
@@ -361,9 +390,9 @@ class StorageService extends ChangeNotifier {
     }
   }
 
-  // --- Seed Data Generator ---
+  // --- Real Clinic Baseline Dataset (Used if offline before first cloud sync) ---
 
-  void _seedPatients() {
+  void _seedRealClinicPatients() {
     final nowStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _patients.clear();
     _patients.addAll([
@@ -380,143 +409,314 @@ class StorageService extends ChangeNotifier {
         doctor: 'Dr. Sanju Antony',
         medicalHistory: 'Hypertension',
         drugAllergies: 'Penicillin',
-        diseaseHistory: 'Molar Sensitivity & Cavity',
-        registrationDate: '2026-09-10',
+        diseaseHistory: 'RCT - Root Canal & Crown',
+        registrationDate: nowStr,
         totalVisits: 3,
         totalBilled: 2150.0,
         visits: [
           VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'Root Canal filling checkup & cleaning', invoiceId: 'INV-2026-001', amount: 850.0),
-          VisitRecord(date: '2026-10-05', doctor: 'Dr. Sanju Antony', notes: 'Composite restoration tooth 16', invoiceId: 'INV-2026-005', amount: 800.0),
-          VisitRecord(date: '2026-09-10', doctor: 'Dr. Sanju Antony', notes: 'First consultation and RVG X-Ray', invoiceId: 'INV-2026-012', amount: 500.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'Composite restoration tooth 16', invoiceId: 'INV-2026-005', amount: 800.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'First consultation and RVG X-Ray', invoiceId: 'INV-2026-012', amount: 500.0),
         ],
       ),
       Patient(
-        id: 'PAT-1002',
-        opNumber: 'OP-402',
-        name: 'Ananya Sharma',
-        phone: '9741234567',
-        email: 'ananya.s@yahoo.com',
-        dob: '1995-08-23',
-        age: 31,
+        id: 'PAT-133564456156',
+        opNumber: 'OP-102',
+        name: 'Gokul',
+        phone: '133564456156',
+        email: '',
+        dob: '1994-06-12',
+        age: 32,
+        gender: 'Male',
+        address: 'Clinic Outstation',
+        doctor: 'JS',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'SCALING & DENTAL RADIOGRAPHS',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 1000.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'JS', notes: 'Consultation & X-Ray checkup', invoiceId: 'INV-20261014-9713', amount: 1000.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-8921399907-M',
+        opNumber: 'OP-103',
+        name: 'Manu',
+        phone: '8921399907',
+        email: '157 gorge rd east',
+        dob: '2006-03-10',
+        age: 20,
+        gender: 'Male',
+        address: '157 Gorge Rd East',
+        doctor: 'sa',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'CROWN PFM',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 950.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'sa', notes: 'Crown fitting & occlusion review', invoiceId: 'INV-20261014-4626', amount: 950.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-7356511107-A',
+        opNumber: 'OP-104',
+        name: 'Anju',
+        phone: '7356511107',
+        email: '157 gorge rd east',
+        dob: '2008-07-22',
+        age: 18,
         gender: 'Female',
-        address: 'Indiranagar 1st Stage',
+        address: '157 Gorge Rd East',
+        doctor: 'Neha',
+        medicalHistory: 'Thyroid Disorder',
+        drugAllergies: 'None',
+        diseaseHistory: 'CLEAR ALIGNERS Consultation',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 950.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'Neha', notes: 'Orthodontic evaluation and scanning', invoiceId: 'INV-20261014-6363', amount: 950.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-8921399908',
+        opNumber: 'OP-105',
+        name: 'Albin',
+        phone: '8921399908',
+        email: '157 gorge rd north',
+        dob: '1996-01-15',
+        age: 30,
+        gender: 'Male',
+        address: '157 Gorge Rd North',
+        doctor: 'Anu',
+        medicalHistory: 'Kidney / Liver Disease',
+        drugAllergies: 'None',
+        diseaseHistory: 'NORMAL EXTRACTION',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 450.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'Anu', notes: 'Post extraction checkup & dressing', invoiceId: 'INV-20261014-5916', amount: 450.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-7827789812',
+        opNumber: 'OP-106',
+        name: 'Akhil',
+        phone: '7827789812',
+        email: 'akhil@gmail.com',
+        dob: '1998-11-20',
+        age: 28,
+        gender: 'Male',
+        address: 'Town Square',
         doctor: 'Dr. Sanju Antony',
         medicalHistory: 'None',
         drugAllergies: 'None',
-        diseaseHistory: 'Mild Gingivitis',
+        diseaseHistory: 'COMPOSITE & BLEACHING',
         registrationDate: nowStr,
         totalVisits: 1,
-        totalBilled: 750.0,
+        totalBilled: 950.0,
         visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'Ultrasonic Scaling & Polishing', invoiceId: 'INV-2026-002', amount: 750.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'Aesthetic composite veneer and bleaching', invoiceId: 'INV-20261014-4185', amount: 950.0),
         ],
       ),
       Patient(
-        id: 'PAT-1003',
-        opNumber: 'OP-403',
-        name: 'Mohammed Farooq',
-        phone: '9988776655',
-        email: 'farooq.m@gmail.com',
-        dob: '1979-11-04',
-        age: 46,
+        id: 'PAT-7356511107-D',
+        opNumber: 'OP-107',
+        name: 'Deepak',
+        phone: '7356511107',
+        email: 'deepak@gmail.com',
+        dob: '1996-02-01',
+        age: 30,
         gender: 'Male',
-        address: 'Frazer Town, Bangalore',
-        doctor: 'Dr. Sanju Antony',
-        medicalHistory: 'Type 2 Diabetes',
-        drugAllergies: 'Aspirin',
-        diseaseHistory: 'Missing Lower Molar, Periodontitis',
-        registrationDate: '2026-10-15',
+        address: 'Clinic Vicinity',
+        doctor: 'Dr Sanju',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'SCALING & POLISHING',
+        registrationDate: nowStr,
         totalVisits: 2,
-        totalBilled: 3400.0,
+        totalBilled: 350.0,
         visits: [
-          VisitRecord(date: '2026-10-18', doctor: 'Dr. Sanju Antony', notes: 'Crown fitting & occlusion check', invoiceId: 'INV-2026-003', amount: 2800.0),
-          VisitRecord(date: '2026-10-15', doctor: 'Dr. Sanju Antony', notes: 'Impression & preparation', invoiceId: 'INV-2026-004', amount: 600.0),
+          VisitRecord(date: nowStr, doctor: 'Dr Sanju', notes: 'Ultrasonic scaling & polishing', invoiceId: 'INV-20261013-3882', amount: 300.0),
+          VisitRecord(date: nowStr, doctor: 'js', notes: 'Consultation', invoiceId: 'INV-20261013-2386', amount: 50.0),
         ],
       ),
       Patient(
-        id: 'PAT-1004',
-        opNumber: 'OP-404',
-        name: 'Priya Nair',
-        phone: '9845566778',
-        email: 'priya.nair@outlook.com',
-        dob: '2001-02-14',
+        id: 'PAT-8921399907-S',
+        opNumber: 'OP-108',
+        name: 'Sanju',
+        phone: '8921399907',
+        email: 'sanjuantony01@gmail.com',
+        dob: '2001-02-02',
         age: 25,
-        gender: 'Female',
-        address: 'Koramangala 4th Block',
-        doctor: 'Dr. Sanju Antony',
-        medicalHistory: 'Asthma',
+        gender: 'Male',
+        address: 'Manjaly House',
+        doctor: 'Dr. Jeswin',
+        medicalHistory: 'None',
         drugAllergies: 'None',
-        diseaseHistory: 'Wisdom Tooth Impaction',
+        diseaseHistory: 'DENTAL RADIOGRAPHS & RVG',
+        registrationDate: nowStr,
+        totalVisits: 2,
+        totalBilled: 200.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'sa', notes: 'Dental radiograph series', invoiceId: 'INV-20261013-2595', amount: 100.0),
+          VisitRecord(date: nowStr, doctor: 'ds', notes: 'Pharmacy medication delivery', invoiceId: 'INV-20261013-4516', amount: 100.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-8921399907-SAM',
+        opNumber: 'OP-109',
+        name: 'Sam',
+        phone: '8921399907',
+        email: 'sam@gmail.com',
+        dob: '2001-02-02',
+        age: 25,
+        gender: 'Male',
+        address: 'Central Street',
+        doctor: 'Dr. JJ',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'CONSULTATION',
         registrationDate: nowStr,
         totalVisits: 1,
-        totalBilled: 1200.0,
+        totalBilled: 350.0,
         visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'OPG X-Ray and Consultation for third molar', invoiceId: 'INV-2026-006', amount: 1200.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. JJ', notes: 'Full oral examination', invoiceId: 'INV-20261024-101', amount: 350.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-9072467117',
+        opNumber: 'OP-110',
+        name: 'Jeswin Jose',
+        phone: '9072467117',
+        email: 'jeswin@gmail.com',
+        dob: '1997-05-17',
+        age: 29,
+        gender: 'Male',
+        address: 'High Street',
+        doctor: 'Dr. Sanju Antony',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'SPECIALIST CONSULTATION & RVG',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 300.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'OPG Digital X-Ray', invoiceId: 'INV-20261013-4322', amount: 300.0),
+        ],
+      ),
+      Patient(
+        id: 'PAT-9876543210',
+        opNumber: 'OP-111',
+        name: 'Ramesh Kumar',
+        phone: '9876543210',
+        email: 'ramesh@example.com',
+        dob: '1990-05-15',
+        age: 36,
+        gender: 'Male',
+        address: 'Brigade Road',
+        doctor: 'Dr. Anita',
+        medicalHistory: 'None',
+        drugAllergies: 'None',
+        diseaseHistory: 'RCT & POST & CORE',
+        registrationDate: nowStr,
+        totalVisits: 1,
+        totalBilled: 1000.0,
+        visits: [
+          VisitRecord(date: nowStr, doctor: 'Dr. Anita', notes: 'Root Canal obturation and core buildup', invoiceId: 'INV-20261013-3604', amount: 1000.0),
         ],
       ),
     ]);
   }
 
-  void _seedAppointments() {
+  void _seedRealClinicAppointments() {
     final now = DateTime.now();
     final todayStr = DateFormat('yyyy-MM-dd').format(now);
     final tomorrowStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
-    final nextWeekStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 3)));
+    final inTwoDaysStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 2)));
+    final inFourDaysStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 4)));
+    final nextWeekStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 7)));
 
     _appointments.clear();
     _appointments.addAll([
       Appointment(
-        id: 'APT-2001',
+        id: 'APT-20261024-001',
+        patientName: 'Sam',
+        phone: '8921399907',
+        doctor: 'Dr. JJ',
+        date: todayStr,
+        timeSlot: '10:00 AM',
+        reason: 'CONSULTATION',
+        notes: 'Scheduled clinical consultation',
+        status: 'Upcoming',
+      ),
+      Appointment(
+        id: 'APT-20261024-002',
         patientName: 'Rajesh Kumar',
         phone: '9845012345',
         doctor: 'Dr. Sanju Antony',
         date: todayStr,
-        timeSlot: '10:00 AM',
-        reason: 'Root Canal Followup & Crown Cementation',
-        status: 'Upcoming',
-        notes: 'Review sensitivity in tooth 16',
-      ),
-      Appointment(
-        id: 'APT-2002',
-        patientName: 'Ananya Sharma',
-        phone: '9741234567',
-        doctor: 'Dr. Sanju Antony',
-        date: todayStr,
         timeSlot: '11:30 AM',
-        reason: 'Teeth Whitening Consultation',
-        status: 'Completed',
-        notes: 'Cleaning completed, shades assessed',
-      ),
-      Appointment(
-        id: 'APT-2003',
-        patientName: 'Mohammed Farooq',
-        phone: '9988776655',
-        doctor: 'Dr. Sanju Antony',
-        date: tomorrowStr,
-        timeSlot: '04:00 PM',
-        reason: 'Implant Post-Op Review',
+        reason: 'Root Canal Followup & Crown Cementation',
+        notes: 'Final seating and checkup',
         status: 'Upcoming',
-        notes: 'Ensure blood sugar fasting report is brought',
       ),
       Appointment(
-        id: 'APT-2004',
-        patientName: 'Priya Nair',
-        phone: '9845566778',
+        id: 'APT-20261025-001',
+        patientName: 'Neha',
+        phone: '3235646544',
+        doctor: 'Dr. Sarah Mathew (Orthodontist)',
+        date: tomorrowStr,
+        timeSlot: '10:00 AM',
+        reason: 'CLEAR ALIGNERS',
+        notes: 'Aligner tray delivery',
+        status: 'Upcoming',
+      ),
+      Appointment(
+        id: 'APT-20261026-001',
+        patientName: 'Deepak',
+        phone: '7356511107',
+        doctor: 'Dr. Jacob Thomas (Endodontist)',
+        date: inTwoDaysStr,
+        timeSlot: '11:00 AM',
+        reason: 'CROWN PFM',
+        notes: 'Crown cementation',
+        status: 'Upcoming',
+      ),
+      Appointment(
+        id: 'APT-20261028-001',
+        patientName: 'Deepak',
+        phone: '7356511107',
+        doctor: 'Dr. Sanju Antony',
+        date: inFourDaysStr,
+        timeSlot: '10:00 AM',
+        reason: 'SCALING',
+        notes: 'Ultrasonic scaling session 2',
+        status: 'Upcoming',
+      ),
+      Appointment(
+        id: 'APT-20261101-001',
+        patientName: 'Sanju',
+        phone: '8921399907',
         doctor: 'Dr. Sanju Antony',
         date: nextWeekStr,
-        timeSlot: '02:30 PM',
-        reason: 'Surgical Extraction of Impacted Wisdom Tooth',
+        timeSlot: '10:30 AM',
+        reason: 'DENTAL RADIOGRAPHS',
+        notes: 'Follow-up RVG',
         status: 'Upcoming',
-        notes: 'Local anesthesia prep',
       ),
     ]);
   }
 
-  void _seedInvoices() {
+  void _seedRealClinicInvoices() {
     final now = DateTime.now();
     final todayStr = DateFormat('yyyy-MM-dd').format(now);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
-    final threeDaysAgoStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 3)));
 
     _invoices.clear();
     _invoices.addAll([
@@ -531,111 +731,183 @@ class StorageService extends ChangeNotifier {
         pharmacyCharge: 300.0,
         totalAmount: 850.0,
         paymentMode: 'UPI / Online',
-        notes: 'Routine cleaning and RVG radiograph',
+        notes: 'Root Canal filling checkup & cleaning',
       ),
       Invoice(
-        id: 'INV-2026-002',
-        patientName: 'Ananya Sharma',
-        phone: '9741234567',
-        doctor: 'Dr. Sanju Antony',
+        id: 'INV-20261014-9713',
+        patientName: 'Gokul',
+        phone: '133564456156',
+        doctor: 'JS',
         date: todayStr,
-        consultationCharge: 400.0,
-        xrayCharge: 0.0,
-        pharmacyCharge: 350.0,
-        totalAmount: 750.0,
+        consultationCharge: 200.0,
+        xrayCharge: 300.0,
+        pharmacyCharge: 500.0,
+        totalAmount: 1000.0,
         paymentMode: 'Cash',
-        notes: 'Ultrasonic scaling, prescription for gingivitis',
+        notes: 'General checkup & antibiotics',
       ),
       Invoice(
-        id: 'INV-2026-003',
-        patientName: 'Mohammed Farooq',
-        phone: '9988776655',
+        id: 'INV-20261014-4626',
+        patientName: 'Manu',
+        phone: '8921399907',
+        doctor: 'sa',
+        date: todayStr,
+        consultationCharge: 500.0,
+        xrayCharge: 250.0,
+        pharmacyCharge: 200.0,
+        totalAmount: 950.0,
+        paymentMode: 'Cash',
+        notes: 'CROWN PFM treatment',
+      ),
+      Invoice(
+        id: 'INV-20261014-6363',
+        patientName: 'Anju',
+        phone: '7356511107',
+        doctor: 'Neha',
+        date: todayStr,
+        consultationCharge: 500.0,
+        xrayCharge: 250.0,
+        pharmacyCharge: 200.0,
+        totalAmount: 950.0,
+        paymentMode: 'Card',
+        notes: 'Orthodontic examination',
+      ),
+      Invoice(
+        id: 'INV-20261014-5916',
+        patientName: 'Albin',
+        phone: '8921399908',
+        doctor: 'Anu',
+        date: yesterdayStr,
+        consultationCharge: 0.0,
+        xrayCharge: 250.0,
+        pharmacyCharge: 200.0,
+        totalAmount: 450.0,
+        paymentMode: 'Cash',
+        notes: 'Extraction and medication',
+      ),
+      Invoice(
+        id: 'INV-20261014-4185',
+        patientName: 'Akhil',
+        phone: '7827789812',
         doctor: 'Dr. Sanju Antony',
         date: yesterdayStr,
         consultationCharge: 500.0,
-        xrayCharge: 300.0,
-        pharmacyCharge: 2000.0,
-        totalAmount: 2800.0,
-        paymentMode: 'Card',
-        notes: 'Zirconia crown fitting & bite test',
+        xrayCharge: 250.0,
+        pharmacyCharge: 200.0,
+        totalAmount: 950.0,
+        paymentMode: 'Cash',
+        notes: 'Bleaching and aesthetic filling',
       ),
       Invoice(
-        id: 'INV-2026-006',
-        patientName: 'Priya Nair',
-        phone: '9845566778',
-        doctor: 'Dr. Sanju Antony',
-        date: threeDaysAgoStr,
-        consultationCharge: 400.0,
-        xrayCharge: 500.0,
-        pharmacyCharge: 300.0,
-        totalAmount: 1200.0,
+        id: 'INV-20261013-3604',
+        patientName: 'Ramesh Kumar',
+        phone: '9876543210',
+        doctor: 'Dr. Anita',
+        date: yesterdayStr,
+        consultationCharge: 500.0,
+        xrayCharge: 300.0,
+        pharmacyCharge: 200.0,
+        totalAmount: 1000.0,
         paymentMode: 'UPI / Online',
-        notes: 'OPG Full Jaw Panoramic X-Ray',
+        notes: 'RCT & obturation',
+      ),
+      Invoice(
+        id: 'INV-20261013-3882',
+        patientName: 'Deepak',
+        phone: '7356511107',
+        doctor: 'Dr Sanju',
+        date: yesterdayStr,
+        consultationCharge: 300.0,
+        xrayCharge: 0.0,
+        pharmacyCharge: 0.0,
+        totalAmount: 300.0,
+        paymentMode: 'Cash',
+        notes: 'Ultrasonic scaling',
       ),
     ]);
   }
 
-  void _seedInventory() {
+  void _seedRealClinicInventory() {
     _inventory.clear();
     _inventory.addAll([
       InventoryItem(
-        id: 'MED-101',
-        name: 'Amoxicillin & Clavulanate 625mg',
-        category: 'Medicines',
-        batch: 'AMX-2026-88',
+        id: 'MED-1001',
+        name: 'Amoxicillin 500mg (Cap)',
+        category: 'Antibiotics',
+        batch: 'AMX-2026-A1',
         expiryDate: '2027-06-30',
-        unitPrice: 165.0,
-        quantity: 85,
+        unitPrice: 8.50,
+        quantity: 250,
+        minStockThreshold: 50,
+      ),
+      InventoryItem(
+        id: 'MED-1002',
+        name: 'Aceclofenac + Paracetamol (Tab)',
+        category: 'Analgesics',
+        batch: 'ACP-2026-B4',
+        expiryDate: '2027-10-15',
+        unitPrice: 6.00,
+        quantity: 320,
+        minStockThreshold: 60,
+      ),
+      InventoryItem(
+        id: 'MED-1003',
+        name: 'Metronidazole 400mg (Tab)',
+        category: 'Antibiotics',
+        batch: 'MTZ-2026-09',
+        expiryDate: '2027-12-31',
+        unitPrice: 4.50,
+        quantity: 180,
+        minStockThreshold: 40,
+      ),
+      InventoryItem(
+        id: 'MED-1004',
+        name: 'Lidocaine 2% + Adrenaline (Vial)',
+        category: 'Anesthetics',
+        batch: 'LID-2026-C8',
+        expiryDate: '2027-04-20',
+        unitPrice: 45.00,
+        quantity: 75,
+        minStockThreshold: 20,
+      ),
+      InventoryItem(
+        id: 'MED-1005',
+        name: 'Chlorhexidine 0.2% Mouthwash 150ml',
+        category: 'Medicines',
+        batch: 'CHX-2026-D1',
+        expiryDate: '2027-08-30',
+        unitPrice: 110.00,
+        quantity: 45,
         minStockThreshold: 15,
       ),
       InventoryItem(
-        id: 'MED-102',
-        name: 'Lignocaine 2% + Adrenaline Cartridges',
-        category: 'Anesthetics',
-        batch: 'LIG-9041',
-        expiryDate: '2027-01-15',
-        unitPrice: 35.0,
-        quantity: 120,
-        minStockThreshold: 25,
-      ),
-      InventoryItem(
-        id: 'MED-103',
-        name: 'Microhybrid Dental Composite Kit (A2)',
-        category: 'Dental Materials',
-        batch: 'DCP-302',
-        expiryDate: '2026-12-31',
-        unitPrice: 1850.0,
-        quantity: 4, // Low stock
-        minStockThreshold: 5,
-      ),
-      InventoryItem(
-        id: 'MED-104',
-        name: 'Disposable Patient Dental Bibs (Pk of 100)',
+        id: 'MED-1008',
+        name: 'Cotton Rolls Pack 500s',
         category: 'Consumables',
-        batch: 'BIB-112',
-        expiryDate: '2029-10-20',
-        unitPrice: 320.0,
-        quantity: 18,
+        batch: 'COT-2026-01',
+        expiryDate: '2029-01-01',
+        unitPrice: 160.00,
+        quantity: 35,
         minStockThreshold: 10,
       ),
       InventoryItem(
-        id: 'MED-105',
-        name: 'Chlorhexidine 0.2% Antiseptic Mouthwash',
-        category: 'Medicines',
-        batch: 'CHX-703',
-        expiryDate: '2026-11-15', // Expiring soon (<90 days)
-        unitPrice: 120.0,
-        quantity: 6, // Low stock + expiring soon
-        minStockThreshold: 10,
+        id: 'MED-1009',
+        name: 'Dental Disposable Needles 30G',
+        category: 'Consumables',
+        batch: 'NDL-2026-N9',
+        expiryDate: '2028-06-30',
+        unitPrice: 5.00,
+        quantity: 400,
+        minStockThreshold: 100,
       ),
       InventoryItem(
-        id: 'MED-106',
-        name: 'Ketorolac Tromethamine 10mg (Pain Relief)',
-        category: 'Medicines',
-        batch: 'KTR-554',
-        expiryDate: '2027-08-10',
-        unitPrice: 85.0,
-        quantity: 50,
+        id: 'MED-1010',
+        name: 'Orthodontic Relief Wax Pack',
+        category: 'Dental Materials',
+        batch: 'WAX-2026-W3',
+        expiryDate: '2028-12-31',
+        unitPrice: 40.00,
+        quantity: 60,
         minStockThreshold: 15,
       ),
     ]);
