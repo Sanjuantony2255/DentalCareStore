@@ -24,9 +24,11 @@ const List<String> kDentalTreatments = [
   'PIT & FISSURE SEALANTS',
   'FLUORIDE APPPLICATIONS',
   'SPACE MAINTAINERS',
+  'SS CROWNS',
   'PREFORMED ZIRCONIA',
   'BLEACHING',
   'DENTAL IMPLANTS',
+  'REGISTRATION',
   'CONSULTATION',
   'SPECIALIST CONSULTATION',
   'DENTAL RADIOGRAPHS',
@@ -58,4 +60,19 @@ const List<String> kDentalTreatments = [
   'MYO FUNCTIONAL FIXED',
   'MYOFUNCTIONAL REMOVABLE',
   'CLEAR ALIGNERS',
+];
+
+/// Clinic Doctors and Consultant Specialists for Manjaly Multi Speciality Dental Care
+const List<String> kClinicDoctors = [
+  'Dr. Jeswin Jose BDS (Doctor)',
+  'Dr. Olevia Emmatty Joseph BDS (Doctor)',
+  'Dr. Antony Davis BDS (Doctor)',
+  'Dr. Megha Manjunath MDS (Dept.of Orthodontics - പല്ല് നിരയാക്കുന്ന വിഭാഗം)',
+  'Dr. Akshay.M MDS (Dept.of Oral Surgery - മുഖ താടിയെല്ല് ശസ്ത്രക്രിയ വിഭാഗം)',
+  'Dr. Jimmy George MDS (Dept.of Endodontics - ദന്തവേരുചികിത്സാ വിഭാഗം)',
+  'Dr. Reji Gopalan MDS (Dept.of Prosthodontics - കൃത്രിമ ദന്തരൂപകല്പന വിഭാഗം)',
+  'Dr. Amritha Prabhakar MDS (Dept.of Pedodontics - കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)',
+  'Dr. Anurag Vinod Kumar MDS (Dept.of Pedodontics - കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)',
+  'Dr. Sharath MDS (Dept.of Periodontics)',
+  'Other (Type Manually)',
 ];

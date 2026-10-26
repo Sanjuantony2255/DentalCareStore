@@ -169,13 +169,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     final notesCtrl = TextEditingController();
     DateTime date = DateTime.now();
     String timeSlot = '10:00 AM';
-    String doctor = 'Dr. Sanju Antony';
-
-    final doctors = [
-      'Dr. Sanju Antony',
-      'Dr. Sarah Mathew (Orthodontist)',
-      'Dr. Jacob Thomas (Endodontist)',
-    ];
+    String doctor = kClinicDoctors[0];
+    final manualDoctorCtrl = TextEditingController();
 
     final timeSlots = [
       '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',
@@ -229,10 +224,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: doctor,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Attending Doctor', prefixIcon: Icon(Icons.medical_services_outlined)),
-                  items: doctors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                  onChanged: (v) => setModalState(() => doctor = v ?? doctors[0]),
+                  items: kClinicDoctors.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
+                  onChanged: (v) => setModalState(() => doctor = v ?? kClinicDoctors[0]),
                 ),
+                if (doctor == 'Other (Type Manually)') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: manualDoctorCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Type Doctor Name Manually *',
+                      prefixIcon: Icon(Icons.person_add_alt_outlined),
+                      hintText: 'e.g. Dr. Jeswin Jose BDS',
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -340,11 +347,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       return;
                     }
 
+                    final effectiveDoctor = doctor == 'Other (Type Manually)'
+                        ? (manualDoctorCtrl.text.trim().isNotEmpty
+                            ? manualDoctorCtrl.text.trim()
+                            : 'Attending Doctor')
+                        : doctor;
+
                     final apt = Appointment(
                       id: 'APT-${DateTime.now().millisecondsSinceEpoch % 100000}',
                       patientName: nameCtrl.text.trim(),
                       phone: phoneCtrl.text.trim(),
-                      doctor: doctor,
+                      doctor: effectiveDoctor,
                       date: DateFormat('yyyy-MM-dd').format(date),
                       timeSlot: timeSlot,
                       reason: reasonCtrl.text.trim(),

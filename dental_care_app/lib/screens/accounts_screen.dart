@@ -262,41 +262,77 @@ class _AccountsScreenState extends State<AccountsScreen> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: InkWell(
-                          onTap: () => _openInvoice(inv),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primarySubtle,
-                                  borderRadius: BorderRadius.circular(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primarySubtle,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.receipt, size: 20, color: AppTheme.primaryTeal),
                                 ),
-                                child: const Icon(Icons.receipt, size: 20, color: AppTheme.primaryTeal),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      inv.patientName,
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${inv.id} • ${inv.date} • ${inv.paymentMode}',
-                                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                    ),
-                                  ],
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        inv.patientName,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${inv.id} • ${inv.date} • ${inv.paymentMode}',
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                currency.format(inv.totalAmount),
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
-                              ),
-                            ],
-                          ),
+                                Text(
+                                  currency.format(inv.totalAmount),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _openInvoice(inv),
+                                    icon: const Icon(Icons.receipt_long, size: 14),
+                                    label: const Text('Show Invoice'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryTeal,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => InvoiceReceiptDialog.downloadInvoiceFile(context, inv),
+                                    icon: const Icon(Icons.download, size: 14),
+                                    label: const Text('Download Invoice'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.primaryDark,
+                                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       );
                     },

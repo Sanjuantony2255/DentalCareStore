@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/patient.dart';
+import '../models/invoice.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state_view.dart';
+import '../widgets/invoice_receipt_dialog.dart';
 
 class PatientsScreen extends StatefulWidget {
   final StorageService storage;
@@ -35,6 +37,38 @@ class _PatientsScreenState extends State<PatientsScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  void _openInvoice(Invoice inv) {
+    showDialog(
+      context: context,
+      builder: (_) => InvoiceReceiptDialog(invoice: inv),
+    );
+  }
+
+  Invoice _findOrCreateInvoiceForVisit(Patient p, VisitRecord v) {
+    if (v.invoiceId.isNotEmpty) {
+      final found = widget.storage.invoices.where((i) => i.id == v.invoiceId || i.id.toLowerCase() == v.invoiceId.toLowerCase());
+      if (found.isNotEmpty) return found.first;
+    }
+    final match = widget.storage.invoices.where((i) =>
+      i.patientName.toLowerCase() == p.name.toLowerCase() && i.date == v.date
+    );
+    if (match.isNotEmpty) return match.first;
+
+    return Invoice(
+      id: v.invoiceId.isNotEmpty ? v.invoiceId : 'INV-${v.date.replaceAll('/', '').replaceAll('-', '')}',
+      patientName: p.name,
+      phone: p.phone,
+      doctor: v.doctor.isNotEmpty ? v.doctor : p.doctor,
+      date: v.date,
+      consultationCharge: v.amount,
+      xrayCharge: 0.0,
+      pharmacyCharge: 0.0,
+      totalAmount: v.amount,
+      paymentMode: 'Cash',
+      notes: v.notes,
+    );
   }
 
   void _showPatientDetailsModal(Patient patient) {
@@ -294,6 +328,46 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                 Text(
                                   'By ${visit.doctor} • Inv #${visit.invoiceId}',
                                   style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        final inv = _findOrCreateInvoiceForVisit(patient, visit);
+                                        _openInvoice(inv);
+                                      },
+                                      icon: const Icon(Icons.receipt_long, size: 14),
+                                      label: const Text('Show Invoice'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryTeal,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        minimumSize: Size.zero,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        final inv = _findOrCreateInvoiceForVisit(patient, visit);
+                                        InvoiceReceiptDialog.downloadInvoiceFile(context, inv);
+                                      },
+                                      icon: const Icon(Icons.download, size: 14),
+                                      label: const Text('Download Invoice'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppTheme.primaryDark,
+                                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        minimumSize: Size.zero,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

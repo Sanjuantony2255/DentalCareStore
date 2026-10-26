@@ -34,24 +34,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _addressController = TextEditingController();
   final _diseaseHistoryController = TextEditingController();
   final _drugAllergiesController = TextEditingController();
-
-  String _gender = 'Male';
-  String _doctor = 'Dr. Sanju Antony';
-  String _medicalHistory = 'None';
-  String _paymentMode = 'UPI / Online';
-
-  final _consultationController = TextEditingController(text: '350');
-  final _xrayController = TextEditingController(text: '0');
-  final _pharmacyController = TextEditingController(text: '0');
+  final _consultationController = TextEditingController();
+  final _xrayController = TextEditingController();
+  final _pharmacyController = TextEditingController();
   final _notesController = TextEditingController();
-
   bool _isSubmitting = false;
 
-  final List<String> _doctorsList = [
-    'Dr. Sanju Antony',
-    'Dr. Sarah Mathew (Orthodontist)',
-    'Dr. Jacob Thomas (Endodontist)',
-  ];
+  String _gender = 'Male';
+  String _doctor = kClinicDoctors[0];
+  final _manualDoctorController = TextEditingController();
+  String _medicalHistory = 'None';
+  String _paymentMode = 'UPI / Online';
 
   final List<String> _medicalHistoryOptions = [
     'None',
@@ -80,6 +73,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _addressController.dispose();
     _diseaseHistoryController.dispose();
     _drugAllergiesController.dispose();
+    _manualDoctorController.dispose();
     _consultationController.dispose();
     _xrayController.dispose();
     _pharmacyController.dispose();
@@ -120,7 +114,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       _emailController.text = existing.email;
       _addressController.text = existing.address;
       _gender = existing.gender.isNotEmpty ? existing.gender : 'Male';
-      _doctor = existing.doctor.isNotEmpty ? existing.doctor : 'Dr. Sanju Antony';
+      final existingDoc = existing.doctor.isNotEmpty ? existing.doctor : kClinicDoctors[0];
+      if (kClinicDoctors.contains(existingDoc)) {
+        _doctor = existingDoc;
+      } else {
+        _doctor = 'Other (Type Manually)';
+        _manualDoctorController.text = existingDoc;
+      }
       _diseaseHistoryController.text = existing.diseaseHistory;
       _drugAllergiesController.text = existing.drugAllergies;
       if (_medicalHistoryOptions.contains(existing.medicalHistory)) {
@@ -383,6 +383,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ? _opController.text.trim()
         : 'OP-${now.day}${now.hour}${now.minute}';
 
+    final effectiveDoctor = _doctor == 'Other (Type Manually)'
+        ? (_manualDoctorController.text.trim().isNotEmpty
+            ? _manualDoctorController.text.trim()
+            : 'Attending Doctor')
+        : _doctor;
+
     final patient = Patient(
       id: patientId,
       opNumber: opNumber,
@@ -392,7 +398,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       age: int.tryParse(_ageController.text.trim()) ?? 0,
       gender: _gender,
       address: _addressController.text.trim(),
-      doctor: _doctor,
+      doctor: effectiveDoctor,
       medicalHistory: _medicalHistory,
       drugAllergies: _drugAllergiesController.text.trim().isEmpty ? 'None' : _drugAllergiesController.text.trim(),
       diseaseHistory: _diseaseHistoryController.text.trim().isEmpty ? 'Dental Checkup' : _diseaseHistoryController.text.trim(),
@@ -403,7 +409,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       id: invId,
       patientName: patient.name,
       phone: patient.phone,
-      doctor: patient.doctor,
+      doctor: effectiveDoctor,
       date: todayStr,
       consultationCharge: double.tryParse(_consultationController.text) ?? 0.0,
       xrayCharge: double.tryParse(_xrayController.text) ?? 0.0,
@@ -712,13 +718,26 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     children: [
                       DropdownButtonFormField<String>(
                         initialValue: _doctor,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Attending Doctor *',
                           prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
                         ),
-                        items: _doctorsList.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                        onChanged: (v) => setState(() => _doctor = v ?? _doctorsList[0]),
+                        items: kClinicDoctors.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
+                        onChanged: (v) => setState(() => _doctor = v ?? kClinicDoctors[0]),
                       ),
+                      if (_doctor == 'Other (Type Manually)') ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _manualDoctorController,
+                          decoration: const InputDecoration(
+                            labelText: 'Type Doctor Name Manually *',
+                            prefixIcon: Icon(Icons.person_add_alt_outlined, size: 20),
+                            hintText: 'e.g. Dr. Jeswin Jose BDS',
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter doctor name' : null,
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         initialValue: _medicalHistory,

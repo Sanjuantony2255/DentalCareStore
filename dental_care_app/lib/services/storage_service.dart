@@ -118,20 +118,15 @@ class StorageService extends ChangeNotifier {
 
       // Sync Patients from Google Sheet
       if (cloudPatients.isNotEmpty) {
-        for (final cp in cloudPatients) {
-          final idx = _patients.indexWhere((p) =>
-              (p.phone.isNotEmpty && p.phone == cp.phone) ||
-              (p.name.isNotEmpty && p.name.toLowerCase() == cp.name.toLowerCase()));
-          if (idx >= 0) {
-            if (cp.visits.isNotEmpty) {
-              _patients[idx] = cp;
-              changed = true;
-            }
-          } else {
-            _patients.add(cp);
-            changed = true;
+        final localCreatedPat = _patients.where((p) => p.id.startsWith('PAT-LOCAL-')).toList();
+        _patients.clear();
+        _patients.addAll(cloudPatients);
+        for (final loc in localCreatedPat) {
+          if (!_patients.any((p) => p.id == loc.id || (p.phone.isNotEmpty && p.phone == loc.phone))) {
+            _patients.insert(0, loc);
           }
         }
+        changed = true;
       }
 
       // Sync Appointments from Google Sheet
@@ -518,7 +513,7 @@ class StorageService extends ChangeNotifier {
         age: 28,
         gender: 'Male',
         address: 'Town Square',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         medicalHistory: 'None',
         drugAllergies: 'None',
         diseaseHistory: 'COMPOSITE & BLEACHING',
@@ -526,7 +521,7 @@ class StorageService extends ChangeNotifier {
         totalVisits: 1,
         totalBilled: 950.0,
         visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'Aesthetic composite veneer and bleaching', invoiceId: 'INV-20261014-4185', amount: 950.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Jeswin Jose BDS', notes: 'Aesthetic composite veneer and bleaching', invoiceId: 'INV-20261014-4185', amount: 950.0),
         ],
       ),
       Patient(
@@ -539,7 +534,7 @@ class StorageService extends ChangeNotifier {
         age: 30,
         gender: 'Male',
         address: 'Clinic Vicinity',
-        doctor: 'Dr Sanju',
+        doctor: 'Dr. Jeswin Jose BDS',
         medicalHistory: 'None',
         drugAllergies: 'None',
         diseaseHistory: 'SCALING & POLISHING',
@@ -547,7 +542,7 @@ class StorageService extends ChangeNotifier {
         totalVisits: 2,
         totalBilled: 350.0,
         visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr Sanju', notes: 'Ultrasonic scaling & polishing', invoiceId: 'INV-20261013-3882', amount: 300.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Jeswin Jose BDS', notes: 'Ultrasonic scaling & polishing', invoiceId: 'INV-20261013-3882', amount: 300.0),
           VisitRecord(date: nowStr, doctor: 'js', notes: 'Consultation', invoiceId: 'INV-20261013-2386', amount: 50.0),
         ],
       ),
@@ -604,7 +599,7 @@ class StorageService extends ChangeNotifier {
         age: 29,
         gender: 'Male',
         address: 'High Street',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         medicalHistory: 'None',
         drugAllergies: 'None',
         diseaseHistory: 'SPECIALIST CONSULTATION & RVG',
@@ -612,7 +607,7 @@ class StorageService extends ChangeNotifier {
         totalVisits: 1,
         totalBilled: 300.0,
         visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr. Sanju Antony', notes: 'OPG Digital X-Ray', invoiceId: 'INV-20261013-4322', amount: 300.0),
+          VisitRecord(date: nowStr, doctor: 'Dr. Jeswin Jose BDS', notes: 'OPG Digital X-Ray', invoiceId: 'INV-20261013-4322', amount: 300.0),
         ],
       ),
       Patient(
@@ -701,7 +696,7 @@ class StorageService extends ChangeNotifier {
         id: 'APT-20261013-2831',
         patientName: 'Deepak',
         phone: '7356511107',
-        doctor: 'Dr Sanju',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-11-13',
         timeSlot: '10:00 AM',
         reason: 'General Consultation & Checkup',
@@ -712,7 +707,7 @@ class StorageService extends ChangeNotifier {
         id: 'APT-20261014-1667',
         patientName: 'Neha',
         phone: '3235646544',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2027-02-02',
         timeSlot: '10:00 AM',
         reason: 'General Consultation & Checkup',
@@ -789,7 +784,7 @@ class StorageService extends ChangeNotifier {
         id: 'INV-20261013-3882',
         patientName: 'Deepak',
         phone: '7356511107',
-        doctor: 'Dr Sanju',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-13',
         consultationCharge: 300.0,
         xrayCharge: 0.0,
@@ -801,7 +796,7 @@ class StorageService extends ChangeNotifier {
         id: 'INV-20261013-1783',
         patientName: 'Saran',
         phone: '7827789812',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-13',
         consultationCharge: 0.0,
         xrayCharge: 0.0,
@@ -813,7 +808,7 @@ class StorageService extends ChangeNotifier {
         id: 'INV-20261013-4322',
         patientName: 'Jeswin jose',
         phone: '9072467117',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-13',
         consultationCharge: 200.0,
         xrayCharge: 100.0,
@@ -873,7 +868,7 @@ class StorageService extends ChangeNotifier {
         id: 'INV-20261014-4185',
         patientName: 'Akhil',
         phone: '7827789812',
-        doctor: 'Dr. Sanju Antony',
+        doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-14',
         consultationCharge: 500.0,
         xrayCharge: 250.0,

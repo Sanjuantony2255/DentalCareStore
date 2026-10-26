@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const medicalHistoryInput = document.getElementById('medicalHistory');
     const drugAllergiesInput = document.getElementById('drugAllergies');
     const diseaseHistoryInput = document.getElementById('diseaseHistory');
+    const treatmentSelect = document.getElementById('treatmentSelect');
+    const doctorSelect = document.getElementById('doctorSelect');
+    const doctorConsultedInput = document.getElementById('doctorConsulted');
+    const doctorConsultedGroup = document.getElementById('doctorConsultedGroup');
 
     // Billing Inputs
     const consultationInput = document.getElementById('consultationCharge');
@@ -131,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 4. Medical History Option & Drug Allergies Handlers
+    // 4. Medical History, Treatment & Doctor Select Handlers
     if (medicalHistorySelect && medicalHistoryInput) {
         medicalHistorySelect.addEventListener('change', () => {
             const sel = medicalHistorySelect.value;
@@ -145,9 +149,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (drugAllergiesInput && diseaseHistoryInput) {
-        drugAllergiesInput.addEventListener('input', () => {
-            diseaseHistoryInput.value = drugAllergiesInput.value;
+    if (treatmentSelect && diseaseHistoryInput) {
+        treatmentSelect.addEventListener('change', () => {
+            const val = treatmentSelect.value;
+            if (val === 'Other') {
+                diseaseHistoryInput.value = '';
+                diseaseHistoryInput.placeholder = 'Type dental complaint or treatment manually...';
+                diseaseHistoryInput.focus();
+            } else {
+                diseaseHistoryInput.value = val;
+            }
+        });
+    }
+
+    if (doctorSelect && doctorConsultedInput) {
+        doctorSelect.addEventListener('change', () => {
+            const val = doctorSelect.value;
+            if (val === 'Other') {
+                if (doctorConsultedGroup) doctorConsultedGroup.style.display = 'flex';
+                doctorConsultedInput.value = '';
+                doctorConsultedInput.placeholder = 'Type doctor name manually...';
+                doctorConsultedInput.focus();
+            } else {
+                if (doctorConsultedGroup) doctorConsultedGroup.style.display = 'none';
+                doctorConsultedInput.value = val;
+            }
         });
     }
 
@@ -281,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.medicalHistory = medInputVal && medInputVal !== 'None' ? medInputVal : (medSelected !== 'None' ? medSelected : 'None');
         
         data.drugAllergies = (data.drugAllergies || '').trim() || 'None';
-        data.diseaseHistory = data.drugAllergies; // keep backward compatibility
+        data.diseaseHistory = (data.diseaseHistory || '').trim() || (treatmentSelect && treatmentSelect.value !== 'Other' ? treatmentSelect.value : '') || 'CONSULTATION';
 
         // Ensure numeric charges
         data.consultationCharge = parseFloat(data.consultationCharge) || 0;
@@ -292,8 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Clean doctor name
         let doc = (data.doctorConsulted || '').trim();
+        if (!doc && doctorSelect && doctorSelect.value && doctorSelect.value !== 'Other') {
+            doc = doctorSelect.value;
+        }
         if (doc.toLowerCase().includes('consulting specialist')) doc = '';
-        data.doctorConsulted = doc;
+        data.doctorConsulted = doc || 'Dr. Jeswin Jose BDS';
 
         try {
             // Optional non-blocking pre-check for returning patient
@@ -475,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayAddress = inv.address || inv.email || 'N/A';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
         const sealSrc = (typeof window !== 'undefined' && window.INVOICE_SEAL_BASE64) ? window.INVOICE_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/sign.jpg';
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -552,10 +582,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>
             </tbody>
         </table>
-        <div class="signatures">
-            <div class="sign-col">
+        <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                <img src="${signSrc}" alt="Doctor Seal & Sign" class="hospital-seal">
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
+                Doctor's Seal & Signature
+            </div>
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
                 <img src="${sealSrc}" alt="Authorized Hospital Seal" class="hospital-seal">
-                <div class="sign-line"></div>
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
                 Authorized Doctor / Hospital Seal
             </div>
         </div>

@@ -300,12 +300,29 @@ body {
     transform: none;
 }
 
+/* Fix placeholder vs floating label overlap clash */
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    line-height: normal;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.input-group input:focus::placeholder,
+.input-group textarea:focus::placeholder {
+    opacity: 0.8;
+}
+
 /* Floating label magic */
 .input-group input:focus ~ label,
 .input-group input:not(:placeholder-shown) ~ label,
 .input-group textarea:focus ~ label,
 .input-group textarea:not(:placeholder-shown) ~ label,
 .input-group select ~ label,
+.input-group input[type="date"] ~ label,
+.input-group input[type="time"] ~ label,
 .active-label {
     top: 0.35rem;
     transform: none !important;

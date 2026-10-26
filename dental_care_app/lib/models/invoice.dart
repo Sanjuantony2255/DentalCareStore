@@ -43,7 +43,7 @@ class Invoice {
     id: json['id'] ?? '',
     patientName: json['patientName'] ?? '',
     phone: json['phone'] ?? '',
-    doctor: json['doctor'] ?? 'Dr. Sanju Antony',
+    doctor: json['doctor'] ?? 'Dr. Jeswin Jose BDS',
     date: json['date'] ?? '',
     consultationCharge: (json['consultationCharge'] as num?)?.toDouble() ?? 0.0,
     xrayCharge: (json['xrayCharge'] as num?)?.toDouble() ?? 0.0,

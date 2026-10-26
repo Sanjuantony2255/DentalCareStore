@@ -100,7 +100,7 @@ class Patient {
     age: (json['age'] as num?)?.toInt() ?? 0,
     gender: json['gender'] ?? 'Not Specified',
     address: json['address'] ?? '',
-    doctor: json['doctor'] ?? 'Dr. Sanju Antony',
+    doctor: json['doctor'] ?? 'Dr. Jeswin Jose BDS',
     medicalHistory: json['medicalHistory'] ?? 'None',
     drugAllergies: json['drugAllergies'] ?? 'None',
     diseaseHistory: json['diseaseHistory'] ?? 'None',

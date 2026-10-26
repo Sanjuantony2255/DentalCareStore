@@ -68,6 +68,31 @@ class _SearchRecordsScreenState extends State<SearchRecordsScreen> {
     );
   }
 
+  Invoice _findOrCreateInvoiceForVisit(Patient p, VisitRecord v) {
+    if (v.invoiceId.isNotEmpty) {
+      final found = widget.storage.invoices.where((i) => i.id == v.invoiceId || i.id.toLowerCase() == v.invoiceId.toLowerCase());
+      if (found.isNotEmpty) return found.first;
+    }
+    final match = widget.storage.invoices.where((i) =>
+      i.patientName.toLowerCase() == p.name.toLowerCase() && i.date == v.date
+    );
+    if (match.isNotEmpty) return match.first;
+
+    return Invoice(
+      id: v.invoiceId.isNotEmpty ? v.invoiceId : 'INV-${v.date.replaceAll('/', '').replaceAll('-', '')}',
+      patientName: p.name,
+      phone: p.phone,
+      doctor: v.doctor.isNotEmpty ? v.doctor : p.doctor,
+      date: v.date,
+      consultationCharge: v.amount,
+      xrayCharge: 0.0,
+      pharmacyCharge: 0.0,
+      totalAmount: v.amount,
+      paymentMode: 'Cash',
+      notes: v.notes,
+    );
+  }
+
   void _showPatientDetails(Patient patient) {
     final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
@@ -333,6 +358,46 @@ class _SearchRecordsScreenState extends State<SearchRecordsScreen> {
                                     style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.w600),
                                   ),
                                 ],
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        final inv = _findOrCreateInvoiceForVisit(patient, visit);
+                                        _openInvoice(inv);
+                                      },
+                                      icon: const Icon(Icons.receipt_long, size: 14),
+                                      label: const Text('Show Invoice'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryTeal,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        minimumSize: Size.zero,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        final inv = _findOrCreateInvoiceForVisit(patient, visit);
+                                        InvoiceReceiptDialog.downloadInvoiceFile(context, inv);
+                                      },
+                                      icon: const Icon(Icons.download, size: 14),
+                                      label: const Text('Download Invoice'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppTheme.primaryDark,
+                                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        minimumSize: Size.zero,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -1016,10 +1081,39 @@ class _SearchRecordsScreenState extends State<SearchRecordsScreen> {
                     inv.date,
                     style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
-                  const Spacer(),
-                  const Text(
-                    'Tap to view receipt →',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openInvoice(inv),
+                      icon: const Icon(Icons.receipt_long, size: 15),
+                      label: const Text('Show Invoice'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => InvoiceReceiptDialog.downloadInvoiceFile(context, inv),
+                      icon: const Icon(Icons.download, size: 15),
+                      label: const Text('Download Invoice'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryDark,
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                   ),
                 ],
               ),

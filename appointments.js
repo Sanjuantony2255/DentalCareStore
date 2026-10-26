@@ -37,6 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptDateInput = document.getElementById('aptDate');
     const aptTimeInput = document.getElementById('aptTime');
     const aptDoctorInput = document.getElementById('aptDoctor');
+    const aptDoctorSelect = document.getElementById('aptDoctorSelect');
+    const aptDoctorGroup = document.getElementById('aptDoctorGroup');
+    if (aptDoctorSelect && aptDoctorInput) {
+        aptDoctorSelect.addEventListener('change', () => {
+            const val = aptDoctorSelect.value;
+            if (val === 'Other') {
+                if (aptDoctorGroup) aptDoctorGroup.style.display = 'flex';
+                aptDoctorInput.value = '';
+                aptDoctorInput.placeholder = 'Type doctor name manually...';
+                aptDoctorInput.focus();
+            } else {
+                if (aptDoctorGroup) aptDoctorGroup.style.display = 'none';
+                aptDoctorInput.value = val;
+            }
+        });
+    }
     const aptSubmitBtn = document.getElementById('aptSubmitBtn');
     const aptLoader = document.getElementById('aptLoader');
     const aptFormMessage = document.getElementById('aptFormMessage');
@@ -223,6 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
         data.action = 'addAppointment';
 
         // Ensure doctor is clean
+        if (!data.doctor && aptDoctorSelect && aptDoctorSelect.value && aptDoctorSelect.value !== 'Other') {
+            data.doctor = aptDoctorSelect.value;
+        }
         data.doctor = (data.doctor || '').trim();
 
         try {

@@ -183,15 +183,33 @@
                                 <label for="aptTime" class="active-label">Appointment Time</label>
                             </div>
                             <div class="input-group">
+                                <select id="aptDoctorSelect">
+                                    <option value="" disabled selected>Select Attending Doctor</option>
+                                    <optgroup label="Doctors">
+                                        <option value="Dr. Jeswin Jose BDS">Dr. Jeswin Jose BDS (Doctor)</option>
+                                        <option value="Dr. Olevia Emmatty Joseph BDS">Dr. Olevia Emmatty Joseph BDS (Doctor)</option>
+                                        <option value="Dr. Antony Davis BDS">Dr. Antony Davis BDS (Doctor)</option>
+                                    </optgroup>
+                                    <optgroup label="Consultant Specialists">
+                                        <option value="Dr. Megha Manjunath MDS (Dept.of Orthodontics)">Dr. Megha Manjunath MDS - Dept.of Orthodontics (പല്ല് നിരയാക്കുന്ന വിഭാഗം)</option>
+                                        <option value="Dr. Akshay.M MDS (Dept.of Oral Surgery)">Dr. Akshay.M MDS - Dept.of Oral Surgery (മുഖ താടിയെല്ല് ശസ്ത്രക്രിയ വിഭാഗം)</option>
+                                        <option value="Dr. Jimmy George MDS (Dept.of Endodontics)">Dr. Jimmy George MDS - Dept.of Endodontics (ദന്തവേരുചികിത്സാ വിഭാഗം)</option>
+                                        <option value="Dr. Reji Gopalan MDS (Dept.of Prosthodontics)">Dr. Reji Gopalan MDS - Dept.of Prosthodontics (കൃത്രിമ ദന്തരൂപകല്പന വിഭാഗം)</option>
+                                        <option value="Dr. Amritha Prabhakar MDS (Dept.of Pedodontics)">Dr. Amritha Prabhakar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                        <option value="Dr. Anurag Vinod Kumar MDS (Dept.of Pedodontics)">Dr. Anurag Vinod Kumar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                        <option value="Dr. Sharath MDS (Dept.of Periodontics)">Dr. Sharath MDS - Dept.of Periodontics</option>
+                                    </optgroup>
+                                    <option value="Other">Other / Type Doctor Name Manually...</option>
+                                </select>
+                                <label for="aptDoctorSelect" class="active-label">Doctor / Attending Dentist</label>
+                            </div>
+                            <div class="input-group" id="aptDoctorGroup" style="display: none;">
                                 <input type="text" id="aptDoctor" name="doctor" placeholder=" ">
-                                <label for="aptDoctor">Doctor / Attending Dentist (Optional)</label>
+                                <label for="aptDoctor">Type Doctor Name Manually</label>
                             </div>
                             <div class="input-group full-width">
                                 <select id="aptReason" name="reason" required>
-                                    <option value="" disabled>Select Treatment / Reason</option>
-                                    <option value="CONSULTATION" selected>CONSULTATION</option>
-                                    <option value="SPECIALIST CONSULTATION">SPECIALIST CONSULTATION</option>
-                                    <option value="DENTAL RADIOGRAPHS">DENTAL RADIOGRAPHS</option>
+                                    <option value="" disabled selected>Select Treatment / Reason</option>
                                     <option value="POST & CORE">POST & CORE</option>
                                     <option value="CROWN METAL">CROWN METAL</option>
                                     <option value="CROWN PFM">CROWN PFM</option>
@@ -216,9 +234,14 @@
                                     <option value="PIT & FISSURE SEALANTS">PIT & FISSURE SEALANTS</option>
                                     <option value="FLUORIDE APPPLICATIONS">FLUORIDE APPPLICATIONS</option>
                                     <option value="SPACE MAINTAINERS">SPACE MAINTAINERS</option>
+                                    <option value="SS CROWNS">SS CROWNS</option>
                                     <option value="PREFORMED ZIRCONIA">PREFORMED ZIRCONIA</option>
                                     <option value="BLEACHING">BLEACHING</option>
                                     <option value="DENTAL IMPLANTS">DENTAL IMPLANTS</option>
+                                    <option value="REGISTRATION">REGISTRATION</option>
+                                    <option value="CONSULTATION">CONSULTATION</option>
+                                    <option value="SPECIALIST CONSULTATION">SPECIALIST CONSULTATION</option>
+                                    <option value="DENTAL RADIOGRAPHS">DENTAL RADIOGRAPHS</option>
                                     <option value="GLASS IONOMER">GLASS IONOMER</option>
                                     <option value="AMALGAM">AMALGAM</option>
                                     <option value="COMPOSITE">COMPOSITE</option>

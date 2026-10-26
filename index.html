@@ -214,15 +214,106 @@
                         <div class="input-group full-width">
                             <input type="text" id="drugAllergies" name="drugAllergies" placeholder=" " value="None">
                             <label for="drugAllergies">Drug Allergies (e.g. Penicillin, Sulfa, NSAIDs, Local Anesthesia, or None)</label>
-                            <input type="hidden" id="diseaseHistory" name="diseaseHistory" value="None">
+                        </div>
+                        <div class="input-group full-width">
+                            <select id="treatmentSelect">
+                                <option value="" disabled selected>Select Treatment / Dental Procedure</option>
+                                <option value="POST & CORE">POST & CORE</option>
+                                <option value="CROWN METAL">CROWN METAL</option>
+                                <option value="CROWN PFM">CROWN PFM</option>
+                                <option value="CROWN PFZ">CROWN PFZ</option>
+                                <option value="EMAX CROWN, VENEER, INLAY">EMAX CROWN, VENEER, INLAY</option>
+                                <option value="CROWN REMOVAL">CROWN REMOVAL</option>
+                                <option value="ACRYLIC PARTIAL DENTURE">ACRYLIC PARTIAL DENTURE</option>
+                                <option value="FLEXIBLE PARTIAL DENTURE">FLEXIBLE PARTIAL DENTURE</option>
+                                <option value="COMPLETE DENTURE">COMPLETE DENTURE</option>
+                                <option value="FLEXIBLE">FLEXIBLE</option>
+                                <option value="BPS">BPS</option>
+                                <option value="SS CROWNS">SS CROWNS</option>
+                                <option value="SCALING">SCALING</option>
+                                <option value="GINGIVECTOMY">GINGIVECTOMY</option>
+                                <option value="SUBGINGIVAL SCALING/ CURETTAGE">SUBGINGIVAL SCALING/ CURETTAGE</option>
+                                <option value="GRAFT">GRAFT</option>
+                                <option value="DEPIGMENTATION">DEPIGMENTATION</option>
+                                <option value="PERIODONTAL FLAP">PERIODONTAL FLAP</option>
+                                <option value="SPLINTING">SPLINTING</option>
+                                <option value="LASER">LASER</option>
+                                <option value="PULPOTOMY/ PULPECTOMY">PULPOTOMY/ PULPECTOMY</option>
+                                <option value="PIT & FISSURE SEALANTS">PIT & FISSURE SEALANTS</option>
+                                <option value="FLUORIDE APPPLICATIONS">FLUORIDE APPPLICATIONS</option>
+                                <option value="SPACE MAINTAINERS">SPACE MAINTAINERS</option>
+                                <option value="SS CROWNS">SS CROWNS</option>
+                                <option value="PREFORMED ZIRCONIA">PREFORMED ZIRCONIA</option>
+                                <option value="BLEACHING">BLEACHING</option>
+                                <option value="DENTAL IMPLANTS">DENTAL IMPLANTS</option>
+                                <option value="REGISTRATION">REGISTRATION</option>
+                                <option value="CONSULTATION">CONSULTATION</option>
+                                <option value="SPECIALIST CONSULTATION">SPECIALIST CONSULTATION</option>
+                                <option value="DENTAL RADIOGRAPHS">DENTAL RADIOGRAPHS</option>
+                                <option value="GLASS IONOMER">GLASS IONOMER</option>
+                                <option value="AMALGAM">AMALGAM</option>
+                                <option value="COMPOSITE">COMPOSITE</option>
+                                <option value="RCT">RCT</option>
+                                <option value="RE RCT">RE RCT</option>
+                                <option value="MICROSCOPE RCT">MICROSCOPE RCT</option>
+                                <option value="APICECTOMY">APICECTOMY</option>
+                                <option value="MTA">MTA</option>
+                                <option value="DECIDUOUS TOOTH EXTRACTION">DECIDUOUS TOOTH EXTRACTION</option>
+                                <option value="NORMAL EXTRACTION">NORMAL EXTRACTION</option>
+                                <option value="DIFFICULT EXTRACTION">DIFFICULT EXTRACTION</option>
+                                <option value="3RD MOLAR">3RD MOLAR</option>
+                                <option value="CANINE IMPACTION">CANINE IMPACTION</option>
+                                <option value="INCISION AND DRAINAGE">INCISION AND DRAINAGE</option>
+                                <option value="VESTIBULOPLASTY">VESTIBULOPLASTY</option>
+                                <option value="ALVEOLOPLASTY">ALVEOLOPLASTY</option>
+                                <option value="OPERCULECTOMY">OPERCULECTOMY</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED">FIXED ORTHODONTICS PREADJUSTED</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED">FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED</option>
+                                <option value="FIXED- SELF LIGATING">FIXED- SELF LIGATING</option>
+                                <option value="HAWLEYS APPLIANCE- ACTIVE">HAWLEYS APPLIANCE- ACTIVE</option>
+                                <option value="RETENTION APPLIANCE- PASSIVE">RETENTION APPLIANCE- PASSIVE</option>
+                                <option value="FIXED LINGUAL RETAINERS">FIXED LINGUAL RETAINERS</option>
+                                <option value="VACCUFORM RETAINERS-">VACCUFORM RETAINERS-</option>
+                                <option value="ORAL SCREEN">ORAL SCREEN</option>
+                                <option value="MYO FUNCTIONAL FIXED">MYO FUNCTIONAL FIXED</option>
+                                <option value="MYOFUNCTIONAL REMOVABLE">MYOFUNCTIONAL REMOVABLE</option>
+                                <option value="CLEAR ALIGNERS">CLEAR ALIGNERS</option>
+                                <option value="Other">Other / Type Manually...</option>
+                            </select>
+                            <label for="treatmentSelect" class="active-label">Treatment / Dental Procedure</label>
+                        </div>
+                        <div class="input-group full-width" id="diseaseHistoryGroup">
+                            <input type="text" id="diseaseHistory" name="diseaseHistory" placeholder=" " value="CONSULTATION">
+                            <label for="diseaseHistory">Chief Complaint / Procedure (Selected or Custom)</label>
                         </div>
                         <div class="input-group">
                             <input type="date" id="lastVisitDate" name="lastVisitDate" placeholder=" ">
                             <label for="lastVisitDate" class="active-label">Date of Last Clinic Visit</label>
                         </div>
                         <div class="input-group">
+                            <select id="doctorSelect">
+                                <option value="" disabled selected>Select Attending Doctor</option>
+                                <optgroup label="Doctors">
+                                    <option value="Dr. Jeswin Jose BDS">Dr. Jeswin Jose BDS (Doctor)</option>
+                                    <option value="Dr. Olevia Emmatty Joseph BDS">Dr. Olevia Emmatty Joseph BDS (Doctor)</option>
+                                    <option value="Dr. Antony Davis BDS">Dr. Antony Davis BDS (Doctor)</option>
+                                </optgroup>
+                                <optgroup label="Consultant Specialists">
+                                    <option value="Dr. Megha Manjunath MDS (Dept.of Orthodontics)">Dr. Megha Manjunath MDS - Dept.of Orthodontics (പല്ല് നിരയാക്കുന്ന വിഭാഗം)</option>
+                                    <option value="Dr. Akshay.M MDS (Dept.of Oral Surgery)">Dr. Akshay.M MDS - Dept.of Oral Surgery (മുഖ താടിയെല്ല് ശസ്ത്രക്രിയ വിഭാഗം)</option>
+                                    <option value="Dr. Jimmy George MDS (Dept.of Endodontics)">Dr. Jimmy George MDS - Dept.of Endodontics (ദന്തവേരുചികിത്സാ വിഭാഗം)</option>
+                                    <option value="Dr. Reji Gopalan MDS (Dept.of Prosthodontics)">Dr. Reji Gopalan MDS - Dept.of Prosthodontics (കൃത്രിമ ദന്തരൂപകല്പന വിഭാഗം)</option>
+                                    <option value="Dr. Amritha Prabhakar MDS (Dept.of Pedodontics)">Dr. Amritha Prabhakar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                    <option value="Dr. Anurag Vinod Kumar MDS (Dept.of Pedodontics)">Dr. Anurag Vinod Kumar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                    <option value="Dr. Sharath MDS (Dept.of Periodontics)">Dr. Sharath MDS - Dept.of Periodontics</option>
+                                </optgroup>
+                                <option value="Other">Other / Type Doctor Name Manually...</option>
+                            </select>
+                            <label for="doctorSelect" class="active-label">Doctor Consulted</label>
+                        </div>
+                        <div class="input-group" id="doctorConsultedGroup" style="display: none;">
                             <input type="text" id="doctorConsulted" name="doctorConsulted" placeholder=" ">
-                            <label for="doctorConsulted">Doctor Consulted</label>
+                            <label for="doctorConsulted">Type Doctor Name Manually</label>
                         </div>
                     </div>
                 </div>
@@ -373,11 +464,16 @@
                 </table>
 
                 <!-- Signatures & Hospital Seal Row for Black and White Printing -->
-                <div class="inv-signatures-row" style="justify-content: flex-end;">
-                    <div class="inv-sign-col">
-                        <img src="assets/img/seal.jpg" alt="Hospital Seal" class="inv-seal-img" id="invModalSeal">
-                        <div class="inv-sign-space" style="height: 15px;"></div>
-                        <div class="inv-sign-label">Authorized Doctor / Hospital Seal</div>
+                <div class="inv-signatures-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;">
+                    <div class="inv-sign-col" style="text-align: center;">
+                        <img src="assets/img/sign.jpg" alt="Doctor Seal & Sign" class="inv-seal-img" id="invModalSign" style="max-height: 55px; max-width: 130px; object-fit: contain; margin-bottom: 4px;">
+                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
+                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Doctor's Seal & Signature</div>
+                    </div>
+                    <div class="inv-sign-col" style="text-align: center;">
+                        <img src="assets/img/seal.jpg" alt="Hospital Seal" class="inv-seal-img" id="invModalSeal" style="max-height: 55px; max-width: 130px; object-fit: contain; margin-bottom: 4px;">
+                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
+                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Authorized Hospital Seal</div>
                     </div>
                 </div>
 

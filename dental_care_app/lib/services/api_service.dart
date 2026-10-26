@@ -149,6 +149,25 @@ class ApiService {
     return rows;
   }
 
+  /// Dynamically locates the column index from header row based on keywords
+  static int _findCol(List<String> headers, List<String> patterns, int fallback) {
+    for (int i = 0; i < headers.length; i++) {
+      final h = headers[i].toLowerCase().trim();
+      for (final p in patterns) {
+        if (h.contains(p.toLowerCase())) return i;
+      }
+    }
+    return fallback;
+  }
+
+  /// Safely retrieves a cell value from a row avoiding RangeError exceptions
+  static String _safeCell(List<String> row, int index) {
+    if (index >= 0 && index < row.length) {
+      return row[index].trim();
+    }
+    return '';
+  }
+
   /// Fetches live data from GitHub Cloud repository AND Google Sheet cloud
   static Future<Map<String, dynamic>> fetchCloudData() async {
     final List<Patient> patients = [];
@@ -212,6 +231,7 @@ class ApiService {
     } catch (_) {}
 
     // 2. Fetch Google Apps Script live Patients
+    final List<Patient> livePatients = [];
     try {
       final res = await http.get(Uri.parse('$defaultScriptUrl?action=getPatients')).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200 && res.body.isNotEmpty) {
@@ -223,14 +243,10 @@ class ApiService {
             if (name.isEmpty && phone.isEmpty) continue;
             if (isDummyPatient(name, phone, '')) continue;
 
-            final existingIdx = patients.indexWhere((p) =>
-                (phone.isNotEmpty && p.phone == phone) ||
-                (name.isNotEmpty && p.name.toLowerCase() == name.toLowerCase()));
-
             final email = item['email']?.toString() ?? '';
             final dob = item['dob']?.toString() ?? '';
             final gender = item['gender']?.toString() ?? 'Male';
-            final doctor = item['doctorConsulted']?.toString() ?? 'Dr. Sanju Antony';
+            final doctor = item['doctorConsulted']?.toString() ?? 'Dr. Jeswin Jose BDS';
             final medHistory = item['medicalHistory']?.toString() ?? 'None';
             final diseaseHistory = item['diseaseHistory']?.toString() ?? '';
             final latestVisit = item['latestVisit']?.toString() ?? '2026-10-14';
@@ -269,54 +285,192 @@ class ApiService {
               visits: visits,
             );
 
-            if (existingIdx >= 0) {
-              patients[existingIdx] = parsedPatient;
-            } else {
-              patients.add(parsedPatient);
-            }
+            livePatients.add(parsedPatient);
           }
         }
       }
     } catch (_) {}
+
+    if (livePatients.isNotEmpty) {
+      patients.clear();
+      patients.addAll(livePatients);
+    } else {
+      // Direct Google Sheet CSV Fallback for Patients
+      try {
+        final res = await http.get(Uri.parse(patientsSheetCsvUrl)).timeout(const Duration(seconds: 10));
+        if (res.statusCode == 200 && res.body.isNotEmpty) {
+          final rows = _parseCsv(res.body);
+          if (rows.isNotEmpty) {
+            final headers = rows[0];
+            final hasHeader = headers.any((h) =>
+                h.toLowerCase().contains('time') ||
+                h.toLowerCase().contains('name') ||
+                h.toLowerCase().contains('phone'));
+
+            final colTime = _findCol(headers, ['timestamp', 'time', 'date'], 0);
+            final colName = _findCol(headers, ['full name', 'patient name', 'name'], 1);
+            final colPhone = _findCol(headers, ['phone', 'mobile', 'contact'], 2);
+            final colEmail = _findCol(headers, ['email', 'mail'], 3);
+            final colDob = _findCol(headers, ['dob', 'birth', 'age'], 4);
+            final colGender = _findCol(headers, ['gender', 'sex'], 5);
+            final colDoctor = _findCol(headers, ['doctor', 'attending', 'consulted'], 6);
+            final colMedHist = _findCol(headers, ['medical'], 7);
+            final colAllergies = _findCol(headers, ['allerg', 'drug'], 8);
+            final colDisease = _findCol(headers, ['disease', 'procedure', 'complaint'], 9);
+            final colTotal = _findCol(headers, ['total', 'amount'], 13);
+            final colInv = _findCol(headers, ['invoice'], 16);
+
+            final List<Patient> csvPatients = [];
+            final startIdx = hasHeader ? 1 : 0;
+            for (int i = startIdx; i < rows.length; i++) {
+              final r = rows[i];
+              if (r.isEmpty) continue;
+              final timestamp = _safeCell(r, colTime);
+              if (timestamp.toLowerCase().contains('timestamp')) continue;
+              final name = _safeCell(r, colName);
+              final phone = _safeCell(r, colPhone);
+              if (name.isEmpty && phone.isEmpty) continue;
+              if (isDummyPatient(name, phone, '')) continue;
+
+              final email = _safeCell(r, colEmail);
+              final dob = _safeCell(r, colDob);
+              final gender = _safeCell(r, colGender).isNotEmpty ? _safeCell(r, colGender) : 'Male';
+              final rawDoc = _safeCell(r, colDoctor);
+              final doctor = rawDoc.isNotEmpty ? rawDoc : 'Dr. Jeswin Jose BDS';
+              final medHistory = _safeCell(r, colMedHist).isNotEmpty ? _safeCell(r, colMedHist) : 'None';
+              final drugAllergies = _safeCell(r, colAllergies).isNotEmpty ? _safeCell(r, colAllergies) : 'None';
+              final disease = _safeCell(r, colDisease);
+              final rawTotal = _safeCell(r, colTotal).replaceAll(RegExp(r'[^0-9.]'), '');
+              final totalAmt = double.tryParse(rawTotal) ?? 0.0;
+              final rawInv = _safeCell(r, colInv);
+              final invNo = rawInv.isNotEmpty ? rawInv : 'INV-SHEET';
+
+              final visitDate = timestamp.split(' ').first;
+              final visit = VisitRecord(
+                date: visitDate.isNotEmpty ? visitDate : '2026-10-14',
+                doctor: doctor,
+                notes: disease.isNotEmpty ? disease : 'Clinical Dental Checkup',
+                invoiceId: invNo,
+                amount: totalAmt,
+              );
+
+              final existingIdx = csvPatients.indexWhere((p) =>
+                (phone.isNotEmpty && p.phone == phone) ||
+                (name.isNotEmpty && p.name.toLowerCase() == name.toLowerCase())
+              );
+
+              if (existingIdx >= 0) {
+                final ex = csvPatients[existingIdx];
+                ex.visits.add(visit);
+                csvPatients[existingIdx] = Patient(
+                  id: ex.id,
+                  opNumber: ex.opNumber,
+                  name: ex.name,
+                  phone: ex.phone,
+                  email: ex.email,
+                  dob: ex.dob,
+                  gender: ex.gender,
+                  doctor: ex.doctor,
+                  medicalHistory: ex.medicalHistory,
+                  drugAllergies: ex.drugAllergies,
+                  diseaseHistory: ex.diseaseHistory,
+                  registrationDate: ex.registrationDate,
+                  totalVisits: ex.visits.length,
+                  totalBilled: ex.totalBilled + totalAmt,
+                  visits: ex.visits,
+                );
+              } else {
+                csvPatients.add(Patient(
+                  id: phone.isNotEmpty ? 'PAT-$phone' : 'PAT-${name.hashCode.abs()}',
+                  opNumber: 'OP-${(name.hashCode.abs() % 900) + 100}',
+                  name: name,
+                  phone: phone,
+                  email: email,
+                  dob: dob,
+                  gender: gender,
+                  doctor: doctor,
+                  medicalHistory: medHistory,
+                  drugAllergies: drugAllergies,
+                  diseaseHistory: disease,
+                  registrationDate: visitDate,
+                  totalVisits: 1,
+                  totalBilled: totalAmt,
+                  visits: [visit],
+                ));
+              }
+            }
+            if (csvPatients.isNotEmpty) {
+              patients.clear();
+              patients.addAll(csvPatients);
+            }
+          }
+        }
+      } catch (_) {}
+    }
 
     // 3. Fetch Google Sheet Appointments CSV directly + Apps Script status
     try {
       final res = await http.get(Uri.parse(appointmentsSheetCsvUrl)).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200 && res.body.isNotEmpty) {
         final rows = _parseCsv(res.body);
-        for (final r in rows) {
-          if (r.isEmpty) continue;
-          final aptId = r[0].trim();
-          if (aptId.isEmpty || aptId.toLowerCase().contains('appointment')) continue;
-          final pName = r.length > 1 ? r[1].trim() : '';
-          final phone = r.length > 2 ? r[2].trim() : '';
-          if (pName.isEmpty && phone.isEmpty) continue;
-          if (isDummyAppointment(aptId, pName, phone)) continue;
+        if (rows.isNotEmpty) {
+          final headers = rows[0];
+          final hasHeader = headers.any((h) =>
+              h.toLowerCase().contains('appointment') ||
+              h.toLowerCase().contains('name') ||
+              h.toLowerCase().contains('phone'));
 
-          final dateStr = r.length > 4 && r[4].isNotEmpty ? r[4].trim() : '2026-10-14';
-          final timeSlot = r.length > 5 && r[5].isNotEmpty ? r[5].trim() : '10:00 AM';
-          final doctor = r.length > 6 && r[6].isNotEmpty ? r[6].trim() : 'Dr. Sanju Antony';
-          final reason = r.length > 7 && r[7].isNotEmpty ? r[7].trim() : 'General Consultation & Checkup';
-          final status = r.length > 8 && r[8].isNotEmpty ? r[8].trim() : 'Upcoming';
-          final notes = r.length > 11 ? r[11].trim() : '';
+          final colId = _findCol(headers, ['appointment', 'id', 'booking'], 0);
+          final colName = _findCol(headers, ['patient', 'name'], 1);
+          final colPhone = _findCol(headers, ['phone', 'mobile'], 2);
+          final colDate = _findCol(headers, ['date', 'day'], 4);
+          final colTime = _findCol(headers, ['time', 'slot'], 5);
+          final colDoctor = _findCol(headers, ['doctor'], 6);
+          final colReason = _findCol(headers, ['reason', 'procedure', 'purpose'], 7);
+          final colStatus = _findCol(headers, ['status'], 8);
+          final colNotes = _findCol(headers, ['note', 'remark'], 11);
 
-          final apt = Appointment(
-            id: aptId,
-            patientName: pName,
-            phone: phone,
-            doctor: doctor,
-            date: dateStr,
-            timeSlot: timeSlot.contains('AM') || timeSlot.contains('PM') ? timeSlot : '$timeSlot AM',
-            reason: reason,
-            status: status == 'Scheduled' ? 'Upcoming' : status,
-            notes: notes,
-          );
+          final startIdx = hasHeader ? 1 : 0;
+          for (int i = startIdx; i < rows.length; i++) {
+            final r = rows[i];
+            if (r.isEmpty) continue;
+            final aptId = _safeCell(r, colId);
+            if (aptId.toLowerCase().contains('appointment') && hasHeader) continue;
+            final pName = _safeCell(r, colName);
+            final phone = _safeCell(r, colPhone);
+            if (pName.isEmpty && phone.isEmpty) continue;
+            if (isDummyAppointment(aptId, pName, phone)) continue;
 
-          final existingIdx = appointments.indexWhere((a) => a.id == apt.id);
-          if (existingIdx >= 0) {
-            appointments[existingIdx] = apt;
-          } else {
-            appointments.add(apt);
+            final rawDate = _safeCell(r, colDate);
+            final dateStr = rawDate.isNotEmpty ? rawDate : '2026-10-14';
+            final rawTime = _safeCell(r, colTime);
+            final timeSlot = rawTime.isNotEmpty ? rawTime : '10:00 AM';
+            final rawDoc = _safeCell(r, colDoctor);
+            final doctor = rawDoc.isNotEmpty ? rawDoc : 'Dr. Jeswin Jose BDS';
+            final rawReason = _safeCell(r, colReason);
+            final reason = rawReason.isNotEmpty ? rawReason : 'General Consultation & Checkup';
+            final rawStatus = _safeCell(r, colStatus);
+            final status = rawStatus.isNotEmpty ? rawStatus : 'Upcoming';
+            final notes = _safeCell(r, colNotes);
+
+            final apt = Appointment(
+              id: aptId,
+              patientName: pName,
+              phone: phone,
+              doctor: doctor,
+              date: dateStr,
+              timeSlot: timeSlot.contains('AM') || timeSlot.contains('PM') ? timeSlot : '$timeSlot AM',
+              reason: reason,
+              status: status == 'Scheduled' ? 'Upcoming' : status,
+              notes: notes,
+            );
+
+            final existingIdx = appointments.indexWhere((a) => a.id == apt.id);
+            if (existingIdx >= 0) {
+              appointments[existingIdx] = apt;
+            } else {
+              appointments.add(apt);
+            }
           }
         }
       }
@@ -351,20 +505,39 @@ class ApiService {
       final res = await http.get(Uri.parse(invoicesSheetCsvUrl)).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200 && res.body.isNotEmpty) {
         final rows = _parseCsv(res.body);
-        if (rows.length > 1) {
-          for (int i = 1; i < rows.length; i++) {
+        if (rows.isNotEmpty) {
+          final headers = rows[0];
+          final hasHeader = headers.any((h) =>
+              h.toLowerCase().contains('invoice') ||
+              h.toLowerCase().contains('name') ||
+              h.toLowerCase().contains('bill'));
+
+          final colId = _findCol(headers, ['invoice', 'inv', 'bill', 'id'], 0);
+          final colDate = _findCol(headers, ['date', 'time'], 1);
+          final colName = _findCol(headers, ['patient', 'name'], 2);
+          final colPhone = _findCol(headers, ['phone', 'mobile'], 3);
+          final colDoctor = _findCol(headers, ['doctor'], 4);
+          final colConsult = _findCol(headers, ['consult'], 5);
+          final colXray = _findCol(headers, ['xray', 'x-ray'], 6);
+          final colPharm = _findCol(headers, ['pharm', 'med'], 7);
+          final colTotal = _findCol(headers, ['total', 'amount'], 8);
+          final colPayMode = _findCol(headers, ['mode', 'payment', 'method'], 9);
+
+          final startIdx = hasHeader ? 1 : 0;
+          for (int i = startIdx; i < rows.length; i++) {
             final r = rows[i];
             if (r.isEmpty) continue;
 
-            final invId = r[0].trim();
-            if (invId.isEmpty || invId.toLowerCase().contains('invoice')) continue;
+            final invId = _safeCell(r, colId);
+            if (invId.toLowerCase().contains('invoice') && hasHeader) continue;
 
-            final pName = r.length > 2 ? r[2].trim() : '';
-            final phone = r.length > 3 ? r[3].trim() : '';
+            final pName = _safeCell(r, colName);
+            final phone = _safeCell(r, colPhone);
             if (pName.isEmpty && phone.isEmpty) continue;
             if (isDummyInvoice(invId, pName)) continue;
 
-            String dateStr = r.length > 1 ? r[1].trim() : '2026-10-14';
+            String dateStr = _safeCell(r, colDate);
+            if (dateStr.isEmpty) dateStr = '2026-10-14';
             final dMatch = RegExp(r'^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})').firstMatch(dateStr);
             if (dMatch != null) {
               final day = dMatch.group(1)!.padLeft(2, '0');
@@ -375,12 +548,15 @@ class ApiService {
               dateStr = dateStr.substring(0, 10);
             }
 
-            final doctor = r.length > 4 && r[4].isNotEmpty ? r[4].trim() : 'Dr. Sanju Antony';
-            final consult = r.length > 5 ? (double.tryParse(r[5].replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0) : 0.0;
-            final xray = r.length > 6 ? (double.tryParse(r[6].replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0) : 0.0;
-            final pharm = r.length > 7 ? (double.tryParse(r[7].replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0) : 0.0;
-            final total = r.length > 8 ? (double.tryParse(r[8].replaceAll(RegExp(r'[^0-9.]'), '')) ?? (consult + xray + pharm)) : (consult + xray + pharm);
-            final payMode = r.length > 9 && r[9].isNotEmpty ? r[9].trim() : 'Cash';
+            final rawDoc = _safeCell(r, colDoctor);
+            final doctor = rawDoc.isNotEmpty ? rawDoc : 'Dr. Jeswin Jose BDS';
+            final consult = double.tryParse(_safeCell(r, colConsult).replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+            final xray = double.tryParse(_safeCell(r, colXray).replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+            final pharm = double.tryParse(_safeCell(r, colPharm).replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+            final rawTot = double.tryParse(_safeCell(r, colTotal).replaceAll(RegExp(r'[^0-9.]'), ''));
+            final total = (rawTot != null && rawTot > 0) ? rawTot : (consult + xray + pharm);
+            final rawPayMode = _safeCell(r, colPayMode);
+            final payMode = rawPayMode.isNotEmpty ? rawPayMode : 'Cash';
 
             final inv = Invoice(
               id: invId,

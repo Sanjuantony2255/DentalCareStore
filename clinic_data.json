@@ -121,7 +121,7 @@
       "age": 55,
       "gender": "Male",
       "address": "157 gorge rd east",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "medicalHistory": "None",
       "drugAllergies": "None",
       "diseaseHistory": "None",
@@ -131,7 +131,7 @@
       "visits": [
         {
           "date": "2026-10-14",
-          "doctor": "Dr. Sanju Antony",
+          "doctor": "Dr. Jeswin Jose BDS",
           "notes": "None",
           "invoiceId": "INV-20261014-4185",
           "amount": 950
@@ -202,7 +202,7 @@
       "age": 2002,
       "gender": "Male",
       "address": "Clinic Registered",
-      "doctor": "Dr Sanju",
+      "doctor": "Dr. Jeswin Jose BDS",
       "medicalHistory": "ys",
       "drugAllergies": "None",
       "diseaseHistory": "No",
@@ -212,7 +212,7 @@
       "visits": [
         {
           "date": "2026-10-13",
-          "doctor": "Dr Sanju",
+          "doctor": "Dr. Jeswin Jose BDS",
           "notes": "No",
           "invoiceId": "INV-20261013-3882",
           "amount": 300
@@ -229,7 +229,7 @@
       "age": 2005,
       "gender": "Male",
       "address": "Clinic Registered",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "medicalHistory": "Pain",
       "drugAllergies": "None",
       "diseaseHistory": "No Pain",
@@ -239,7 +239,7 @@
       "visits": [
         {
           "date": "2026-10-13",
-          "doctor": "Dr. Sanju Antony",
+          "doctor": "Dr. Jeswin Jose BDS",
           "notes": "No Pain",
           "invoiceId": "INV-20261013-1783",
           "amount": 500
@@ -256,7 +256,7 @@
       "age": 2026,
       "gender": "Male",
       "address": "Clinic Registered",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "medicalHistory": "Nil",
       "drugAllergies": "None",
       "diseaseHistory": "Nil",
@@ -266,7 +266,7 @@
       "visits": [
         {
           "date": "2026-10-13",
-          "doctor": "Dr. Sanju Antony",
+          "doctor": "Dr. Jeswin Jose BDS",
           "notes": "Nil",
           "invoiceId": "INV-20261013-4322",
           "amount": 300
@@ -423,7 +423,7 @@
       "email": "",
       "date": "2026-11-13",
       "timeSlot": "10:00 AM",
-      "doctor": "Dr Sanju",
+      "doctor": "Dr. Jeswin Jose BDS",
       "reason": "General Consultation & Checkup",
       "status": "Rescheduled",
       "notes": ""
@@ -435,7 +435,7 @@
       "email": "",
       "date": "2027-02-02",
       "timeSlot": "10:00 AM",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "reason": "General Consultation & Checkup",
       "status": "Rescheduled",
       "notes": ""
@@ -511,7 +511,7 @@
       "id": "INV-20261013-3882",
       "patientName": "Deepak",
       "phone": "7356511107",
-      "doctor": "Dr Sanju",
+      "doctor": "Dr. Jeswin Jose BDS",
       "date": "2026-10-13",
       "consultationCharge": 300,
       "xrayCharge": 0,
@@ -524,7 +524,7 @@
       "id": "INV-20261013-1783",
       "patientName": "Saran",
       "phone": "7827789812",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "date": "2026-10-13",
       "consultationCharge": 0,
       "xrayCharge": 0,
@@ -537,7 +537,7 @@
       "id": "INV-20261013-4322",
       "patientName": "Jeswin jose",
       "phone": "9072467117",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "date": "2026-10-13",
       "consultationCharge": 200,
       "xrayCharge": 100,
@@ -602,7 +602,7 @@
       "id": "INV-20261014-4185",
       "patientName": "Akhil",
       "phone": "7827789812",
-      "doctor": "Dr. Sanju Antony",
+      "doctor": "Dr. Jeswin Jose BDS",
       "date": "2026-10-14",
       "consultationCharge": 500,
       "xrayCharge": 250,

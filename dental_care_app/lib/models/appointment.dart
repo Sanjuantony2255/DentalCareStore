@@ -37,7 +37,7 @@ class Appointment {
     id: json['id'] ?? '',
     patientName: json['patientName'] ?? '',
     phone: json['phone'] ?? '',
-    doctor: json['doctor'] ?? 'Dr. Sanju Antony',
+    doctor: json['doctor'] ?? 'Dr. Jeswin Jose BDS',
     date: json['date'] ?? '',
     timeSlot: json['timeSlot'] ?? '10:00 AM',
     reason: json['reason'] ?? 'Dental Consultation',

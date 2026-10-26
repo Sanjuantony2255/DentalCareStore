@@ -1037,8 +1037,9 @@ function buildInvoiceHtml(inv) {
     '    <tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>' +
     '  </tbody>' +
     '</table>' +
-    '<div class="signatures">' +
-    '  <div class="sign-col"><div class="sign-line" style="height: 20px;"></div>Authorized Doctor / Hospital Seal</div>' +
+    '<div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">' +
+    '  <div class="sign-col" style="text-align: center; width: 200px; font-size: 11px; font-weight: bold; text-transform: uppercase;"><div class="sign-line" style="height: 20px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>Doctor\'s Seal & Signature</div>' +
+    '  <div class="sign-col" style="text-align: center; width: 200px; font-size: 11px; font-weight: bold; text-transform: uppercase;"><div class="sign-line" style="height: 20px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>Authorized Hospital Seal</div>' +
     '</div>' +
     '<div class="footer"><p>* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</p></div>' +
     '</div></body></html>';

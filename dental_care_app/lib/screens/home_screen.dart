@@ -6,7 +6,6 @@ import 'appointments_screen.dart';
 import 'patients_screen.dart';
 import 'search_records_screen.dart';
 import 'accounts_screen.dart';
-import 'pharmacy_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final StorageService storage;
@@ -75,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
         onBookAppointment: _onBookAppointmentFromPatient,
       ),
       AccountsScreen(storage: widget.storage),
-      PharmacyScreen(storage: widget.storage),
     ];
 
     return Scaffold(
@@ -202,7 +200,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   _drawerItem(2, Icons.people_alt_outlined, 'Patients Directory'),
                   _drawerItem(3, Icons.search_outlined, 'Search Records & Invoices'),
                   _drawerItem(4, Icons.bar_chart_outlined, 'Accounts & Revenue'),
-                  _drawerItem(5, Icons.medication_outlined, 'Pharmacy & Stock'),
                   const Divider(height: 16, color: Color(0xFFE2E8F0)),
                   ListTile(
                     leading: const Icon(Icons.cloud_sync_rounded, color: AppTheme.primaryTeal),
@@ -224,24 +221,50 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
             Container(
-              padding: const EdgeInsets.all(16),
-              child: const Row(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: const Column(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: AppTheme.primarySubtle,
-                    child: Text('👨‍⚕️', style: TextStyle(fontSize: 18)),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppTheme.primarySubtle,
+                        child: Text('👨‍⚕️', style: TextStyle(fontSize: 18)),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Attending Doctor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                            Text('manjalymdc@gmail.com', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Attending Doctor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                        Text('sanjuantony01@gmail.com', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                      ],
-                    ),
+                  SizedBox(height: 10),
+                  Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite, size: 14, color: Color(0xFFEF4444)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Developed by Sanju Antony',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F766E),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -281,11 +304,6 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart, color: AppTheme.primaryDark),
             label: 'Accounts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.medication_outlined),
-            selectedIcon: Icon(Icons.medication, color: AppTheme.primaryDark),
-            label: 'Pharmacy',
           ),
         ],
       ),
