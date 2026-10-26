@@ -178,17 +178,24 @@ class ApiService {
     // Helper checks to filter out any dummy test data
     bool isDummyPatient(String name, String phone, String id) {
       final n = name.trim().toLowerCase();
-      return n == 'rajesh kumar' || phone.trim() == '9845012345' || id == 'PAT-1001';
+      final p = phone.trim();
+      return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+          p == '9845012345' || p == '9876543210' || p == '9998887776' ||
+          id == 'PAT-1001' || id == 'PAT-9876543210';
     }
 
     bool isDummyAppointment(String id, String name, String phone) {
       final n = name.trim().toLowerCase();
-      return n == 'rajesh kumar' || phone.trim() == '9845012345' || id.contains('20261024-00');
+      final p = phone.trim();
+      return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+          p == '9845012345' || p == '9876543210' || p == '9998887776' ||
+          id.contains('20261024-00');
     }
 
     bool isDummyInvoice(String id, String name) {
       final n = name.trim().toLowerCase();
-      return n == 'rajesh kumar' || id == 'INV-2026-001';
+      return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+          id == 'INV-2026-001' || id == 'INV-20261013-3604' || id == 'INV-20261013-3503';
     }
 
     // 1. Fetch GitHub Cloud Repository baseline (fastest global CDN)

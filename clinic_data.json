@@ -326,33 +326,6 @@
           "amount": 0
         }
       ]
-    },
-    {
-      "id": "PAT-9876543210",
-      "opNumber": "OP-111",
-      "name": "Ramesh Kumar",
-      "phone": "9876543210",
-      "email": "ramesh@example.com",
-      "dob": "1990-05-15",
-      "age": 36,
-      "gender": "Male",
-      "address": "Brigade Road",
-      "doctor": "Dr. Anita",
-      "medicalHistory": "None",
-      "drugAllergies": "None",
-      "diseaseHistory": "RCT & POST & CORE",
-      "registrationDate": "2026-10-13",
-      "totalVisits": 1,
-      "totalBilled": 1000,
-      "visits": [
-        {
-          "date": "2026-10-13",
-          "doctor": "Dr. Anita",
-          "notes": "Root Canal obturation and core buildup",
-          "invoiceId": "INV-20261013-3604",
-          "amount": 1000
-        }
-      ]
     }
   ],
   "appointments": [
@@ -453,32 +426,6 @@
       "pharmacyCharge": 0,
       "totalAmount": 50,
       "paymentMode": "UPI / Online",
-      "notes": ""
-    },
-    {
-      "id": "INV-20261013-3604",
-      "patientName": "Ramesh Kumar",
-      "phone": "9876543210",
-      "doctor": "Dr. Anita",
-      "date": "2026-10-13",
-      "consultationCharge": 500,
-      "xrayCharge": 300,
-      "pharmacyCharge": 200,
-      "totalAmount": 1000,
-      "paymentMode": "UPI / Online",
-      "notes": ""
-    },
-    {
-      "id": "INV-20261013-3503",
-      "patientName": "Test Patient",
-      "phone": "9998887776",
-      "doctor": "Dr. Sharma",
-      "date": "2026-10-13",
-      "consultationCharge": 500,
-      "xrayCharge": 300,
-      "pharmacyCharge": 200,
-      "totalAmount": 1000,
-      "paymentMode": "Cash",
       "notes": ""
     },
     {

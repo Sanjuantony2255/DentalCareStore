@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/invoice.dart';
 import '../theme/app_theme.dart';
 import '../constants/invoice_assets.dart';
@@ -90,12 +93,17 @@ class InvoiceReceiptDialog extends StatelessWidget {
         </table>
         <div class="signatures">
             <div class="sign-col">
-                <img src="$kInvoiceSignBase64" alt="Doctor Seal & Sign" class="hospital-seal">
+                <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
+                    <img src="$kInvoiceSignBase64" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
+                    <img src="$kInvoiceDrSealBase64" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
+                </div>
                 <div class="sign-line"></div>
                 Doctor's Seal & Signature
             </div>
             <div class="sign-col">
-                <img src="$kInvoiceSealBase64" alt="Authorized Hospital Seal" class="hospital-seal">
+                <div style="display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px;">
+                    <img src="$kInvoiceHospitalSealBase64" alt="Authorized Hospital Seal" class="hospital-seal" style="max-height: 58px; max-width: 125px; object-fit: contain;">
+                </div>
                 <div class="sign-line"></div>
                 Authorized Hospital Seal
             </div>
@@ -106,28 +114,48 @@ class InvoiceReceiptDialog extends StatelessWidget {
 </html>''';
   }
 
-  /// Downloads and shares the HTML invoice file to device
+  /// Downloads and saves the HTML invoice file to device Downloads
   static Future<void> downloadInvoiceFile(BuildContext context, Invoice inv) async {
     try {
       final html = generatePrintableHtml(inv);
-      final tempDir = Directory.systemTemp;
       final cleanName = inv.patientName.replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
       final filename = 'Invoice_${inv.id}_$cleanName.html';
-      final file = File('${tempDir.path}/$filename');
-      await file.writeAsString(html, flush: true);
 
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'text/html', name: filename)],
-        subject: 'Invoice ${inv.id} - ${inv.patientName}',
-        text: 'Manjaly Multi Speciality Dental Care Invoice Receipt: ${inv.id}',
-      );
+      String? savedPath;
+
+      // 1. Try public Android Downloads directory
+      try {
+        final downloadDir = Directory('/storage/emulated/0/Download');
+        if (downloadDir.existsSync()) {
+          final targetFile = File('${downloadDir.path}/$filename');
+          await targetFile.writeAsString(html, flush: true);
+          savedPath = targetFile.path;
+        }
+      } catch (_) {}
+
+      // 2. Fallback to application system temp directory
+      if (savedPath == null) {
+        final fallbackDir = Directory.systemTemp;
+        final targetFile = File('${fallbackDir.path}/$filename');
+        await targetFile.writeAsString(html, flush: true);
+        savedPath = targetFile.path;
+      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Invoice ${inv.id} ready to download / save!'),
+            content: Text('✓ Invoice downloaded: $filename'),
             backgroundColor: AppTheme.primaryTeal,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                if (savedPath != null) {
+                  launchUrl(Uri.file(savedPath), mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
           ),
         );
       }
@@ -136,6 +164,38 @@ class InvoiceReceiptDialog extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Download failed: $e')),
         );
+      }
+    }
+  }
+
+  /// Prints the invoice using system printer
+  static Future<void> printInvoice(BuildContext context, Invoice inv) async {
+    try {
+      final html = generatePrintableHtml(inv);
+      await Printing.layoutPdf(
+        name: 'Invoice_${inv.id}',
+        onLayout: (PdfPageFormat format) async {
+          // ignore: deprecated_member_use
+          return await Printing.convertHtml(
+            format: format,
+            html: html,
+          );
+        },
+      );
+    } catch (e) {
+      // Fallback: save to temp file and open in browser with window.print()
+      try {
+        final cleanName = inv.patientName.replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+        final filename = 'Print_Invoice_${inv.id}_$cleanName.html';
+        final tempFile = File('${Directory.systemTemp.path}/$filename');
+        await tempFile.writeAsString(generatePrintableHtml(inv), flush: true);
+        await launchUrl(Uri.file(tempFile.path), mode: LaunchMode.externalApplication);
+      } catch (err) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Print failed: $e')),
+          );
+        }
       }
     }
   }
@@ -385,21 +445,35 @@ Contact: +91 6238497517 | manjalymdc@gmail.com
                 ),
               ],
 
-              // 5. Doctor Seal & Sign and Authorized Hospital Seal
+              // 5. Doctor Seal & Sign (Left) and Authorized Hospital Seal (Right)
               const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Column(
                     children: [
-                      Image.asset(
-                        'assets/images/sign.jpg',
-                        height: 48,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.draw, color: AppTheme.primaryTeal, size: 36),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Image.asset(
+                            'assets/images/sign.jpg',
+                            height: 44,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.draw, color: AppTheme.primaryTeal, size: 30),
+                          ),
+                          const SizedBox(width: 6),
+                          Image.asset(
+                            'assets/images/seal.jpg',
+                            height: 44,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.verified, color: AppTheme.primaryTeal, size: 30),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
-                      Container(width: 130, height: 1, color: const Color(0xFF0F172A)),
+                      Container(width: 150, height: 1, color: const Color(0xFF0F172A)),
                       const SizedBox(height: 3),
                       const Text(
                         "Doctor's Seal & Signature",
@@ -410,10 +484,10 @@ Contact: +91 6238497517 | manjalymdc@gmail.com
                   Column(
                     children: [
                       Image.asset(
-                        'assets/images/seal.jpg',
-                        height: 48,
+                        'assets/images/hospital_seal.jpg',
+                        height: 46,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.verified, color: AppTheme.primaryTeal, size: 36),
+                        errorBuilder: (_, __, ___) => const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryTeal, size: 30),
                       ),
                       const SizedBox(height: 4),
                       Container(width: 140, height: 1, color: const Color(0xFF0F172A)),
@@ -436,15 +510,14 @@ Contact: +91 6238497517 | manjalymdc@gmail.com
               ),
               const SizedBox(height: 18),
 
-              // 7. Action Buttons (Download Invoice, Share/Print, Done)
+              // 7. Action Buttons (Download, Print, Share, Done)
               Row(
                 children: [
                   Expanded(
-                    flex: 3,
                     child: ElevatedButton.icon(
                       onPressed: () => downloadInvoiceFile(context, invoice),
                       icon: const Icon(Icons.download_rounded, size: 16),
-                      label: const Text('Download Invoice', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      label: const Text('Download', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryTeal,
                         foregroundColor: Colors.white,
@@ -454,25 +527,43 @@ Contact: +91 6238497517 | manjalymdc@gmail.com
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: () => printInvoice(context, invoice),
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text('Print', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F766E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _shareReceiptText(context),
                       icon: const Icon(Icons.share_outlined, size: 15),
-                      label: const Text('Share', style: TextStyle(fontSize: 12)),
+                      label: const Text('Share Details', style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF64748B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: const Color(0xFF475569),
+                      ),
+                      child: const Text('Close', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
-                    child: const Text('Done', style: TextStyle(fontSize: 12)),
                   ),
                 ],
               ),

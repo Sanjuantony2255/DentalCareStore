@@ -1260,8 +1260,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayAddress = inv.address || inv.email || (currentPatientProfile && (currentPatientProfile.address || currentPatientProfile.email)) || 'N/A';
         const displayOp = inv.opNumber || (currentPatientProfile && currentPatientProfile.opNumber) || 'N/A';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
-        const sealSrc = (typeof window !== 'undefined' && window.INVOICE_SEAL_BASE64) ? window.INVOICE_SEAL_BASE64 : 'assets/img/seal.jpg';
         const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/sign.jpg';
+        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) ? window.INVOICE_DR_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const hospSealSrc = (typeof window !== 'undefined' && window.INVOICE_HOSPITAL_SEAL_BASE64) ? window.INVOICE_HOSPITAL_SEAL_BASE64 : 'assets/img/Hospital Seal.jpg';
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -1341,14 +1342,19 @@ document.addEventListener('DOMContentLoaded', () => {
         </table>
         <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
             <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-                <img src="${signSrc}" alt="Doctor Seal & Sign" class="hospital-seal">
+                <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
+                    <img src="${signSrc}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
+                    <img src="${drSealSrc}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
+                </div>
                 <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
                 Doctor's Seal & Signature
             </div>
             <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-                <img src="${sealSrc}" alt="Authorized Hospital Seal" class="hospital-seal">
+                <div style="display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px;">
+                    <img src="${hospSealSrc}" alt="Authorized Hospital Seal" class="hospital-seal" style="max-height: 58px; max-width: 125px; object-fit: contain;">
+                </div>
                 <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
-                Authorized Doctor / Hospital Seal
+                Authorized Hospital Seal
             </div>
         </div>
         <div class="footer">* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</div>

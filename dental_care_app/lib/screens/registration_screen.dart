@@ -453,9 +453,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _diseaseHistoryController.clear();
     _drugAllergiesController.clear();
     _notesController.clear();
-    _consultationController.text = '350';
-    _xrayController.text = '0';
-    _pharmacyController.text = '0';
+    _consultationController.clear();
+    _xrayController.clear();
+    _pharmacyController.clear();
     setState(() {});
   }
 
@@ -618,7 +618,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Mobile Phone Number *',
                           prefixIcon: Icon(Icons.phone_android, size: 20),
-                          hintText: 'e.g. 9845012345',
+                          hintText: 'Enter 10-digit phone number',
                         ),
                         validator: (v) => (v == null || v.trim().length < 10) ? 'Enter valid 10-digit phone' : null,
                         onChanged: _onPhoneChanged,
@@ -629,7 +629,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Patient Full Name *',
                           prefixIcon: Icon(Icons.person_outline, size: 20),
-                          hintText: 'e.g. Rajesh Kumar',
+                          hintText: 'Enter patient full name',
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter patient name' : null,
                       ),
@@ -844,6 +844,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           _presetChip('Free (₹0)', 0, _consultationController),
                           _presetChip('₹200', 200, _consultationController),
@@ -866,6 +867,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           _presetChip('No X-Ray (₹0)', 0, _xrayController),
                           _presetChip('RVG Single (₹200)', 200, _xrayController),
@@ -884,6 +886,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           prefixIcon: Icon(Icons.medication_outlined, size: 20),
                         ),
                         onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _presetChip('No Meds (₹0)', 0, _pharmacyController),
+                          _presetChip('₹100', 100, _pharmacyController),
+                          _presetChip('₹200', 200, _pharmacyController),
+                          _presetChip('₹350', 350, _pharmacyController),
+                        ],
                       ),
                       const SizedBox(height: 14),
 
@@ -981,13 +994,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Widget _presetChip(String label, double amount, TextEditingController controller) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 11)),
-      onPressed: () {
+    final curVal = double.tryParse(controller.text);
+    final isSelected = curVal != null && curVal == amount && controller.text.trim().isNotEmpty;
+
+    return InkWell(
+      onTap: () {
         controller.text = amount.toStringAsFixed(0);
         setState(() {});
       },
-      visualDensity: VisualDensity.compact,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryTeal : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryDark : const Color(0xFFCBD5E1),
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryTeal.withValues(alpha: 0.25),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : const Color(0xFF334155),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -27,17 +27,24 @@ class StorageService extends ChangeNotifier {
 
   static bool isDummyPatient(String name, String phone, String id) {
     final n = name.trim().toLowerCase();
-    return n == 'rajesh kumar' || phone.trim() == '9845012345' || id == 'PAT-1001';
+    final p = phone.trim();
+    return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+        p == '9845012345' || p == '9876543210' || p == '9998887776' ||
+        id == 'PAT-1001' || id == 'PAT-9876543210';
   }
 
   static bool isDummyAppointment(String id, String name, String phone) {
     final n = name.trim().toLowerCase();
-    return n == 'rajesh kumar' || phone.trim() == '9845012345' || id.contains('20261024-00');
+    final p = phone.trim();
+    return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+        p == '9845012345' || p == '9876543210' || p == '9998887776' ||
+        id.contains('20261024-00');
   }
 
   static bool isDummyInvoice(String id, String name) {
     final n = name.trim().toLowerCase();
-    return n == 'rajesh kumar' || id == 'INV-2026-001';
+    return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+        id == 'INV-2026-001' || id == 'INV-20261013-3604' || id == 'INV-20261013-3503';
   }
 
   Future<void> initialize() async {
@@ -610,27 +617,6 @@ class StorageService extends ChangeNotifier {
           VisitRecord(date: nowStr, doctor: 'Dr. Jeswin Jose BDS', notes: 'OPG Digital X-Ray', invoiceId: 'INV-20261013-4322', amount: 300.0),
         ],
       ),
-      Patient(
-        id: 'PAT-9876543210',
-        opNumber: 'OP-111',
-        name: 'Ramesh Kumar',
-        phone: '9876543210',
-        email: 'ramesh@example.com',
-        dob: '1990-05-15',
-        age: 36,
-        gender: 'Male',
-        address: 'Brigade Road',
-        doctor: 'Dr. Anita',
-        medicalHistory: 'None',
-        drugAllergies: 'None',
-        diseaseHistory: 'RCT & POST & CORE',
-        registrationDate: nowStr,
-        totalVisits: 1,
-        totalBilled: 1000.0,
-        visits: [
-          VisitRecord(date: nowStr, doctor: 'Dr. Anita', notes: 'Root Canal obturation and core buildup', invoiceId: 'INV-20261013-3604', amount: 1000.0),
-        ],
-      ),
     ]);
   }
 
@@ -731,30 +717,6 @@ class StorageService extends ChangeNotifier {
         pharmacyCharge: 0.0,
         totalAmount: 50.0,
         paymentMode: 'UPI / Online',
-      ),
-      Invoice(
-        id: 'INV-20261013-3604',
-        patientName: 'Ramesh Kumar',
-        phone: '9876543210',
-        doctor: 'Dr. Anita',
-        date: '2026-10-13',
-        consultationCharge: 500.0,
-        xrayCharge: 300.0,
-        pharmacyCharge: 200.0,
-        totalAmount: 1000.0,
-        paymentMode: 'UPI / Online',
-      ),
-      Invoice(
-        id: 'INV-20261013-3503',
-        patientName: 'Test Patient',
-        phone: '9998887776',
-        doctor: 'Dr. Sharma',
-        date: '2026-10-13',
-        consultationCharge: 500.0,
-        xrayCharge: 300.0,
-        pharmacyCharge: 200.0,
-        totalAmount: 1000.0,
-        paymentMode: 'Cash',
       ),
       Invoice(
         id: 'INV-20261013-2595',
