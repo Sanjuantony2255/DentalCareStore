@@ -107,11 +107,11 @@
         });
 
         // 4. Role Management: Admin vs Staff
-        // 4. Role Management: Admin vs Staff (Password 118022 Required to Enter Admin)
+        // 4. Role Management: Admin vs Staff (Owner: Dr. Jeswin)
         const ADMIN_PASSWORD = '118022';
 
         function getRole() {
-            return localStorage.getItem('dental_user_role') || 'admin';
+            return sessionStorage.getItem('dental_user_role') || 'staff';
         }
 
         function showRoleToast(msg, type) {
@@ -133,7 +133,10 @@
         }
 
         function actuallySetRole(role) {
-            localStorage.setItem('dental_user_role', role);
+            sessionStorage.setItem('dental_user_role', role);
+            try {
+                localStorage.removeItem('dental_user_role');
+            } catch (_) {}
             applyRoleState();
             window.dispatchEvent(new CustomEvent('dental_role_changed', { detail: { role } }));
         }
@@ -150,15 +153,15 @@
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;">
                         <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:1.4rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🔒</div>
                         <div>
-                            <h3 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin:0 0 2px 0;">Admin Password Required</h3>
-                            <p style="font-size:0.82rem;color:#64748b;margin:0;">Enter password <strong>118022</strong> to access Admin mode.</p>
+                            <h3 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin:0 0 2px 0;">Admin Password Required (Dr. Jeswin)</h3>
+                            <p style="font-size:0.82rem;color:#64748b;margin:0;">Enter administrator password to access Admin mode.</p>
                         </div>
                     </div>
                     <form id="adminPasswordForm" style="margin:0;">
                         <div style="margin-bottom:1.25rem;">
                             <label style="display:block;font-size:0.75rem;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Password</label>
                             <div style="position:relative;">
-                                <input type="password" id="adminPwdInput" placeholder="Enter password (118022)" autofocus
+                                <input type="password" id="adminPwdInput" placeholder="Enter password" autofocus
                                     style="width:100%;padding:0.75rem 2.5rem 0.75rem 1rem;border:1.5px solid #cbd5e1;border-radius:8px;font-size:1rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;">
                                 <button type="button" id="adminPwdToggleVis" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:1rem;padding:0;">👁️</button>
                             </div>
@@ -251,10 +254,10 @@
             roleBox.innerHTML = `
                 <div class="sidebar-role-label">
                     <span>PORTAL ROLE</span>
-                    <span style="opacity:0.85;">${current === 'admin' ? '👑 FULL ACCESS' : '👤 RESTRICTED'}</span>
+                    <span style="opacity:0.85;">${current === 'admin' ? '👑 Dr. Jeswin (Admin)' : '👤 RESTRICTED'}</span>
                 </div>
                 <div class="sidebar-role-toggle">
-                    <button type="button" class="role-btn ${current === 'admin' ? 'active' : ''}" data-role="admin">👑 Admin</button>
+                    <button type="button" class="role-btn ${current === 'admin' ? 'active' : ''}" data-role="admin">👑 Admin (Dr. Jeswin)</button>
                     <button type="button" class="role-btn ${current === 'staff' ? 'active' : ''}" data-role="staff">👤 Staff</button>
                 </div>
             `;
@@ -286,7 +289,7 @@
                 });
             }
             const role = getRole();
-            pill.innerHTML = role === 'admin' ? '👑 Admin' : '👤 Staff';
+            pill.innerHTML = role === 'admin' ? '👑 Admin (Dr. Jeswin)' : '👤 Staff';
             pill.setAttribute('title', `Active role: ${role}. Click to switch.`);
         }
 
@@ -323,7 +326,7 @@
                 <div style="background:white;border-radius:16px;max-width:440px;width:100%;padding:1.75rem;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
                     <div style="width:54px;height:54px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:1.75rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">🔒</div>
                     <h3 style="font-size:1.25rem;font-weight:800;color:#0f172a;margin-bottom:0.5rem;">Admin Access Required</h3>
-                    <p style="font-size:0.9rem;color:#64748b;line-height:1.5;margin-bottom:1.5rem;">Only clinic administrators have the right to view Accounts &amp; Revenue. Your current active role is <strong>Staff</strong>.</p>
+                    <p style="font-size:0.9rem;color:#64748b;line-height:1.5;margin-bottom:1.5rem;">Only clinic administrators (Dr. Jeswin) have the right to view Accounts &amp; Revenue. Your current active role is <strong>Staff</strong>.</p>
                     <div style="display:flex;gap:0.6rem;justify-content:center;">
                         <button type="button" id="modalSwitchAdminBtn" style="background:#0f766e;color:white;border:none;padding:0.65rem 1.25rem;border-radius:8px;font-weight:700;cursor:pointer;">👑 Switch to Admin Mode</button>
                         <button type="button" id="modalCloseAdminBtn" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:0.65rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
@@ -367,7 +370,7 @@
                     restrictedCard.innerHTML = `
                         <div class="restricted-icon">🔒</div>
                         <h2>Admin Access Restricted</h2>
-                        <p>Only clinic administrators have the right to view Accounts &amp; Revenue analytics. Your current active role is <strong>Staff</strong>.</p>
+                        <p>Only clinic administrators (Dr. Jeswin) have the right to view Accounts &amp; Revenue analytics. Your current active role is <strong>Staff</strong>.</p>
                         <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
                             <button type="button" id="cardSwitchAdminBtn" style="background:#0f766e;color:white;padding:0.65rem 1.25rem;border-radius:8px;font-weight:700;border:none;cursor:pointer;">
                                 👑 Switch to Admin Mode
@@ -390,14 +393,25 @@
             }
         }
 
+        function updateDoctorOwnerLabel() {
+            const docNameEl = appSidebar.querySelector('.sidebar-doctor-card .doc-name');
+            if (docNameEl && (docNameEl.textContent.trim() === 'Attending Doctor' || docNameEl.textContent.trim() === '')) {
+                docNameEl.textContent = 'Dr. Jeswin (Owner & Admin)';
+            }
+        }
+
         function applyRoleState() {
             renderRoleSwitcher();
             renderMobileRolePill();
             updateAccountsLinkAccess();
             enforceAccountsPageAccess();
+            updateDoctorOwnerLabel();
         }
 
-        // Initialize role controller
+        // Initialize role controller (clean any legacy persistent localStorage role)
+        try {
+            localStorage.removeItem('dental_user_role');
+        } catch (_) {}
         applyRoleState();
         window.addEventListener('storage', (e) => {
             if (e.key === 'dental_user_role') {

@@ -116,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 side: BorderSide(color: widget.storage.isAdmin ? AppTheme.primaryTeal : const Color(0xFFE2E8F0)),
               ),
               leading: const CircleAvatar(backgroundColor: Color(0xFFEFF6FF), child: Text('👑')),
-              title: const Text('Admin', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              title: const Text('Admin (Dr. Jeswin)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               subtitle: const Text('Full rights: Patients, Appointments, Invoices, Accounts & Revenue', style: TextStyle(fontSize: 11)),
               trailing: widget.storage.isAdmin ? const Icon(Icons.check_circle, color: AppTheme.primaryTeal) : null,
               onTap: () async {
@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Only clinic administrators have the right to view Accounts & Revenue analytics. Staff accounts are restricted from accessing financial data.',
+                  'Only clinic administrators (Dr. Jeswin) have the right to view Accounts & Revenue analytics. Staff accounts are restricted from accessing financial data.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
                 ),
@@ -286,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(isAdmin ? '👑' : '👤', style: const TextStyle(fontSize: 12)),
                       const SizedBox(width: 4),
                       Text(
-                        isAdmin ? 'Admin' : 'Staff',
+                        isAdmin ? 'Admin (Dr. Jeswin)' : 'Staff',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -402,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    '👑 Admin',
+                                    '👑 Admin (Dr. Jeswin)',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
@@ -497,7 +497,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Attending Doctor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                Text('Dr. Jeswin (Owner & Admin)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                                 Text('📞 +91 9072467117 / 6238497517', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal)),
                                 Text('manjalymdc@gmail.com', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                               ],

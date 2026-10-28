@@ -140,7 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main fetch function
     async function loadAccountsData() {
-        const role = localStorage.getItem('dental_user_role') || 'admin';
+        const role = (window.DentalPortal && window.DentalPortal.getRole)
+            ? window.DentalPortal.getRole()
+            : (sessionStorage.getItem('dental_user_role') || 'staff');
         if (role === 'staff') {
             showLoader(false);
             return;

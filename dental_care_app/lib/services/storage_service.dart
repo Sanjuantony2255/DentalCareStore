@@ -18,7 +18,7 @@ class StorageService extends ChangeNotifier {
   final List<Invoice> _invoices = [];
   final List<InventoryItem> _inventory = [];
 
-  String _userRole = 'admin'; // 'admin' or 'staff'
+  String _userRole = 'staff'; // Always opens in staff mode
   bool _initialized = false;
 
   List<Patient> get patients => List.unmodifiable(_patients);
@@ -30,11 +30,7 @@ class StorageService extends ChangeNotifier {
   bool get isAdmin => _userRole == 'admin';
 
   Future<void> setUserRole(String role) async {
-    _userRole = (role == 'staff') ? 'staff' : 'admin';
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('manjaly_user_role', _userRole);
-    } catch (_) {}
+    _userRole = (role == 'admin') ? 'admin' : 'staff';
     notifyListeners();
   }
 
@@ -65,10 +61,11 @@ class StorageService extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedRole = prefs.getString('manjaly_user_role');
-      if (savedRole != null && (savedRole == 'admin' || savedRole == 'staff')) {
-        _userRole = savedRole;
-      }
+      // App always opens in staff mode per clinic security requirements
+      _userRole = 'staff';
+      try {
+        await prefs.remove('manjaly_user_role');
+      } catch (_) {}
 
       final patientsJson = prefs.getString('manjaly_patients');
       final appointmentsJson = prefs.getString('manjaly_appointments');

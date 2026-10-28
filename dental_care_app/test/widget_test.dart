@@ -150,16 +150,16 @@ void main() {
 
     test('StorageService userRole toggles between Admin and Staff', () async {
       final storage = StorageService();
-      expect(storage.userRole, 'admin');
-      expect(storage.isAdmin, true);
-
-      await storage.setUserRole('staff');
       expect(storage.userRole, 'staff');
       expect(storage.isAdmin, false);
 
       await storage.setUserRole('admin');
       expect(storage.userRole, 'admin');
       expect(storage.isAdmin, true);
+
+      await storage.setUserRole('staff');
+      expect(storage.userRole, 'staff');
+      expect(storage.isAdmin, false);
     });
   });
 }

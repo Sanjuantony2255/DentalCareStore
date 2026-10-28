@@ -26,7 +26,7 @@ Future<bool> promptAdminPassword(BuildContext context) async {
                 child: const Icon(Icons.lock_rounded, color: Color(0xFFDC2626), size: 22),
               ),
               const SizedBox(width: 10),
-              const Text('Admin Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('Admin Password (Dr. Jeswin)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Column(
@@ -34,7 +34,7 @@ Future<bool> promptAdminPassword(BuildContext context) async {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Enter administrator password (118022) to unlock Admin mode.',
+                'Enter administrator password to unlock Admin mode.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 16),
@@ -45,7 +45,7 @@ Future<bool> promptAdminPassword(BuildContext context) async {
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  hintText: 'Enter 118022',
+                  hintText: 'Enter password',
                   prefixIcon: const Icon(Icons.key_rounded, size: 20),
                   suffixIcon: IconButton(
                     icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, size: 20),
