@@ -56,6 +56,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   String _medicalHistory = 'No Significant Medical History';
   String _paymentMode = 'UPI / Online';
 
+  final _treatmentChargeController = TextEditingController();
+  final List<Map<String, TextEditingController>> _customChargeRows = [];
+  String? _selectedChargeDropdown;
+
   final List<String> _medicalHistoryOptions = [
     'No Significant Medical History',
     'Hypertension',
@@ -88,9 +92,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _drugAllergiesController.dispose();
     _manualDoctorController.dispose();
     _consultationController.dispose();
+    _treatmentChargeController.dispose();
     _xrayController.dispose();
     _pharmacyController.dispose();
     _notesController.dispose();
+    for (final row in _customChargeRows) {
+      row['title']?.dispose();
+      row['amount']?.dispose();
+    }
     super.dispose();
   }
 
@@ -112,9 +121,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   double get _totalAmount {
     final c = double.tryParse(_consultationController.text) ?? 0.0;
+    final t = double.tryParse(_treatmentChargeController.text) ?? 0.0;
     final x = double.tryParse(_xrayController.text) ?? 0.0;
     final p = double.tryParse(_pharmacyController.text) ?? 0.0;
-    return c + x + p;
+    double customs = 0.0;
+    for (final row in _customChargeRows) {
+      customs += double.tryParse(row['amount']?.text ?? '') ?? 0.0;
+    }
+    return c + t + x + p + customs;
+  }
+
+  void _addCustomChargeRow([String title = '', String amount = '']) {
+    setState(() {
+      _customChargeRows.add({
+        'title': TextEditingController(text: title),
+        'amount': TextEditingController(text: amount),
+      });
+    });
+  }
+
+  void _removeCustomChargeRow(int index) {
+    setState(() {
+      if (index >= 0 && index < _customChargeRows.length) {
+        final removed = _customChargeRows.removeAt(index);
+        removed['title']?.dispose();
+        removed['amount']?.dispose();
+      }
+    });
   }
 
   void _onPhoneChanged(String val) {
@@ -452,6 +485,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       registrationDate: selectedDateStr,
     );
 
+    final customChargesList = _customChargeRows
+        .map((r) => CustomChargeItem(
+              title: r['title']?.text.trim() ?? '',
+              amount: double.tryParse(r['amount']?.text.trim() ?? '') ?? 0.0,
+            ))
+        .where((c) => c.title.isNotEmpty || c.amount > 0)
+        .toList();
+
     final invoice = Invoice(
       id: invId,
       patientName: patient.name,
@@ -459,8 +500,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       doctor: effectiveDoctor,
       date: selectedDateStr,
       consultationCharge: double.tryParse(_consultationController.text) ?? 0.0,
+      treatmentCharge: double.tryParse(_treatmentChargeController.text) ?? 0.0,
+      treatment: _treatmentController.text.trim().isNotEmpty
+          ? _treatmentController.text.trim()
+          : effectiveDisease,
       xrayCharge: double.tryParse(_xrayController.text) ?? 0.0,
       pharmacyCharge: double.tryParse(_pharmacyController.text) ?? 0.0,
+      customCharges: customChargesList,
       totalAmount: _totalAmount,
       paymentMode: _paymentMode,
       notes: _notesController.text.trim(),
@@ -506,8 +552,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _medicalHistory = 'No Significant Medical History';
     _notesController.clear();
     _consultationController.clear();
+    _treatmentChargeController.clear();
     _xrayController.clear();
     _pharmacyController.clear();
+    for (final row in _customChargeRows) {
+      row['title']?.dispose();
+      row['amount']?.dispose();
+    }
+    _customChargeRows.clear();
+    _selectedChargeDropdown = null;
     setState(() {});
   }
 
@@ -906,6 +959,58 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Dropdown for standard and custom charges
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedChargeDropdown,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: '🎯 Charges Option (Dropdown Selection)',
+                          prefixIcon: Icon(Icons.list_alt_rounded, size: 20),
+                        ),
+                        hint: const Text('-- Select Charge / Procedure Option --'),
+                        items: const [
+                          DropdownMenuItem(value: 'consult:300', child: Text('🩺 Doctor Consultation (₹300)')),
+                          DropdownMenuItem(value: 'consult:500', child: Text('🩺 Specialist Consultation (₹500)')),
+                          DropdownMenuItem(value: 'consult:0', child: Text('🩺 Free Consultation (₹0)')),
+                          DropdownMenuItem(value: 'xray:250', child: Text('🩻 Dental Radiograph / IOPA (₹250)')),
+                          DropdownMenuItem(value: 'xray:500', child: Text('🩻 OPG Panoramic X-Ray (₹500)')),
+                          DropdownMenuItem(value: 'pharm:200', child: Text('💊 Pharmacy Medicines Pack (₹200)')),
+                          DropdownMenuItem(value: 'pharm:350', child: Text('💊 Extended Pharmacy Pack (₹350)')),
+                          DropdownMenuItem(value: 'treat:SCALING:1000', child: Text('🦷 SCALING & POLISHING (₹1,000)')),
+                          DropdownMenuItem(value: 'treat:COMPOSITE:800', child: Text('🦷 COMPOSITE FILLING (₹800)')),
+                          DropdownMenuItem(value: 'treat:RCT:2500', child: Text('🦷 ROOT CANAL - RCT (₹2,500)')),
+                          DropdownMenuItem(value: 'treat:NORMAL EXTRACTION:500', child: Text('🦷 NORMAL EXTRACTION (₹500)')),
+                          DropdownMenuItem(value: 'treat:DIFFICULT EXTRACTION:1500', child: Text('🦷 DIFFICULT EXTRACTION (₹1,500)')),
+                          DropdownMenuItem(value: 'treat:CROWN PFM:3000', child: Text('🦷 CROWN PFM (₹3,000)')),
+                          DropdownMenuItem(value: 'treat:POST & CORE:1500', child: Text('🦷 POST & CORE (₹1,500)')),
+                          DropdownMenuItem(value: 'treat:CLEAR ALIGNERS:35000', child: Text('🦷 CLEAR ALIGNERS (₹35,000)')),
+                          DropdownMenuItem(value: 'treat:BLEACHING:5000', child: Text('🦷 BLEACHING / WHITENING (₹5,000)')),
+                          DropdownMenuItem(value: 'manual', child: Text('➕ Add Custom Charge Manually...')),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          if (v == 'manual') {
+                            _addCustomChargeRow('', '');
+                          } else if (v.startsWith('consult:')) {
+                            _consultationController.text = v.split(':')[1];
+                          } else if (v.startsWith('xray:')) {
+                            _xrayController.text = v.split(':')[1];
+                          } else if (v.startsWith('pharm:')) {
+                            _pharmacyController.text = v.split(':')[1];
+                          } else if (v.startsWith('treat:')) {
+                            final p = v.split(':');
+                            _treatmentChargeController.text = p[2];
+                            if (_treatmentController.text.isEmpty) {
+                              _treatmentController.text = p[1];
+                            }
+                          }
+                          setState(() {
+                            _selectedChargeDropdown = v;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
                       // Consultation Charge
                       TextFormField(
                         controller: _consultationController,
@@ -925,6 +1030,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           _presetChip('₹200', 200, _consultationController),
                           _presetChip('₹350 (Std)', 350, _consultationController),
                           _presetChip('₹500 (Spl)', 500, _consultationController),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Treatment Charge
+                      TextFormField(
+                        controller: _treatmentChargeController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: _treatmentController.text.isNotEmpty
+                              ? '🦷 Treatment Charge: ${_treatmentController.text} (₹)'
+                              : '🦷 Treatment / Procedure Charge (₹)',
+                          prefixIcon: const Icon(Icons.healing_outlined, size: 20),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _presetChip('₹500', 500, _treatmentChargeController),
+                          _presetChip('₹1,000', 1000, _treatmentChargeController),
+                          _presetChip('₹2,500', 2500, _treatmentChargeController),
+                          _presetChip('₹3,000', 3000, _treatmentChargeController),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -972,6 +1102,103 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           _presetChip('₹200', 200, _pharmacyController),
                           _presetChip('₹350', 350, _pharmacyController),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Custom Charges Section (Add Manually like Treatment)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    '➕ Custom Charges (Add Manually):',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _addCustomChargeRow(),
+                                  icon: const Icon(Icons.add, size: 14),
+                                  label: const Text('+ Add Charge', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryTeal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_customChargeRows.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Tap "+ Add Charge" to add custom procedures, lab fees, or other charges manually.',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                                ),
+                              ),
+                            ...List.generate(_customChargeRows.length, (idx) {
+                              final row = _customChargeRows[idx];
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: TextFormField(
+                                        controller: row['title'],
+                                        decoration: InputDecoration(
+                                          labelText: 'Charge Description #${idx + 1}',
+                                          hintText: 'e.g. Scaling, Lab Fee',
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        ),
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextFormField(
+                                        controller: row['amount'],
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Amount (₹)',
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        ),
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle, color: Colors.redAccent, size: 22),
+                                      tooltip: 'Remove',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => _removeCustomChargeRow(idx),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
 

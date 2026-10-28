@@ -340,8 +340,48 @@
 
                 <!-- Section 3: Billing & Charges -->
                 <div class="form-section">
-                    <h2><span class="icon">💳</span> Billing & Charges (Consultation, X-Ray, Pharmacy)</h2>
+                    <h2><span class="icon">💳</span> Billing & Charges (Consultation, Treatment & Custom Charges)</h2>
                     
+                    <!-- Dropdown for standard and custom charges -->
+                    <div class="charge-select-row" style="margin-bottom: 1.1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 260px;">
+                            <label for="chargeOptionSelect" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                                🎯 Charges Option (Dropdown Selection):
+                            </label>
+                            <select id="chargeOptionSelect" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; background: #fff;">
+                                <option value="" selected>-- Select a Charge / Procedure Option --</option>
+                                <optgroup label="🩺 Consultation Charges">
+                                    <option value="consultation:300">Doctor Consultation (₹300)</option>
+                                    <option value="consultation:500">Specialist Consultation (₹500)</option>
+                                    <option value="consultation:0">Free Consultation (₹0)</option>
+                                </optgroup>
+                                <optgroup label="🩻 Diagnostic & X-Ray">
+                                    <option value="xray:250">Dental Radiograph / IOPA (₹250)</option>
+                                    <option value="xray:500">OPG Panoramic X-Ray (₹500)</option>
+                                </optgroup>
+                                <optgroup label="💊 Pharmacy / Medicines">
+                                    <option value="pharmacy:200">Pharmacy Standard Pack (₹200)</option>
+                                    <option value="pharmacy:350">Extended Medicine Pack (₹350)</option>
+                                </optgroup>
+                                <optgroup label="🦷 Dental Procedures & Treatments">
+                                    <option value="treatment:SCALING:1000">SCALING & POLISHING (₹1,000)</option>
+                                    <option value="treatment:COMPOSITE:800">COMPOSITE RESTORATION / FILLING (₹800)</option>
+                                    <option value="treatment:RCT:2500">ROOT CANAL TREATMENT - RCT (₹2,500)</option>
+                                    <option value="treatment:NORMAL EXTRACTION:500">NORMAL EXTRACTION (₹500)</option>
+                                    <option value="treatment:DIFFICULT EXTRACTION:1500">DIFFICULT EXTRACTION (₹1,500)</option>
+                                    <option value="treatment:CROWN PFM:3000">CROWN PFM (₹3,000)</option>
+                                    <option value="treatment:POST & CORE:1500">POST & CORE (₹1,500)</option>
+                                    <option value="treatment:CLEAR ALIGNERS:35000">CLEAR ALIGNERS (₹35,000)</option>
+                                    <option value="treatment:BLEACHING:5000">BLEACHING / WHITENING (₹5,000)</option>
+                                </optgroup>
+                                <option value="manual">➕ Other / Add Custom Charge Manually...</option>
+                            </select>
+                        </div>
+                        <button type="button" id="applyChargeOptionBtn" class="preset-chip" style="padding: 0.6rem 1.1rem; background: var(--primary-teal); color: white; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            + Apply Selected Charge
+                        </button>
+                    </div>
+
                     <div class="charge-presets-row" style="margin-bottom: 1.2rem;">
                         <span style="font-size: 0.8rem; font-weight: 700; color: #475569; display: flex; align-items: center;">Quick Add:</span>
                         <button type="button" class="preset-chip" data-type="consultation" data-amt="300">+ ₹300 Consultation</button>
@@ -354,17 +394,21 @@
                     <div class="input-grid">
                         <div class="input-group">
                             <input type="number" id="consultationCharge" name="consultationCharge" min="0" step="any" placeholder=" ">
-                            <label for="consultationCharge">Consultation Charge (₹ / $)</label>
+                            <label for="consultationCharge">Consultation Charge (₹)</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="treatmentCharge" name="treatmentCharge" min="0" step="any" placeholder=" ">
+                            <label for="treatmentCharge" id="treatmentChargeLabel">Treatment / Procedure Charge (₹)</label>
                         </div>
                         <div class="input-group">
                             <input type="number" id="xrayCharge" name="xrayCharge" min="0" step="any" placeholder=" ">
-                            <label for="xrayCharge">X-Ray Charge (₹ / $)</label>
+                            <label for="xrayCharge">X-Ray Charge (₹)</label>
                         </div>
                         <div class="input-group">
                             <input type="number" id="pharmacyCharge" name="pharmacyCharge" min="0" step="any" placeholder=" ">
-                            <label for="pharmacyCharge">Pharmacy / Medicines Charge (₹ / $)</label>
+                            <label for="pharmacyCharge">Pharmacy / Medicines Charge (₹)</label>
                         </div>
-                        <div class="input-group">
+                        <div class="input-group full-width">
                             <select id="paymentMode" name="paymentMode">
                                 <option value="Cash" selected>Cash</option>
                                 <option value="UPI / Online">UPI / Online</option>
@@ -373,6 +417,37 @@
                             </select>
                             <label for="paymentMode" class="active-label">Payment Mode</label>
                         </div>
+                    </div>
+
+                    <!-- Custom / Additional Manual Charges Block -->
+                    <div class="custom-charges-block" style="margin-top: 1.2rem; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Custom / Additional Charges (Add Manually like Treatment):
+                            </span>
+                            <button type="button" id="addCustomChargeBtn" class="preset-chip" style="background: #0d9488; color: #fff; font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border: none; border-radius: 8px;">
+                                + Add Custom Charge Item
+                            </button>
+                        </div>
+                        <div id="customChargesList" class="custom-charges-list">
+                            <!-- Dynamic custom charge rows will be appended here -->
+                        </div>
+                        <datalist id="customChargePresetsList">
+                            <option value="Scaling & Polishing">
+                            <option value="Root Canal Treatment (RCT)">
+                            <option value="Tooth Extraction">
+                            <option value="Composite Restoration / Filling">
+                            <option value="Crown PFM / Ceramic">
+                            <option value="Flexible Denture">
+                            <option value="Dental Radiograph / RVG">
+                            <option value="Specialist Procedure Fee">
+                            <option value="Lab & Fabricating Charges">
+                            <option value="Suture Removal & Dressing">
+                            <option value="Local Anesthesia Kit">
+                        </datalist>
+                    </div>
+
+                    <div class="input-grid" style="margin-top: 1.2rem;">
                         <div class="input-group full-width">
                             <div class="total-summary-banner">
                                 <span class="total-label">Total Amount Due</span>
@@ -450,6 +525,10 @@
                         <div class="inv-field-label">OP Number / Mode</div>
                         <div class="inv-field-val" id="invModalOp">Official Receipt</div>
                     </div>
+                    <div style="grid-column: span 2;">
+                        <div class="inv-field-label">Treatment / Clinical Procedure</div>
+                        <div class="inv-field-val" id="invModalTreatment" style="color: var(--primary-dark); font-weight: 700;">-</div>
+                    </div>
                 </div>
 
                 <table class="inv-table">
@@ -457,10 +536,10 @@
                         <tr>
                             <th>#</th>
                             <th>Description</th>
-                            <th>Amount</th>
+                            <th>Amount (₹)</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="invModalTableBody">
                         <tr>
                             <td>1</td>
                             <td>Doctor Consultation Charge</td>

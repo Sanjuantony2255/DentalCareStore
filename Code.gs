@@ -499,6 +499,9 @@ function handlePatientRegistration(ss, data) {
       medicalHistory: data.medicalHistory || '',
       diseaseHistory: data.drugAllergies || data.diseaseHistory || '',
       drugAllergies: data.drugAllergies || data.diseaseHistory || '',
+      treatment: data.treatment || data.diseaseHistory || '',
+      treatmentCharge: parseFloat(data.treatmentCharge) || 0,
+      customCharges: data.customCharges || [],
       consultationCharge: consultation,
       xrayCharge: xray,
       pharmacyCharge: pharmacy,
@@ -1026,15 +1029,40 @@ function buildInvoiceHtml(inv) {
     '  <div class="info-item"><span class="info-label">OP Number: </span>' + opStr + '</div>' +
     '  <div class="info-item"><span class="info-label">Doctor Consulted: </span>' + (inv.doctorConsulted || 'Attending Doctor') + '</div>' +
     '  <div class="info-item"><span class="info-label">Payment Mode: </span>' + (inv.paymentMode || 'Cash') + '</div>' +
+    '  <div class="info-item" style="grid-column: span 2;"><span class="info-label">Treatment / Clinical Procedure: </span>' + (inv.treatment || inv.diseaseHistory || 'General Consultation') + '</div>' +
     '  <div class="info-item" style="grid-column: span 2;"><span class="info-label">Address of Patient: </span>' + addrStr + '</div>' +
     '</div>' +
     '<table>' +
     '  <thead><tr><th>#</th><th>Description</th><th class="amount">Amount</th></tr></thead>' +
     '  <tbody>' +
-    '    <tr><td>1</td><td>Doctor Consultation Charge</td><td class="amount">' + parseFloat(inv.consultationCharge).toFixed(2) + '</td></tr>' +
-    '    <tr><td>2</td><td>X-Ray Examination Charge</td><td class="amount">' + parseFloat(inv.xrayCharge).toFixed(2) + '</td></tr>' +
-    '    <tr><td>3</td><td>Pharmacy / Medicines Charge</td><td class="amount">' + parseFloat(inv.pharmacyCharge).toFixed(2) + '</td></tr>' +
-    '    <tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>' +
+    (function() {
+      var rows = '';
+      var idx = 1;
+      var cAmt = parseFloat(inv.consultationCharge) || 0;
+      var tAmt = parseFloat(inv.treatmentCharge) || 0;
+      var xAmt = parseFloat(inv.xrayCharge) || 0;
+      var pAmt = parseFloat(inv.pharmacyCharge) || 0;
+      var customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+      if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Doctor Consultation Charge</td><td class="amount">' + cAmt.toFixed(2) + '</td></tr>';
+      }
+      if (tAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Dental Treatment: ' + (inv.treatment || 'Clinical Procedure') + '</td><td class="amount">' + tAmt.toFixed(2) + '</td></tr>';
+      }
+      if (xAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>X-Ray Examination Charge</td><td class="amount">' + xAmt.toFixed(2) + '</td></tr>';
+      }
+      if (pAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Pharmacy / Medicines Charge</td><td class="amount">' + pAmt.toFixed(2) + '</td></tr>';
+      }
+      for (var k = 0; k < customs.length; k++) {
+        var c = customs[k];
+        rows += '<tr><td>' + (idx++) + '</td><td>' + (c.title || 'Custom Charge') + '</td><td class="amount">' + (parseFloat(c.amount) || 0).toFixed(2) + '</td></tr>';
+      }
+      rows += '<tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>';
+      return rows;
+    })() +
     '  </tbody>' +
     '</table>' +
     '<div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">' +

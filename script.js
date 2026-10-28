@@ -39,12 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Billing Inputs
     const consultationInput = document.getElementById('consultationCharge');
+    const treatmentChargeInput = document.getElementById('treatmentCharge');
     const xrayInput = document.getElementById('xrayCharge');
     const pharmacyInput = document.getElementById('pharmacyCharge');
     const displayTotal = document.getElementById('displayTotal');
     const totalAmountInput = document.getElementById('totalAmount');
     const paymentModeSelect = document.getElementById('paymentMode');
     const registrationDateInput = document.getElementById('registrationDate');
+    const chargeOptionSelect = document.getElementById('chargeOptionSelect');
+    const applyChargeOptionBtn = document.getElementById('applyChargeOptionBtn');
+    const addCustomChargeBtn = document.getElementById('addCustomChargeBtn');
+    const customChargesList = document.getElementById('customChargesList');
 
     // Default registration date to today (allows previous dates)
     if (registrationDateInput && !registrationDateInput.value) {
@@ -111,20 +116,116 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(dismiss, 5000);
     }
 
+    // Helper to get custom charges list from DOM
+    function getCustomChargesData() {
+        const list = [];
+        if (!customChargesList) return list;
+        customChargesList.querySelectorAll('.custom-charge-row').forEach(row => {
+            const titleInput = row.querySelector('.charge-title-input');
+            const amtInput = row.querySelector('.charge-amt-input');
+            const title = (titleInput ? titleInput.value : '').trim();
+            const amount = parseFloat(amtInput ? amtInput.value : 0) || 0;
+            if (title || amount > 0) {
+                list.push({ title: title || 'Custom Charge', amount });
+            }
+        });
+        return list;
+    }
+
+    // Dynamic row builder for custom charges (added manually like treatment)
+    function addCustomChargeRow(initialTitle = '', initialAmount = '') {
+        if (!customChargesList) return;
+        const row = document.createElement('div');
+        row.className = 'custom-charge-row';
+        row.innerHTML = `
+            <input type="text" class="charge-title-input" placeholder="Charge Name / Description (e.g. Scaling, Lab Fee)" list="customChargePresetsList" value="${escapeHtml(initialTitle)}">
+            <input type="number" class="charge-amt-input" min="0" step="any" placeholder="Amount (₹)" value="${initialAmount}">
+            <button type="button" class="btn-remove-charge" title="Remove Charge">&times;</button>
+        `;
+        row.querySelector('.charge-title-input').addEventListener('input', calculateTotal);
+        row.querySelector('.charge-amt-input').addEventListener('input', calculateTotal);
+        row.querySelector('.btn-remove-charge').addEventListener('click', () => {
+            row.remove();
+            calculateTotal();
+        });
+        customChargesList.appendChild(row);
+        const titleInput = row.querySelector('.charge-title-input');
+        if (!initialTitle && titleInput) titleInput.focus();
+        calculateTotal();
+    }
+
     // 2. Real-time Calculation of Billing Total
     function calculateTotal() {
         const consultation = parseFloat(consultationInput ? consultationInput.value : 0) || 0;
+        const treatment = parseFloat(treatmentChargeInput ? treatmentChargeInput.value : 0) || 0;
         const xray = parseFloat(xrayInput ? xrayInput.value : 0) || 0;
         const pharmacy = parseFloat(pharmacyInput ? pharmacyInput.value : 0) || 0;
-        const total = consultation + xray + pharmacy;
+        
+        let customTotal = 0;
+        if (customChargesList) {
+            customChargesList.querySelectorAll('.custom-charge-row').forEach(row => {
+                const amtInput = row.querySelector('.charge-amt-input');
+                if (amtInput) {
+                    customTotal += (parseFloat(amtInput.value) || 0);
+                }
+            });
+        }
+
+        const total = consultation + treatment + xray + pharmacy + customTotal;
 
         if (displayTotal) displayTotal.textContent = total.toFixed(2);
         if (totalAmountInput) totalAmountInput.value = total.toFixed(2);
     }
 
     if (consultationInput) consultationInput.addEventListener('input', calculateTotal);
+    if (treatmentChargeInput) treatmentChargeInput.addEventListener('input', calculateTotal);
     if (xrayInput) xrayInput.addEventListener('input', calculateTotal);
     if (pharmacyInput) pharmacyInput.addEventListener('input', calculateTotal);
+
+    if (addCustomChargeBtn) {
+        addCustomChargeBtn.addEventListener('click', () => {
+            addCustomChargeRow('', '');
+        });
+    }
+
+    // Dropdown charge selection handler
+    if (applyChargeOptionBtn && chargeOptionSelect) {
+        applyChargeOptionBtn.addEventListener('click', () => {
+            const val = chargeOptionSelect.value;
+            if (!val) return;
+            if (val === 'manual') {
+                addCustomChargeRow('', '');
+                return;
+            }
+            const parts = val.split(':');
+            const category = parts[0];
+            if (category === 'consultation' && consultationInput) {
+                consultationInput.value = parts[1];
+            } else if (category === 'xray' && xrayInput) {
+                xrayInput.value = parts[1];
+            } else if (category === 'pharmacy' && pharmacyInput) {
+                pharmacyInput.value = parts[1];
+            } else if (category === 'treatment') {
+                const treatName = parts[1];
+                const treatAmt = parts[2] || '';
+                if (treatmentChargeInput) treatmentChargeInput.value = treatAmt;
+                if (treatmentInput && !treatmentInput.value) {
+                    treatmentInput.value = treatName;
+                    if (treatmentSelect) treatmentSelect.value = treatName;
+                }
+            }
+            calculateTotal();
+            showToast('Charge Applied', 'Selected option added to billing breakdown', 'info');
+        });
+
+        // Also auto-apply or focus on dropdown change
+        chargeOptionSelect.addEventListener('change', () => {
+            if (chargeOptionSelect.value === 'manual') {
+                addCustomChargeRow('', '');
+                chargeOptionSelect.value = '';
+            }
+        });
+    }
 
     // 3. Quick Preset Charge Chips
     document.querySelectorAll('.preset-chip').forEach(btn => {
@@ -135,8 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (action === 'clear') {
                 if (consultationInput) consultationInput.value = '';
+                if (treatmentChargeInput) treatmentChargeInput.value = '';
                 if (xrayInput) xrayInput.value = '';
                 if (pharmacyInput) pharmacyInput.value = '';
+                if (customChargesList) customChargesList.innerHTML = '';
             } else if (type === 'consultation' && consultationInput) {
                 consultationInput.value = amt;
             } else if (type === 'xray' && xrayInput) {
@@ -433,9 +536,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Ensure numeric charges
         data.consultationCharge = parseFloat(data.consultationCharge) || 0;
+        data.treatmentCharge = parseFloat(treatmentChargeInput ? treatmentChargeInput.value : data.treatmentCharge) || 0;
         data.xrayCharge = parseFloat(data.xrayCharge) || 0;
         data.pharmacyCharge = parseFloat(data.pharmacyCharge) || 0;
-        const calcTotal = data.consultationCharge + data.xrayCharge + data.pharmacyCharge;
+        data.customCharges = getCustomChargesData();
+        const customTotal = data.customCharges.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+        const calcTotal = data.consultationCharge + data.treatmentCharge + data.xrayCharge + data.pharmacyCharge + customTotal;
         data.totalAmount = parseFloat(data.totalAmount) || calcTotal;
 
         // Clean doctor name
@@ -495,9 +601,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     dob: data.dob || (data.age ? (data.age + ' yrs') : ''),
                     opNumber: data.opNumber || '',
                     doctorConsulted: data.doctorConsulted || 'Attending Doctor',
+                    treatment: data.treatment || data.diseaseHistory || '',
+                    chiefComplaint: data.chiefComplaint || '',
                     consultationCharge: data.consultationCharge,
+                    treatmentCharge: data.treatmentCharge || 0,
                     xrayCharge: data.xrayCharge,
                     pharmacyCharge: data.pharmacyCharge,
+                    customCharges: data.customCharges || [],
                     totalAmount: data.totalAmount,
                     paymentMode: data.paymentMode || 'Cash',
                     driveFileUrl: returnedInv.driveFileUrl || '',
@@ -567,10 +677,48 @@ document.addEventListener('DOMContentLoaded', () => {
         invModalDoctor.textContent = inv.doctorConsulted || 'Attending Doctor';
         invModalPayment.textContent = 'PAID (' + (inv.paymentMode || 'Cash') + ')';
 
-        invModalConsultation.textContent = parseFloat(inv.consultationCharge).toFixed(2);
-        invModalXray.textContent = parseFloat(inv.xrayCharge).toFixed(2);
-        invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
-        invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
+        const invModalTreatment = document.getElementById('invModalTreatment');
+        if (invModalTreatment) {
+            invModalTreatment.textContent = inv.treatment || inv.diseaseHistory || 'General Consultation';
+        }
+
+        // Dynamically build itemized billing table including treatment details and custom charges
+        const invModalTableBody = document.getElementById('invModalTableBody');
+        if (invModalTableBody) {
+            let rowHtml = '';
+            let rowIdx = 1;
+            const consultAmt = parseFloat(inv.consultationCharge) || 0;
+            const treatAmt = parseFloat(inv.treatmentCharge) || 0;
+            const xrayAmt = parseFloat(inv.xrayCharge) || 0;
+            const pharmAmt = parseFloat(inv.pharmacyCharge) || 0;
+            const customList = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+            if (consultAmt > 0 || (treatAmt === 0 && xrayAmt === 0 && pharmAmt === 0 && customList.length === 0)) {
+                rowHtml += `<tr><td>${rowIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${consultAmt.toFixed(2)}</td></tr>`;
+            }
+            if (treatAmt > 0 || (inv.treatment && inv.treatment.trim().length > 0 && treatAmt > 0)) {
+                const treatDesc = inv.treatment ? `Dental Treatment: ${escapeHtml(inv.treatment)}` : 'Treatment / Procedure Charge';
+                rowHtml += `<tr><td>${rowIdx++}</td><td>${treatDesc}</td><td class="amt">${treatAmt.toFixed(2)}</td></tr>`;
+            }
+            if (xrayAmt > 0) {
+                rowHtml += `<tr><td>${rowIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xrayAmt.toFixed(2)}</td></tr>`;
+            }
+            if (pharmAmt > 0) {
+                rowHtml += `<tr><td>${rowIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pharmAmt.toFixed(2)}</td></tr>`;
+            }
+            customList.forEach(c => {
+                const amt = parseFloat(c.amount) || 0;
+                rowHtml += `<tr><td>${rowIdx++}</td><td>${escapeHtml(c.title || 'Custom Fee')}</td><td class="amt">${amt.toFixed(2)}</td></tr>`;
+            });
+
+            rowHtml += `<tr class="total-row"><td colspan="2" style="text-align: right;">Total Amount:</td><td class="amt" id="invModalTotal">${(parseFloat(inv.totalAmount) || 0).toFixed(2)}</td></tr>`;
+            invModalTableBody.innerHTML = rowHtml;
+        } else {
+            invModalConsultation.textContent = parseFloat(inv.consultationCharge).toFixed(2);
+            invModalXray.textContent = parseFloat(inv.xrayCharge).toFixed(2);
+            invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
+            invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
+        }
 
         const invModalSign = document.getElementById('invModalSign');
         if (invModalSign) {
@@ -669,11 +817,23 @@ document.addEventListener('DOMContentLoaded', () => {
 *Patient Name:* ${inv.fullName}
 *Phone:* ${inv.phone || 'N/A'}
 *Doctor Consulted:* ${inv.doctorConsulted}
+*Treatment Details:* ${inv.treatment || inv.diseaseHistory || 'General Consultation'}
 
 *CHARGES BREAKDOWN:*
-• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}
-• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}
-• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}
+${(() => {
+    let lines = [];
+    if (parseFloat(inv.consultationCharge) > 0) lines.push(`• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}`);
+    if (parseFloat(inv.treatmentCharge) > 0) lines.push(`• Treatment (${inv.treatment || 'Procedure'}): ₹${parseFloat(inv.treatmentCharge).toFixed(2)}`);
+    if (parseFloat(inv.xrayCharge) > 0) lines.push(`• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}`);
+    if (parseFloat(inv.pharmacyCharge) > 0) lines.push(`• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}`);
+    if (Array.isArray(inv.customCharges)) {
+        inv.customCharges.forEach(c => {
+            lines.push(`• ${c.title || 'Custom Charge'}: ₹${(parseFloat(c.amount) || 0).toFixed(2)}`);
+        });
+    }
+    if (lines.length === 0) lines.push(`• Consultation Fee: ₹${parseFloat(inv.totalAmount || 0).toFixed(2)}`);
+    return lines.join('\n');
+})()}
 ────────────────────────
 *TOTAL AMOUNT:* ₹${parseFloat(inv.totalAmount).toFixed(2)}
 *Payment Mode:* PAID (${inv.paymentMode || 'Cash'})
@@ -763,6 +923,7 @@ Wishing you good oral health!
             <div><strong>OP Number:</strong> ${inv.opNumber || 'N/A'}</div>
             <div><strong>Doctor Consulted:</strong> ${inv.doctorConsulted}</div>
             <div><strong>Payment Mode:</strong> ${inv.paymentMode || 'Cash'}</div>
+            <div style="grid-column: span 2;"><strong>Treatment Details:</strong> ${inv.treatment || inv.diseaseHistory || 'General Consultation'}</div>
             <div style="grid-column: span 2;"><strong>Address of Patient:</strong> ${displayAddress}</div>
         </div>
         <table>
@@ -770,10 +931,33 @@ Wishing you good oral health!
                 <tr><th>#</th><th>Description</th><th class="amt">Amount</th></tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>Doctor Consultation Charge</td><td class="amt">${parseFloat(inv.consultationCharge).toFixed(2)}</td></tr>
-                <tr><td>2</td><td>X-Ray Examination Charge</td><td class="amt">${parseFloat(inv.xrayCharge).toFixed(2)}</td></tr>
-                <tr><td>3</td><td>Pharmacy / Medicines Charge</td><td class="amt">${parseFloat(inv.pharmacyCharge).toFixed(2)}</td></tr>
-                <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>
+                ${(() => {
+                    let rows = [];
+                    let rIdx = 1;
+                    const cAmt = parseFloat(inv.consultationCharge) || 0;
+                    const tAmt = parseFloat(inv.treatmentCharge) || 0;
+                    const xAmt = parseFloat(inv.xrayCharge) || 0;
+                    const pAmt = parseFloat(inv.pharmacyCharge) || 0;
+                    const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+                    if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${cAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (tAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Dental Treatment: ${inv.treatment || 'Clinical Procedure'}</td><td class="amt">${tAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (xAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (pAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pAmt.toFixed(2)}</td></tr>`);
+                    }
+                    customs.forEach(c => {
+                        rows.push(`<tr><td>${rIdx++}</td><td>${c.title || 'Custom Charge'}</td><td class="amt">${(parseFloat(c.amount) || 0).toFixed(2)}</td></tr>`);
+                    });
+                    rows.push(`<tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>`);
+                    return rows.join('');
+                })()}
             </tbody>
         </table>
         <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">

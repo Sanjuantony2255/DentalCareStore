@@ -40,14 +40,41 @@ void main() {
         doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-24',
         consultationCharge: 350.0,
+        treatmentCharge: 1000.0,
+        treatment: 'SCALING & POLISHING',
         xrayCharge: 200.0,
         pharmacyCharge: 450.0,
-        totalAmount: 1000.0,
+        customCharges: [
+          CustomChargeItem(title: 'Lab Fee', amount: 500.0),
+          CustomChargeItem(title: 'Anesthesia Kit', amount: 200.0),
+        ],
+        totalAmount: 2700.0,
         paymentMode: 'UPI / Online',
       );
 
-      expect(invoice.totalAmount, 1000.0);
-      expect(invoice.consultationCharge + invoice.xrayCharge + invoice.pharmacyCharge, 1000.0);
+      expect(invoice.totalAmount, 2700.0);
+      expect(invoice.treatment, 'SCALING & POLISHING');
+      expect(invoice.treatmentCharge, 1000.0);
+      expect(invoice.customCharges.length, 2);
+      expect(invoice.customCharges[0].title, 'Lab Fee');
+      expect(invoice.customCharges[0].amount, 500.0);
+
+      final sum = invoice.consultationCharge +
+          invoice.treatmentCharge +
+          invoice.xrayCharge +
+          invoice.pharmacyCharge +
+          invoice.customCharges.fold(0.0, (acc, c) => acc + c.amount);
+      expect(sum, 2700.0);
+
+      // JSON serialization & deserialization check
+      final json = invoice.toJson();
+      final fromJson = Invoice.fromJson(json);
+      expect(fromJson.treatment, 'SCALING & POLISHING');
+      expect(fromJson.treatmentCharge, 1000.0);
+      expect(fromJson.customCharges.length, 2);
+      expect(fromJson.customCharges[1].title, 'Anesthesia Kit');
+      expect(fromJson.customCharges[1].amount, 200.0);
+      expect(fromJson.totalAmount, 2700.0);
     });
 
     test('Appointment model properties', () {
@@ -174,9 +201,14 @@ void main() {
         doctor: 'Dr. Jeswin Jose BDS',
         date: '2026-10-27',
         consultationCharge: 300.0,
+        treatmentCharge: 2500.0,
+        treatment: 'ROOT CANAL TREATMENT - RCT',
         xrayCharge: 200.0,
         pharmacyCharge: 150.0,
-        totalAmount: 650.0,
+        customCharges: [
+          CustomChargeItem(title: 'Crown Preparation', amount: 1500.0),
+        ],
+        totalAmount: 4650.0,
         paymentMode: 'UPI / Online',
       );
 
