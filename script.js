@@ -188,43 +188,105 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Dropdown charge selection handler
-    if (applyChargeOptionBtn && chargeOptionSelect) {
-        applyChargeOptionBtn.addEventListener('click', () => {
-            const val = chargeOptionSelect.value;
-            if (!val) return;
-            if (val === 'manual') {
-                addCustomChargeRow('', '');
-                return;
+    // Standard clinic suggested fees for treatments & procedures
+    const TREATMENT_SUGGESTED_FEES = {
+        'POST & CORE': 1500,
+        'CROWN METAL': 1500,
+        'CROWN PFM': 3000,
+        'CROWN PFZ': 5500,
+        'EMAX CROWN, VENEER, INLAY': 7500,
+        'CROWN REMOVAL': 500,
+        'ACRYLIC PARTIAL DENTURE': 2000,
+        'FLEXIBLE PARTIAL DENTURE': 7000,
+        'COMPLETE DENTURE': 15000,
+        'FLEXIBLE': 7500,
+        'BPS': 25000,
+        'SS CROWNS': 1800,
+        'SCALING': 1000,
+        'GINGIVECTOMY': 1500,
+        'SUBGINGIVAL SCALING/ CURETTAGE': 1500,
+        'GRAFT': 5000,
+        'DEPIGMENTATION': 3000,
+        'PERIODONTAL FLAP': 4000,
+        'SPLINTING': 1500,
+        'LASER': 2000,
+        'PULPOTOMY/ PULPECTOMY': 1500,
+        'PIT & FISSURE SEALANTS': 600,
+        'FLUORIDE APPPLICATIONS': 800,
+        'SPACE MAINTAINERS': 2500,
+        'PREFORMED ZIRCONIA': 3500,
+        'BLEACHING': 5000,
+        'DENTAL IMPLANTS': 25000,
+        'REGISTRATION': 100,
+        'CONSULTATION': 300,
+        'SPECIALIST CONSULTATION': 500,
+        'DENTAL RADIOGRAPHS': 250,
+        'GLASS IONOMER': 600,
+        'AMALGAM': 600,
+        'COMPOSITE': 800,
+        'RCT': 2500,
+        'RE RCT': 3500,
+        'MICROSCOPE RCT': 4500,
+        'APICECTOMY': 3500,
+        'MTA': 1200,
+        'DECIDUOUS TOOTH EXTRACTION': 300,
+        'NORMAL EXTRACTION': 500,
+        'DIFFICULT EXTRACTION': 1500,
+        '3RD MOLAR': 3500,
+        'CANINE IMPACTION': 4000,
+        'INCISION AND DRAINAGE': 800,
+        'VESTIBULOPLASTY': 3000,
+        'ALVEOLOPLASTY': 2000,
+        'OPERCULECTOMY': 1000,
+        'FIXED ORTHODONTICS PREADJUSTED': 25000,
+        'FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED': 30000,
+        'FIXED- SELF LIGATING': 40000,
+        'HAWLEYS APPLIANCE- ACTIVE': 3500,
+        'RETENTION APPLIANCE- PASSIVE': 2500,
+        'FIXED LINGUAL RETAINERS': 3000,
+        'VACCUFORM RETAINERS-': 2500,
+        'ORAL SCREEN': 2000,
+        'MYO FUNCTIONAL FIXED': 8000,
+        'MYOFUNCTIONAL REMOVABLE': 6000,
+        'CLEAR ALIGNERS': 35000
+    };
+
+    // Charge dropdown handler: dropdown only contains treatment name, that charge in another option (treatmentChargeInput)
+    if (chargeOptionSelect) {
+        function applyTreatmentChargeOption(treatName) {
+            if (!treatName) return;
+            if (treatmentInput) treatmentInput.value = treatName;
+            if (treatmentSelect) treatmentSelect.value = treatName;
+            if (customTreatmentInput) customTreatmentInput.value = treatName;
+
+            const suggestedFee = TREATMENT_SUGGESTED_FEES[treatName];
+            if (suggestedFee !== undefined && treatmentChargeInput) {
+                treatmentChargeInput.value = suggestedFee;
             }
-            const parts = val.split(':');
-            const category = parts[0];
-            if (category === 'consultation' && consultationInput) {
-                consultationInput.value = parts[1];
-            } else if (category === 'xray' && xrayInput) {
-                xrayInput.value = parts[1];
-            } else if (category === 'pharmacy' && pharmacyInput) {
-                pharmacyInput.value = parts[1];
-            } else if (category === 'treatment') {
-                const treatName = parts[1];
-                const treatAmt = parts[2] || '';
-                if (treatmentChargeInput) treatmentChargeInput.value = treatAmt;
-                if (treatmentInput && !treatmentInput.value) {
-                    treatmentInput.value = treatName;
-                    if (treatmentSelect) treatmentSelect.value = treatName;
-                }
+            if (treatmentChargeInput) {
+                treatmentChargeInput.focus();
             }
             calculateTotal();
-            showToast('Charge Applied', 'Selected option added to billing breakdown', 'info');
-        });
+            showToast('Treatment Selected', `${treatName} - set or review charge in Treatment Charge option`, 'info');
+        }
 
-        // Also auto-apply or focus on dropdown change
         chargeOptionSelect.addEventListener('change', () => {
-            if (chargeOptionSelect.value === 'manual') {
-                addCustomChargeRow('', '');
-                chargeOptionSelect.value = '';
+            const treatName = chargeOptionSelect.value;
+            if (treatName) {
+                applyTreatmentChargeOption(treatName);
             }
         });
+
+        if (applyChargeOptionBtn) {
+            applyChargeOptionBtn.addEventListener('click', () => {
+                const treatName = chargeOptionSelect.value;
+                if (treatName) {
+                    applyTreatmentChargeOption(treatName);
+                } else {
+                    showToast('Select Treatment', 'Please choose a treatment name from the dropdown', 'warning');
+                }
+            });
+        }
     }
 
     // 3. Quick Preset Charge Chips

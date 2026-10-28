@@ -191,6 +191,10 @@ void main() {
       expect(kDentalTreatments.contains('CLEAR ALIGNERS'), true);
       expect(kDentalTreatments.contains('DENTAL IMPLANTS'), true);
       expect(kDentalTreatments.length, greaterThanOrEqualTo(50));
+      expect(kTreatmentSuggestedCharges.containsKey('SCALING'), true);
+      expect(kTreatmentSuggestedCharges['SCALING'], 1000.0);
+      expect(kTreatmentSuggestedCharges.containsKey('RCT'), true);
+      expect(kTreatmentSuggestedCharges['RCT'], 2500.0);
     });
 
     test('Invoice PDF generation produces valid non-empty PDF bytes', () async {

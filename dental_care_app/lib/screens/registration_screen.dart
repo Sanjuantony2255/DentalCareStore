@@ -959,53 +959,34 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Dropdown for standard and custom charges
+                      // Charge dropdown: only contains treatment names; charge is in another option
                       DropdownButtonFormField<String>(
                         initialValue: _selectedChargeDropdown,
                         isExpanded: true,
                         decoration: const InputDecoration(
-                          labelText: '🎯 Charges Option (Dropdown Selection)',
-                          prefixIcon: Icon(Icons.list_alt_rounded, size: 20),
+                          labelText: '🦷 Treatment / Procedure (Charge Dropdown)',
+                          prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
                         ),
-                        hint: const Text('-- Select Charge / Procedure Option --'),
-                        items: const [
-                          DropdownMenuItem(value: 'consult:300', child: Text('🩺 Doctor Consultation (₹300)')),
-                          DropdownMenuItem(value: 'consult:500', child: Text('🩺 Specialist Consultation (₹500)')),
-                          DropdownMenuItem(value: 'consult:0', child: Text('🩺 Free Consultation (₹0)')),
-                          DropdownMenuItem(value: 'xray:250', child: Text('🩻 Dental Radiograph / IOPA (₹250)')),
-                          DropdownMenuItem(value: 'xray:500', child: Text('🩻 OPG Panoramic X-Ray (₹500)')),
-                          DropdownMenuItem(value: 'pharm:200', child: Text('💊 Pharmacy Medicines Pack (₹200)')),
-                          DropdownMenuItem(value: 'pharm:350', child: Text('💊 Extended Pharmacy Pack (₹350)')),
-                          DropdownMenuItem(value: 'treat:SCALING:1000', child: Text('🦷 SCALING & POLISHING (₹1,000)')),
-                          DropdownMenuItem(value: 'treat:COMPOSITE:800', child: Text('🦷 COMPOSITE FILLING (₹800)')),
-                          DropdownMenuItem(value: 'treat:RCT:2500', child: Text('🦷 ROOT CANAL - RCT (₹2,500)')),
-                          DropdownMenuItem(value: 'treat:NORMAL EXTRACTION:500', child: Text('🦷 NORMAL EXTRACTION (₹500)')),
-                          DropdownMenuItem(value: 'treat:DIFFICULT EXTRACTION:1500', child: Text('🦷 DIFFICULT EXTRACTION (₹1,500)')),
-                          DropdownMenuItem(value: 'treat:CROWN PFM:3000', child: Text('🦷 CROWN PFM (₹3,000)')),
-                          DropdownMenuItem(value: 'treat:POST & CORE:1500', child: Text('🦷 POST & CORE (₹1,500)')),
-                          DropdownMenuItem(value: 'treat:CLEAR ALIGNERS:35000', child: Text('🦷 CLEAR ALIGNERS (₹35,000)')),
-                          DropdownMenuItem(value: 'treat:BLEACHING:5000', child: Text('🦷 BLEACHING / WHITENING (₹5,000)')),
-                          DropdownMenuItem(value: 'manual', child: Text('➕ Add Custom Charge Manually...')),
-                        ],
+                        hint: const Text('-- Select Treatment Name --'),
+                        items: kDentalTreatments.toSet().map((treatName) {
+                          return DropdownMenuItem<String>(
+                            value: treatName,
+                            child: Text(
+                              treatName,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (v) {
                           if (v == null) return;
-                          if (v == 'manual') {
-                            _addCustomChargeRow('', '');
-                          } else if (v.startsWith('consult:')) {
-                            _consultationController.text = v.split(':')[1];
-                          } else if (v.startsWith('xray:')) {
-                            _xrayController.text = v.split(':')[1];
-                          } else if (v.startsWith('pharm:')) {
-                            _pharmacyController.text = v.split(':')[1];
-                          } else if (v.startsWith('treat:')) {
-                            final p = v.split(':');
-                            _treatmentChargeController.text = p[2];
-                            if (_treatmentController.text.isEmpty) {
-                              _treatmentController.text = p[1];
-                            }
-                          }
                           setState(() {
                             _selectedChargeDropdown = v;
+                            _treatmentController.text = v;
+                            if (kTreatmentSuggestedCharges.containsKey(v)) {
+                              _treatmentChargeController.text =
+                                  kTreatmentSuggestedCharges[v]!.toStringAsFixed(0);
+                            }
                           });
                         },
                       ),

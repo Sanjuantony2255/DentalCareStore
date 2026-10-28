@@ -342,43 +342,77 @@
                 <div class="form-section">
                     <h2><span class="icon">💳</span> Billing & Charges (Consultation, Treatment & Custom Charges)</h2>
                     
-                    <!-- Dropdown for standard and custom charges -->
+                    <!-- Charge dropdown: only contains treatment names; charge is in another option -->
                     <div class="charge-select-row" style="margin-bottom: 1.1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
                         <div style="flex: 1; min-width: 260px;">
                             <label for="chargeOptionSelect" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
-                                🎯 Charges Option (Dropdown Selection):
+                                🦷 Treatment / Procedure (Charge Dropdown):
                             </label>
                             <select id="chargeOptionSelect" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; background: #fff;">
-                                <option value="" selected>-- Select a Charge / Procedure Option --</option>
-                                <optgroup label="🩺 Consultation Charges">
-                                    <option value="consultation:300">Doctor Consultation (₹300)</option>
-                                    <option value="consultation:500">Specialist Consultation (₹500)</option>
-                                    <option value="consultation:0">Free Consultation (₹0)</option>
-                                </optgroup>
-                                <optgroup label="🩻 Diagnostic & X-Ray">
-                                    <option value="xray:250">Dental Radiograph / IOPA (₹250)</option>
-                                    <option value="xray:500">OPG Panoramic X-Ray (₹500)</option>
-                                </optgroup>
-                                <optgroup label="💊 Pharmacy / Medicines">
-                                    <option value="pharmacy:200">Pharmacy Standard Pack (₹200)</option>
-                                    <option value="pharmacy:350">Extended Medicine Pack (₹350)</option>
-                                </optgroup>
-                                <optgroup label="🦷 Dental Procedures & Treatments">
-                                    <option value="treatment:SCALING:1000">SCALING & POLISHING (₹1,000)</option>
-                                    <option value="treatment:COMPOSITE:800">COMPOSITE RESTORATION / FILLING (₹800)</option>
-                                    <option value="treatment:RCT:2500">ROOT CANAL TREATMENT - RCT (₹2,500)</option>
-                                    <option value="treatment:NORMAL EXTRACTION:500">NORMAL EXTRACTION (₹500)</option>
-                                    <option value="treatment:DIFFICULT EXTRACTION:1500">DIFFICULT EXTRACTION (₹1,500)</option>
-                                    <option value="treatment:CROWN PFM:3000">CROWN PFM (₹3,000)</option>
-                                    <option value="treatment:POST & CORE:1500">POST & CORE (₹1,500)</option>
-                                    <option value="treatment:CLEAR ALIGNERS:35000">CLEAR ALIGNERS (₹35,000)</option>
-                                    <option value="treatment:BLEACHING:5000">BLEACHING / WHITENING (₹5,000)</option>
-                                </optgroup>
-                                <option value="manual">➕ Other / Add Custom Charge Manually...</option>
+                                <option value="" selected>-- Select Treatment Name --</option>
+                                <option value="POST & CORE">POST & CORE</option>
+                                <option value="CROWN METAL">CROWN METAL</option>
+                                <option value="CROWN PFM">CROWN PFM</option>
+                                <option value="CROWN PFZ">CROWN PFZ</option>
+                                <option value="EMAX CROWN, VENEER, INLAY">EMAX CROWN, VENEER, INLAY</option>
+                                <option value="CROWN REMOVAL">CROWN REMOVAL</option>
+                                <option value="ACRYLIC PARTIAL DENTURE">ACRYLIC PARTIAL DENTURE</option>
+                                <option value="FLEXIBLE PARTIAL DENTURE">FLEXIBLE PARTIAL DENTURE</option>
+                                <option value="COMPLETE DENTURE">COMPLETE DENTURE</option>
+                                <option value="FLEXIBLE">FLEXIBLE</option>
+                                <option value="BPS">BPS</option>
+                                <option value="SS CROWNS">SS CROWNS</option>
+                                <option value="SCALING">SCALING</option>
+                                <option value="GINGIVECTOMY">GINGIVECTOMY</option>
+                                <option value="SUBGINGIVAL SCALING/ CURETTAGE">SUBGINGIVAL SCALING/ CURETTAGE</option>
+                                <option value="GRAFT">GRAFT</option>
+                                <option value="DEPIGMENTATION">DEPIGMENTATION</option>
+                                <option value="PERIODONTAL FLAP">PERIODONTAL FLAP</option>
+                                <option value="SPLINTING">SPLINTING</option>
+                                <option value="LASER">LASER</option>
+                                <option value="PULPOTOMY/ PULPECTOMY">PULPOTOMY/ PULPECTOMY</option>
+                                <option value="PIT & FISSURE SEALANTS">PIT & FISSURE SEALANTS</option>
+                                <option value="FLUORIDE APPPLICATIONS">FLUORIDE APPPLICATIONS</option>
+                                <option value="SPACE MAINTAINERS">SPACE MAINTAINERS</option>
+                                <option value="PREFORMED ZIRCONIA">PREFORMED ZIRCONIA</option>
+                                <option value="BLEACHING">BLEACHING</option>
+                                <option value="DENTAL IMPLANTS">DENTAL IMPLANTS</option>
+                                <option value="REGISTRATION">REGISTRATION</option>
+                                <option value="CONSULTATION">CONSULTATION</option>
+                                <option value="SPECIALIST CONSULTATION">SPECIALIST CONSULTATION</option>
+                                <option value="DENTAL RADIOGRAPHS">DENTAL RADIOGRAPHS</option>
+                                <option value="GLASS IONOMER">GLASS IONOMER</option>
+                                <option value="AMALGAM">AMALGAM</option>
+                                <option value="COMPOSITE">COMPOSITE</option>
+                                <option value="RCT">RCT</option>
+                                <option value="RE RCT">RE RCT</option>
+                                <option value="MICROSCOPE RCT">MICROSCOPE RCT</option>
+                                <option value="APICECTOMY">APICECTOMY</option>
+                                <option value="MTA">MTA</option>
+                                <option value="DECIDUOUS TOOTH EXTRACTION">DECIDUOUS TOOTH EXTRACTION</option>
+                                <option value="NORMAL EXTRACTION">NORMAL EXTRACTION</option>
+                                <option value="DIFFICULT EXTRACTION">DIFFICULT EXTRACTION</option>
+                                <option value="3RD MOLAR">3RD MOLAR</option>
+                                <option value="CANINE IMPACTION">CANINE IMPACTION</option>
+                                <option value="INCISION AND DRAINAGE">INCISION AND DRAINAGE</option>
+                                <option value="VESTIBULOPLASTY">VESTIBULOPLASTY</option>
+                                <option value="ALVEOLOPLASTY">ALVEOLOPLASTY</option>
+                                <option value="OPERCULECTOMY">OPERCULECTOMY</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED">FIXED ORTHODONTICS PREADJUSTED</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED">FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED</option>
+                                <option value="FIXED- SELF LIGATING">FIXED- SELF LIGATING</option>
+                                <option value="HAWLEYS APPLIANCE- ACTIVE">HAWLEYS APPLIANCE- ACTIVE</option>
+                                <option value="RETENTION APPLIANCE- PASSIVE">RETENTION APPLIANCE- PASSIVE</option>
+                                <option value="FIXED LINGUAL RETAINERS">FIXED LINGUAL RETAINERS</option>
+                                <option value="VACCUFORM RETAINERS-">VACCUFORM RETAINERS-</option>
+                                <option value="ORAL SCREEN">ORAL SCREEN</option>
+                                <option value="MYO FUNCTIONAL FIXED">MYOFUNCTIONAL FIXED</option>
+                                <option value="MYOFUNCTIONAL REMOVABLE">MYOFUNCTIONAL REMOVABLE</option>
+                                <option value="CLEAR ALIGNERS">CLEAR ALIGNERS</option>
                             </select>
                         </div>
                         <button type="button" id="applyChargeOptionBtn" class="preset-chip" style="padding: 0.6rem 1.1rem; background: var(--primary-teal); color: white; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
-                            + Apply Selected Charge
+                            + Select Treatment
                         </button>
                     </div>
 
