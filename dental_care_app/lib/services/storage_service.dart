@@ -158,14 +158,21 @@ class StorageService extends ChangeNotifier {
       _appointments.removeWhere((a) => isDummyAppointment(a.id, a.patientName, a.phone));
       _invoices.removeWhere((i) => isDummyInvoice(i.id, i.patientName));
 
-      // Sync Patients from Google Sheet - strictly reflect Google Sheet state
-      final localCreatedPat = _patients.where((p) => p.id.startsWith('PAT-LOCAL-')).toList();
+      // Sync Patients from Google Sheet - accept all sheet patients while preserving local additions
+      final localCreatedPat = _patients.where((p) => !cloudPatients.any((cp) {
+        final cpDigits = cp.phone.replaceAll(RegExp(r'\D'), '');
+        final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+        final cpName = cp.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+        final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+        final samePhone = cpDigits.isNotEmpty && pDigits.isNotEmpty && (cpDigits == pDigits || (cpDigits.length >= 10 && pDigits.length >= 10 && cpDigits.endsWith(pDigits.substring(pDigits.length - 10))));
+        final sameName = cpName.isNotEmpty && pName.isNotEmpty && cpName == pName;
+        final sameOp = cp.opNumber.isNotEmpty && p.opNumber.isNotEmpty && cp.opNumber.toLowerCase() == p.opNumber.toLowerCase();
+        return (p.id == cp.id) || (samePhone && sameName) || sameOp;
+      })).toList();
       _patients.clear();
       _patients.addAll(cloudPatients);
       for (final loc in localCreatedPat) {
-        if (!_patients.any((p) => p.id == loc.id || (p.phone.isNotEmpty && p.phone == loc.phone))) {
-          _patients.insert(0, loc);
-        }
+        _patients.insert(0, loc);
       }
 
       // Sync Appointments from Google Sheet
@@ -209,9 +216,39 @@ class StorageService extends ChangeNotifier {
   // --- CRUD Operations ---
 
   Future<void> savePatient(Patient patient) async {
-    final idx = _patients.indexWhere((p) => p.id == patient.id || (p.phone == patient.phone && p.name == patient.name));
+    final pDigits = patient.phone.replaceAll(RegExp(r'\D'), '');
+    final pName = patient.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final idx = _patients.indexWhere((p) {
+      if (p.id == patient.id) return true;
+      final cDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+      final cName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      final phoneMatch = pDigits.isNotEmpty && cDigits.isNotEmpty && (pDigits == cDigits || (pDigits.length >= 10 && cDigits.length >= 10 && pDigits.endsWith(cDigits.substring(cDigits.length - 10))));
+      final nameMatch = pName.isNotEmpty && cName.isNotEmpty && pName == cName;
+      final opMatch = patient.opNumber.isNotEmpty && p.opNumber.isNotEmpty && p.opNumber.toLowerCase() == patient.opNumber.toLowerCase();
+      return (phoneMatch && nameMatch) || opMatch;
+    });
     if (idx >= 0) {
-      _patients[idx] = patient;
+      final existing = _patients[idx];
+      final effectiveOp = patient.opNumber.isNotEmpty ? patient.opNumber : existing.opNumber;
+      _patients[idx] = Patient(
+        id: existing.id.isNotEmpty ? existing.id : patient.id,
+        opNumber: effectiveOp,
+        name: patient.name.isNotEmpty ? patient.name : existing.name,
+        phone: patient.phone.isNotEmpty ? patient.phone : existing.phone,
+        email: patient.email.isNotEmpty ? patient.email : existing.email,
+        dob: patient.dob.isNotEmpty ? patient.dob : existing.dob,
+        age: patient.age > 0 ? patient.age : existing.age,
+        gender: patient.gender.isNotEmpty ? patient.gender : existing.gender,
+        address: patient.address.isNotEmpty ? patient.address : existing.address,
+        doctor: patient.doctor.isNotEmpty ? patient.doctor : existing.doctor,
+        medicalHistory: patient.medicalHistory.isNotEmpty ? patient.medicalHistory : existing.medicalHistory,
+        drugAllergies: patient.drugAllergies.isNotEmpty ? patient.drugAllergies : existing.drugAllergies,
+        diseaseHistory: patient.diseaseHistory.isNotEmpty ? patient.diseaseHistory : existing.diseaseHistory,
+        registrationDate: patient.registrationDate.isNotEmpty ? patient.registrationDate : existing.registrationDate,
+        totalVisits: existing.totalVisits + 1,
+        totalBilled: existing.totalBilled + patient.totalBilled,
+        visits: [...existing.visits, ...patient.visits],
+      );
     } else {
       _patients.insert(0, patient);
     }

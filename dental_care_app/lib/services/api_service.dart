@@ -250,9 +250,12 @@ class ApiService {
               }
             }
 
+            final rawOp = item['opNumber']?.toString().trim() ?? '';
+            final effectiveOp = rawOp.isNotEmpty ? rawOp : 'OP-${(name.hashCode.abs() % 900) + 100}';
+
             final parsedPatient = Patient(
               id: phone.isNotEmpty ? 'PAT-$phone' : 'PAT-${name.hashCode.abs()}',
-              opNumber: 'OP-${(name.hashCode.abs() % 900) + 100}',
+              opNumber: effectiveOp,
               name: name,
               phone: phone,
               email: email,
@@ -287,9 +290,11 @@ class ApiService {
             final hasHeader = headers.any((h) =>
                 h.toLowerCase().contains('time') ||
                 h.toLowerCase().contains('name') ||
-                h.toLowerCase().contains('phone'));
+                h.toLowerCase().contains('phone') ||
+                h.toLowerCase().contains('op'));
 
             final colTime = _findCol(headers, ['timestamp', 'time', 'date'], 0);
+            final colOp = _findCol(headers, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], -1);
             final colName = _findCol(headers, ['full name', 'patient name', 'name'], 1);
             final colPhone = _findCol(headers, ['phone', 'mobile', 'contact'], 2);
             final colEmail = _findCol(headers, ['email', 'mail'], 3);
@@ -311,7 +316,8 @@ class ApiService {
               if (timestamp.toLowerCase().contains('timestamp')) continue;
               final name = _safeCell(r, colName);
               final phone = _safeCell(r, colPhone);
-              if (name.isEmpty && phone.isEmpty) continue;
+              final rawOp = colOp >= 0 ? _safeCell(r, colOp) : '';
+              if (name.isEmpty && phone.isEmpty && rawOp.isEmpty) continue;
               if (isDummyPatient(name, phone, '')) continue;
 
               final email = _safeCell(r, colEmail);
@@ -336,17 +342,25 @@ class ApiService {
                 amount: totalAmt,
               );
 
-              final existingIdx = csvPatients.indexWhere((p) =>
-                (phone.isNotEmpty && p.phone == phone) ||
-                (name.isNotEmpty && p.name.toLowerCase() == name.toLowerCase())
-              );
+              final effectiveOp = rawOp.isNotEmpty ? rawOp : 'OP-${(name.hashCode.abs() % 900) + 100}';
+
+              final existingIdx = csvPatients.indexWhere((p) {
+                final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+                final curDigits = phone.replaceAll(RegExp(r'\D'), '');
+                final phoneMatch = pDigits.isNotEmpty && curDigits.isNotEmpty &&
+                    (pDigits == curDigits || (pDigits.length >= 10 && curDigits.length >= 10 && pDigits.endsWith(curDigits.substring(curDigits.length - 10))));
+                final nameMatch = p.name.trim().toLowerCase() == name.trim().toLowerCase();
+                final opMatch = rawOp.isNotEmpty && p.opNumber.isNotEmpty && p.opNumber.toLowerCase() == rawOp.toLowerCase();
+                return (phoneMatch && nameMatch) || opMatch;
+              });
 
               if (existingIdx >= 0) {
                 final ex = csvPatients[existingIdx];
+                final preservedOp = ex.opNumber.isNotEmpty ? ex.opNumber : effectiveOp;
                 ex.visits.add(visit);
                 csvPatients[existingIdx] = Patient(
                   id: ex.id,
-                  opNumber: ex.opNumber,
+                  opNumber: preservedOp,
                   name: ex.name,
                   phone: ex.phone,
                   email: ex.email,
@@ -364,7 +378,7 @@ class ApiService {
               } else {
                 csvPatients.add(Patient(
                   id: phone.isNotEmpty ? 'PAT-$phone' : 'PAT-${name.hashCode.abs()}',
-                  opNumber: 'OP-${(name.hashCode.abs() % 900) + 100}',
+                  opNumber: effectiveOp,
                   name: name,
                   phone: phone,
                   email: email,
