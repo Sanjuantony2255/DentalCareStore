@@ -478,7 +478,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullNameInput = document.getElementById('fullName');
     const phoneInput = document.getElementById('phone');
     const genderSelect = document.getElementById('gender');
+    const alreadyRegisteredAlert = document.getElementById('alreadyRegisteredAlert');
+    const suggestedOpBadge = document.getElementById('suggestedOpBadge');
     let isOpLookupInProgress = false;
+
+    function setAlreadyRegisteredValidation(opNo) {
+        if (opNumberInput && opNo) {
+            opNumberInput.value = opNo;
+        }
+        if (suggestedOpBadge && opNo) {
+            suggestedOpBadge.textContent = opNo;
+        }
+        if (alreadyRegisteredAlert && opNo) {
+            alreadyRegisteredAlert.style.display = 'flex';
+        }
+    }
+
+    function clearAlreadyRegisteredValidation() {
+        if (alreadyRegisteredAlert) {
+            alreadyRegisteredAlert.style.display = 'none';
+        }
+    }
 
     async function checkAndFillExistingOpNumber() {
         if (!fullNameInput || !phoneInput || !opNumberInput) return;
@@ -486,26 +506,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const phoneVal = phoneInput.value.trim();
         const phoneDigits = phoneVal.replace(/\D/g, '');
 
-        if (nameVal.length < 2 || phoneDigits.length < 10) return;
+        if (nameVal.length < 2 || phoneDigits.length < 10) {
+            clearAlreadyRegisteredValidation();
+            return;
+        }
+
+        const matchPatient = (list) => {
+            if (!Array.isArray(list)) return null;
+            return list.find(p => {
+                const cDigits = (p.phone || '').toString().replace(/\D/g, '');
+                const cName = (p.fullName || p.patientName || p.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+                const phoneMatch = cDigits && (cDigits === phoneDigits || (cDigits.length >= 10 && phoneDigits.length >= 10 && cDigits.slice(-10) === phoneDigits.slice(-10)));
+                const nameMatch = cName === nameVal;
+                return phoneMatch && nameMatch && (p.opNumber);
+            });
+        };
 
         // 1. Check local cache
         try {
             const raw = localStorage.getItem('dental_cached_patients');
             if (raw) {
                 const list = JSON.parse(raw);
-                const match = list.find(p => {
-                    const cDigits = (p.phone || '').toString().replace(/\D/g, '');
-                    const cName = (p.fullName || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
-                    const phoneMatch = cDigits && (cDigits === phoneDigits || (cDigits.length >= 10 && phoneDigits.length >= 10 && cDigits.slice(-10) === phoneDigits.slice(-10)));
-                    const nameMatch = cName === nameVal;
-                    return phoneMatch && nameMatch && (p.opNumber);
-                });
+                const match = matchPatient(list);
                 if (match && match.opNumber) {
-                    opNumberInput.value = match.opNumber;
+                    setAlreadyRegisteredValidation(match.opNumber);
                     if (addressInput && !addressInput.value && (match.address || match.email)) addressInput.value = match.address || match.email;
                     if (ageInput && !ageInput.value && match.age) ageInput.value = match.age;
                     if (genderSelect && (!genderSelect.value || genderSelect.value === '') && match.gender) genderSelect.value = match.gender;
-                    showToast('Registered Patient Recognized', `Auto-linked registered OP: ${match.opNumber}`, 'info');
+                    showToast('Already Registered Patient', `Recognized patient! Suggested OP: ${match.opNumber}`, 'info');
                     return;
                 }
             }
@@ -518,19 +546,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${SCRIPT_URL}?action=search&query=${encodeURIComponent(phoneDigits)}`);
             const json = await res.json();
             if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-                const match = json.data.find(v => {
-                    const vDigits = (v.phone || '').toString().replace(/\D/g, '');
-                    const vName = (v.fullName || v.patientName || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
-                    const phoneMatch = vDigits && (vDigits === phoneDigits || (vDigits.length >= 10 && phoneDigits.length >= 10 && vDigits.slice(-10) === phoneDigits.slice(-10)));
-                    const nameMatch = vName === nameVal;
-                    return phoneMatch && nameMatch && (v.opNumber);
-                });
+                const match = matchPatient(json.data);
                 if (match && match.opNumber) {
-                    opNumberInput.value = match.opNumber;
+                    setAlreadyRegisteredValidation(match.opNumber);
                     if (addressInput && !addressInput.value && (match.address || match.email)) addressInput.value = match.address || match.email;
                     if (ageInput && !ageInput.value && (match.age || match.dob)) ageInput.value = match.age || (match.dob ? match.dob.replace(/[^0-9]/g, '') : '');
                     if (genderSelect && (!genderSelect.value || genderSelect.value === '') && match.gender) genderSelect.value = match.gender;
-                    showToast('Registered Patient Recognized', `Auto-linked registered OP: ${match.opNumber}`, 'info');
+                    showToast('Already Registered Patient', `Recognized patient! Suggested OP: ${match.opNumber}`, 'info');
+
+                    // Cache for fast immediate recall
+                    try {
+                        const raw = localStorage.getItem('dental_cached_patients');
+                        const list = raw ? JSON.parse(raw) : [];
+                        list.unshift(match);
+                        localStorage.setItem('dental_cached_patients', JSON.stringify(list.slice(0, 50)));
+                    } catch (err) {}
+                    return;
                 }
             }
         } catch (e) {
@@ -538,18 +569,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             isOpLookupInProgress = false;
         }
+
+        clearAlreadyRegisteredValidation();
     }
 
     if (fullNameInput) {
+        fullNameInput.addEventListener('input', () => {
+            if (phoneInput && phoneInput.value.replace(/\D/g, '').length >= 10 && fullNameInput.value.trim().length >= 2) {
+                checkAndFillExistingOpNumber();
+            } else {
+                clearAlreadyRegisteredValidation();
+            }
+        });
         fullNameInput.addEventListener('blur', checkAndFillExistingOpNumber);
     }
     if (phoneInput) {
-        phoneInput.addEventListener('blur', checkAndFillExistingOpNumber);
         phoneInput.addEventListener('input', () => {
             if (phoneInput.value.replace(/\D/g, '').length >= 10 && fullNameInput && fullNameInput.value.trim().length >= 2) {
                 checkAndFillExistingOpNumber();
+            } else {
+                clearAlreadyRegisteredValidation();
             }
         });
+        phoneInput.addEventListener('blur', checkAndFillExistingOpNumber);
     }
 
     // 6. In-Page Celebratory Success Banner Handler
@@ -645,33 +687,41 @@ document.addEventListener('DOMContentLoaded', () => {
             data.dob = `${data.age} yrs`;
         }
 
-        // OP Number auto-fallback if blank: reuse existing OP if person with same phone and name is registered
-        data.opNumber = (data.opNumber || (opNumberInput ? opNumberInput.value : '') || '').trim();
-        if (!data.opNumber) {
-            const rawName = (data.fullName || '').trim().toLowerCase().replace(/\s+/g, ' ');
-            const rawPhoneDigits = (data.phone || '').replace(/\D/g, '');
+        // When clicking Submit Registration / Revisit, consider person with same phone & name as the same patient and give already registered OP number
+        const rawName = (data.fullName || (fullNameInput ? fullNameInput.value : '') || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const rawPhoneDigits = (data.phone || (phoneInput ? phoneInput.value : '') || '').replace(/\D/g, '');
+        let existingMatchOp = null;
+
+        if (rawName.length >= 2 && rawPhoneDigits.length >= 10) {
             try {
                 const rawCached = localStorage.getItem('dental_cached_patients');
                 if (rawCached) {
                     const list = JSON.parse(rawCached);
                     const found = list.find(p => {
                         const cDigits = (p.phone || '').toString().replace(/\D/g, '');
-                        const cName = (p.fullName || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+                        const cName = (p.fullName || p.patientName || p.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
                         const phoneMatch = cDigits && (cDigits === rawPhoneDigits || (cDigits.length >= 10 && rawPhoneDigits.length >= 10 && cDigits.slice(-10) === rawPhoneDigits.slice(-10)));
                         const nameMatch = cName === rawName;
                         return phoneMatch && nameMatch && p.opNumber;
                     });
                     if (found && found.opNumber) {
-                        data.opNumber = found.opNumber;
-                        if (opNumberInput) opNumberInput.value = found.opNumber;
+                        existingMatchOp = found.opNumber;
                     }
                 }
             } catch (e) {}
         }
-        if (!data.opNumber) {
-            const randomCode = Math.floor(1000 + Math.random() * 9000);
-            const prefix = `${now.getFullYear().toString().slice(-2)}${pad(now.getMonth() + 1)}`;
-            data.opNumber = `OP-${prefix}-${randomCode}`;
+
+        if (existingMatchOp) {
+            data.opNumber = existingMatchOp;
+            if (opNumberInput) opNumberInput.value = existingMatchOp;
+        } else {
+            data.opNumber = (data.opNumber || (opNumberInput ? opNumberInput.value : '') || '').trim();
+            if (!data.opNumber) {
+                const randomCode = Math.floor(1000 + Math.random() * 9000);
+                const prefix = `${now.getFullYear().toString().slice(-2)}${pad(now.getMonth() + 1)}`;
+                data.opNumber = `OP-${prefix}-${randomCode}`;
+                if (opNumberInput) opNumberInput.value = data.opNumber;
+            }
         }
 
         // Medical History & Drug Allergies mapping (remove dummy placeholder values like 'None')

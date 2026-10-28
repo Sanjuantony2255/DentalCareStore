@@ -154,6 +154,17 @@
                 <div class="form-section">
                     <h2><span class="icon">👤</span> Personal Information</h2>
                     
+                    <!-- Already Registered Patient Alert Banner -->
+                    <div id="alreadyRegisteredAlert" class="already-registered-alert" style="display: none;">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-body">
+                            <div class="alert-title">Already Registered Patient Detected</div>
+                            <div class="alert-desc">
+                                Patient is already registered. Suggested OP Number: <strong id="suggestedOpBadge" class="op-suggested-tag"></strong> (Auto-filled)
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="input-grid">
                         <div class="input-group">
                             <input type="text" id="fullName" name="fullName" required placeholder=" ">

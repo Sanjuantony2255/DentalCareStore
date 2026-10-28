@@ -475,28 +475,37 @@ function handlePatientRegistration(ss, data) {
   var inputName = (data.fullName || data.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
   var existingOpNumber = '';
 
-  var existingRows = visitsSheet.getDataRange().getValues();
-  if (existingRows && existingRows.length > 1) {
-    var sheetHeaders = existingRows[0].map(function(h) { return (h || '').toString().toLowerCase().trim(); });
-    var cName = getHeaderColumnIndex(sheetHeaders, ['full name', 'patient name', 'name'], ['doctor', 'dentist'], 1);
-    var cPhone = getHeaderColumnIndex(sheetHeaders, ['phone', 'mobile', 'contact'], [], 2);
-    var cOp = getHeaderColumnIndex(sheetHeaders, ['op number', 'op no', 'opnum', 'op', 'patient id'], [], -1);
+  var sheetsToCheck = [visitsSheet];
+  var pSheet = ss.getSheetByName("Patients");
+  if (pSheet && pSheet !== visitsSheet) sheetsToCheck.unshift(pSheet);
+  var pvSheet = ss.getSheetByName("Patient_Visits");
+  if (pvSheet && pvSheet !== visitsSheet && pvSheet !== pSheet) sheetsToCheck.push(pvSheet);
 
-    for (var r = 1; r < existingRows.length; r++) {
-      var rowR = existingRows[r];
-      var rowName = (cName >= 0 && cName < rowR.length ? formatCellValue(rowR[cName]) : '').toLowerCase().replace(/\s+/g, ' ').trim();
-      var rowPhone = cPhone >= 0 && cPhone < rowR.length ? formatCellValue(rowR[cPhone]) : '';
-      var rowPhoneDigits = extractDigits(rowPhone);
-      
-      var nameMatches = inputName && rowName && (inputName === rowName);
-      var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
-      
-      if (nameMatches && phoneMatches) {
-        if (cOp >= 0 && cOp < rowR.length) {
-          var foundOp = formatCellValue(rowR[cOp]);
-          if (foundOp) {
-            existingOpNumber = foundOp;
-            break;
+  for (var sIdx = 0; sIdx < sheetsToCheck.length && !existingOpNumber; sIdx++) {
+    var checkSheet = sheetsToCheck[sIdx];
+    var existingRows = checkSheet.getDataRange().getValues();
+    if (existingRows && existingRows.length > 1) {
+      var sheetHeaders = existingRows[0].map(function(h) { return (h || '').toString().toLowerCase().trim(); });
+      var cName = getHeaderColumnIndex(sheetHeaders, ['full name', 'patient name', 'name', 'patient'], ['doctor', 'dentist'], 1);
+      var cPhone = getHeaderColumnIndex(sheetHeaders, ['phone', 'mobile', 'contact', 'cell'], [], 2);
+      var cOp = getHeaderColumnIndex(sheetHeaders, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], [], -1);
+
+      for (var r = 1; r < existingRows.length; r++) {
+        var rowR = existingRows[r];
+        var rowName = (cName >= 0 && cName < rowR.length ? formatCellValue(rowR[cName]) : '').toLowerCase().replace(/\s+/g, ' ').trim();
+        var rowPhone = cPhone >= 0 && cPhone < rowR.length ? formatCellValue(rowR[cPhone]) : '';
+        var rowPhoneDigits = extractDigits(rowPhone);
+        
+        var nameMatches = inputName && rowName && (inputName === rowName);
+        var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
+        
+        if (nameMatches && phoneMatches) {
+          if (cOp >= 0 && cOp < rowR.length) {
+            var foundOp = formatCellValue(rowR[cOp]);
+            if (foundOp) {
+              existingOpNumber = foundOp;
+              break;
+            }
           }
         }
       }

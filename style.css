@@ -238,6 +238,55 @@ body {
     font-size: 1.5rem;
 }
 
+.already-registered-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: #ecfdf5;
+    border: 1.5px solid #10b981;
+    border-radius: 12px;
+    padding: 0.85rem 1.2rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.already-registered-alert .alert-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.already-registered-alert .alert-body {
+    flex: 1;
+}
+
+.already-registered-alert .alert-title {
+    font-weight: 700;
+    color: #065f46;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.2px;
+}
+
+.already-registered-alert .alert-desc {
+    color: #047857;
+    font-size: 0.88rem;
+    line-height: 1.4;
+}
+
+.op-suggested-tag {
+    display: inline-block;
+    background: #0f766e;
+    color: #ffffff;
+    padding: 0.18rem 0.6rem;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0 0.25rem;
+    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+}
+
 .input-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
