@@ -183,64 +183,33 @@ class ApiService {
       final n = name.trim().toLowerCase();
       final p = phone.trim();
       return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+          n == 'gokul' || n == 'manu' || n == 'anju' || n == 'albin' ||
+          n == 'deepak' || n == 'sanju' || n == 'sam' || n == 'neha' || n == 'saran' ||
           p == '9845012345' || p == '9876543210' || p == '9998887776' ||
-          id == 'PAT-1001' || id == 'PAT-9876543210';
+          p == '133564456156' || id == 'PAT-133564456156' || id == 'PAT-1001' || id == 'PAT-9876543210';
     }
 
     bool isDummyAppointment(String id, String name, String phone) {
       final n = name.trim().toLowerCase();
       final p = phone.trim();
       return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
+          n == 'gokul' || n == 'manu' || n == 'anju' || n == 'albin' ||
+          n == 'deepak' || n == 'sanju' || n == 'sam' || n == 'neha' || n == 'saran' ||
           p == '9845012345' || p == '9876543210' || p == '9998887776' ||
-          id.contains('20261024-00');
+          id.contains('20261024-00') || id == 'APT-20261014-4821' || id == 'APT-20261013-2755';
     }
 
     bool isDummyInvoice(String id, String name) {
       final n = name.trim().toLowerCase();
       return n == 'rajesh kumar' || n == 'ramesh kumar' || n == 'test patient' ||
-          id == 'INV-2026-001' || id == 'INV-20261013-3604' || id == 'INV-20261013-3503';
+          n == 'gokul' || n == 'manu' || n == 'anju' || n == 'albin' ||
+          n == 'deepak' || n == 'sanju' || n == 'sam' || n == 'neha' || n == 'saran' ||
+          id == 'INV-2026-001' || id == 'INV-20261013-3604' || id == 'INV-20261013-3503' ||
+          id == 'INV-20261013-2386' || id == 'INV-20261014-9713';
     }
 
-    // 1. Fetch GitHub Cloud Repository baseline (fastest global CDN)
-    try {
-      final res = await http.get(Uri.parse(githubCloudDataUrl)).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200 && res.body.isNotEmpty) {
-        final decoded = jsonDecode(res.body);
-        if (decoded is Map<String, dynamic>) {
-          if (decoded['patients'] is List) {
-            for (final p in decoded['patients']) {
-              final pat = Patient.fromJson(p);
-              if (!isDummyPatient(pat.name, pat.phone, pat.id)) {
-                patients.add(pat);
-              }
-            }
-          }
-          if (decoded['appointments'] is List) {
-            for (final a in decoded['appointments']) {
-              final apt = Appointment.fromJson(a);
-              if (!isDummyAppointment(apt.id, apt.patientName, apt.phone)) {
-                appointments.add(apt);
-              }
-            }
-          }
-          if (decoded['invoices'] is List) {
-            for (final i in decoded['invoices']) {
-              final inv = Invoice.fromJson(i);
-              if (!isDummyInvoice(inv.id, inv.patientName)) {
-                invoices.add(inv);
-              }
-            }
-          }
-          if (decoded['inventory'] is List) {
-            for (final item in decoded['inventory']) {
-              inventory.add(InventoryItem.fromJson(item));
-            }
-          }
-        }
-      }
-    } catch (_) {}
-
-    // 2. Fetch Google Apps Script live Patients
+    // Direct Google Apps Script and Google Sheet fetching only (no static dummy data)
+    // 1. Fetch Google Apps Script live Patients
     final List<Patient> livePatients = [];
     try {
       final res = await http.get(Uri.parse('$defaultScriptUrl?action=getPatients')).timeout(const Duration(seconds: 10));

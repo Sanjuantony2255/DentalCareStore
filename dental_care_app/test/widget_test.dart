@@ -66,26 +66,64 @@ void main() {
       expect(apt.status, 'Completed');
     });
 
-    test('StorageService initializes seed data', () async {
+    test('StorageService initializes clean and manages records', () async {
       final storage = StorageService();
       await storage.initialize();
 
-      expect(storage.patients.isNotEmpty, true);
-      expect(storage.appointments.isNotEmpty, true);
-      expect(storage.invoices.isNotEmpty, true);
-      expect(storage.inventory.isNotEmpty, true);
+      expect(storage.patients.isEmpty, true);
+      expect(storage.appointments.isEmpty, true);
+      expect(storage.invoices.isEmpty, true);
+      expect(storage.inventory.isEmpty, true);
     });
 
     test('Search matching finds records by name, normalized phone, and OP number', () async {
       final storage = StorageService();
       await storage.initialize();
 
+      // Add a test patient record to test search functionality
+      final testPatient = Patient(
+        id: 'PAT-TEST-001',
+        opNumber: 'OP-102',
+        name: 'Gokul Test',
+        phone: '133564456156',
+        gender: 'Male',
+        doctor: 'Dr. Jeswin Jose BDS',
+        registrationDate: '2026-10-24',
+        medicalHistory: 'None',
+        totalVisits: 1,
+        totalBilled: 1000.0,
+      );
+      await storage.savePatient(testPatient);
+
+      final testInvoice = Invoice(
+        id: 'INV-20261014-9713',
+        patientName: 'Gokul Test',
+        phone: '133564456156',
+        doctor: 'Dr. Jeswin Jose BDS',
+        date: '2026-10-14',
+        consultationCharge: 1000.0,
+        totalAmount: 1000.0,
+        paymentMode: 'Cash',
+      );
+      await storage.saveInvoice(testInvoice);
+
+      final testApt = Appointment(
+        id: 'APT-TEST-001',
+        patientName: 'Gokul Test',
+        phone: '133564456156',
+        doctor: 'Dr. Jeswin Jose BDS',
+        date: '2026-10-25',
+        timeSlot: '10:00 AM',
+        reason: 'General Consultation & Checkup',
+      );
+      await storage.saveAppointment(testApt);
+
       // Search by name
       final nameMatches = storage.patients.where(
         (p) => p.name.toLowerCase().contains('gokul'),
       ).toList();
       expect(nameMatches.isNotEmpty, true);
-      expect(nameMatches.first.name, 'Gokul');
+      expect(nameMatches.first.name, 'Gokul Test');
 
       // Search by normalized phone digits (e.g. searching '133564456156')
       const qDigits = '133564456156';
@@ -93,14 +131,14 @@ void main() {
         (p) => p.phone.replaceAll(RegExp(r'\D'), '').contains(qDigits),
       ).toList();
       expect(phoneMatches.isNotEmpty, true);
-      expect(phoneMatches.first.name, 'Gokul');
+      expect(phoneMatches.first.name, 'Gokul Test');
 
       // Search by OP number
       final opMatches = storage.patients.where(
         (p) => p.opNumber.toLowerCase().contains('op-102'),
       ).toList();
       expect(opMatches.isNotEmpty, true);
-      expect(opMatches.first.name, 'Gokul');
+      expect(opMatches.first.name, 'Gokul Test');
 
       // Search invoice by ID
       final invMatches = storage.invoices.where(

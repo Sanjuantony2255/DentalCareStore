@@ -183,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {}
     }
 
+    try {
+        localStorage.removeItem('dental_cached_patients');
+    } catch(e) {}
     loadRecentSearches();
 
     // 4b. Load Quick Patient Suggestions from Cached Database
@@ -508,67 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // STEP C: Merge LocalStorage Cached Patients ONLY as offline backup if live sheet returned 0
-            if (visits.length === 0 && invoices.length === 0) {
-                try {
-                    const localRaw = localStorage.getItem('dental_cached_patients');
-                    if (localRaw) {
-                        const localPatients = JSON.parse(localRaw);
-                        localPatients.forEach(p => {
-                            const pName = (p.fullName || '').toLowerCase();
-                            const pPhone = (p.phone || '').toString();
-                            const pDigits = pPhone.replace(/\D/g, '');
-                            const pEmail = (p.email || '').toLowerCase();
-
-                            const pOp = (p.opNumber || '').toLowerCase().trim();
-                            let matched = false;
-                            if (currentFilter === 'name') {
-                                matched = pName.includes(qLower);
-                            } else if (currentFilter === 'phone') {
-                                matched = (qDigits.length >= 4 && (pDigits.includes(qDigits) || qDigits.includes(pDigits))) ||
-                                          (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits)));
-                            } else if (currentFilter === 'op') {
-                                matched = pOp && (pOp.includes(qLower) || qLower.includes(pOp));
-                            } else {
-                                matched = pName.includes(qLower) || pEmail.includes(qLower) || (pOp && (pOp.includes(qLower) || qLower.includes(pOp)));
-                                if (!matched && qDigits.length >= 4) {
-                                    if (pDigits.includes(qDigits) || qDigits.includes(pDigits)) matched = true;
-                                    if (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits))) matched = true;
-                                }
-                            }
-
-                            if (matched) {
-                                const pVisits = Array.isArray(p.visits) ? p.visits : [p];
-                                pVisits.forEach(v => {
-                                    const exists = visits.some(ev => (ev.timestamp === v.timestamp && ev.phone === v.phone) || (ev.invoiceNo && ev.invoiceNo === v.invoiceNo));
-                                    if (!exists) {
-                                        visits.unshift({
-                                            ...v,
-                                            fullName: p.fullName,
-                                            phone: p.phone,
-                                            email: p.email,
-                                            dob: p.dob,
-                                            gender: p.gender
-                                        });
-                                    }
-                                });
-
-                                const pInvs = Array.isArray(p.invoices) ? p.invoices : [];
-                                pInvs.forEach(inv => {
-                                    const exists = invoices.some(ei => ei.invoiceNo === inv.invoiceNo);
-                                    if (!exists) {
-                                        invoices.unshift({
-                                            ...inv,
-                                            patientName: p.fullName,
-                                            phone: p.phone
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                } catch(e) {}
-            }
+            // Purge any legacy dummy cached patients
+            try {
+                localStorage.removeItem('dental_cached_patients');
+            } catch(e) {}
 
             cachedInvoicesList = invoices;
 

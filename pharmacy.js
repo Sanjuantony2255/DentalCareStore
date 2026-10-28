@@ -60,22 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addItemThreshold = document.getElementById('addItemThreshold');
     const addItemSupplier = document.getElementById('addItemSupplier');
 
-    // Default Seeded Items if sheet or network is unavailable
-    const DEFAULT_STOCK_ITEMS = [
-        { itemId: 'MED-1001', itemName: 'Amoxicillin 500mg (Cap)', category: 'Antibiotics', batchNo: 'AMX-2026-A1', expiryDate: '2027-06-30', unitPrice: 8.50, quantity: 250, minThreshold: 50, supplier: 'Apex Pharma' },
-        { itemId: 'MED-1002', itemName: 'Aceclofenac + Paracetamol (Tab)', category: 'Analgesics', batchNo: 'ACP-2026-B4', expiryDate: '2027-10-15', unitPrice: 6.00, quantity: 320, minThreshold: 60, supplier: 'Sun Health' },
-        { itemId: 'MED-1003', itemName: 'Metronidazole 400mg (Tab)', category: 'Antibiotics', batchNo: 'MTZ-2026-09', expiryDate: '2026-12-31', unitPrice: 4.50, quantity: 180, minThreshold: 40, supplier: 'Cipla Med' },
-        { itemId: 'MED-1004', itemName: 'Lidocaine 2% + Adrenaline (Vial)', category: 'Anesthesia', batchNo: 'LID-2025-C8', expiryDate: '2027-04-20', unitPrice: 45.00, quantity: 75, minThreshold: 20, supplier: 'Neon Labs' },
-        { itemId: 'MED-1005', itemName: 'Chlorhexidine 0.2% Mouthwash 150ml', category: 'Antiseptic Oral', batchNo: 'CHX-2026-D1', expiryDate: '2027-08-30', unitPrice: 110.00, quantity: 45, minThreshold: 15, supplier: 'ICPA Health' },
-        { itemId: 'MED-1006', itemName: 'Dental Composite Resin Shade A2', category: 'Filling Material', batchNo: 'RES-2025-X2', expiryDate: '2027-11-20', unitPrice: 850.00, quantity: 18, minThreshold: 5, supplier: '3M Dental' },
-        { itemId: 'MED-1007', itemName: 'Eugenol Liquid 15ml', category: 'Sedative Dressing', batchNo: 'EUG-2025-E4', expiryDate: '2028-02-15', unitPrice: 120.00, quantity: 22, minThreshold: 5, supplier: 'Prevest DenPro' },
-        { itemId: 'MED-1008', itemName: 'Cotton Rolls Pack 500s', category: 'Consumables', batchNo: 'COT-2026-01', expiryDate: '2029-01-01', unitPrice: 160.00, quantity: 12, minThreshold: 15, supplier: 'HealthCare Supplies' },
-        { itemId: 'MED-1009', itemName: 'Dental Disposable Needles 30G', category: 'Surgical Consumables', batchNo: 'NDL-2026-N9', expiryDate: '2026-11-10', unitPrice: 5.00, quantity: 80, minThreshold: 100, supplier: 'Unolok Med' },
-        { itemId: 'MED-1010', itemName: 'Orthodontic Relief Wax Pack', category: 'Oral Hygiene', batchNo: 'WAX-2026-W3', expiryDate: '2028-12-31', unitPrice: 40.00, quantity: 60, minThreshold: 15, supplier: 'Ortho Care' }
-    ];
+    // No dummy items - strictly only display data from Google Sheet
+    const DEFAULT_STOCK_ITEMS = [];
 
     // Local Storage Key
     const STORAGE_KEY = 'dentalcare_pharmacy_stock_v1';
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch(e) {}
 
     let currentStockItems = [];
     let activePillFilter = 'all';
@@ -220,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load Stock from server or local cache
+    // Load Stock from Google Sheet
     async function loadPharmacyStock() {
         showLoader(true);
         hideMessage();
@@ -228,15 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${SCRIPT_URL}?action=getPharmacyStock`);
             const json = await res.json();
 
-            if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+            if (json && json.status === 'success' && Array.isArray(json.data)) {
                 currentStockItems = json.data;
                 saveToLocalStorage();
             } else {
-                // Fallback to cached items or defaults
-                loadFromCacheOrDefault();
+                currentStockItems = [];
             }
         } catch (err) {
-            console.log('Pharmacy load network notice, loading local store:', err);
+            console.log('Pharmacy load network notice:', err);
             loadFromCacheOrDefault();
         } finally {
             showLoader(false);
@@ -246,17 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadFromCacheOrDefault() {
-        const cached = localStorage.getItem(STORAGE_KEY);
-        if (cached) {
-            try {
-                currentStockItems = JSON.parse(cached);
-            } catch(e) {
-                currentStockItems = [...DEFAULT_STOCK_ITEMS];
-            }
-        } else {
-            currentStockItems = [...DEFAULT_STOCK_ITEMS];
-            saveToLocalStorage();
-        }
+        currentStockItems = [];
     }
 
     function saveToLocalStorage() {
