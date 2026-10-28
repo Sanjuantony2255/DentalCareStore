@@ -77,6 +77,7 @@
                     <div class="doctor-avatar-circle">👨‍⚕️</div>
                     <div class="doctor-meta-info">
                         <div class="doc-name">Attending Doctor</div>
+                        <div class="doc-phone"><a href="tel:9072467117" style="color: inherit; text-decoration: none;">📞 +91 9072467117</a> / <a href="tel:6238497517" style="color: inherit; text-decoration: none;">+91 6238497517</a></div>
                         <div class="doc-email">sanjuantony01@gmail.com</div>
                     </div>
                 <div class="sidebar-brand-credit">
@@ -175,6 +176,10 @@
                             <label for="opNumber">OP Number</label>
                         </div>
                         <div class="input-group">
+                            <input type="date" id="registrationDate" name="registrationDate" required>
+                            <label for="registrationDate" class="active-label">Date</label>
+                        </div>
+                        <div class="input-group">
                             <select id="gender" name="gender" required>
                                 <option value="" disabled selected>Select Gender</option>
                                 <option value="Male">Male</option>
@@ -193,7 +198,7 @@
                     <div class="input-grid">
                         <div class="input-group full-width">
                             <select id="medicalHistorySelect" name="medicalHistorySelect">
-                                <option value="None" selected>None / No Significant Medical History</option>
+                                <option value="" selected>No Significant Medical History</option>
                                 <option value="Diabetes">Diabetes Mellitus</option>
                                 <option value="Hypertension">Hypertension (High BP)</option>
                                 <option value="Diabetes & Hypertension">Diabetes & Hypertension</option>
@@ -208,21 +213,127 @@
                             <label for="medicalHistorySelect" class="active-label">Medical History Option</label>
                         </div>
                         <div class="input-group full-width" id="medicalHistoryInputGroup">
-                            <input type="text" id="medicalHistory" name="medicalHistory" placeholder=" " value="None">
+                            <input type="text" id="medicalHistory" name="medicalHistory" placeholder=" ">
                             <label for="medicalHistory">Medical History / Clinical Notes</label>
                         </div>
                         <div class="input-group full-width">
-                            <input type="text" id="drugAllergies" name="drugAllergies" placeholder=" " value="None">
-                            <label for="drugAllergies">Drug Allergies (e.g. Penicillin, Sulfa, NSAIDs, Local Anesthesia, or None)</label>
-                            <input type="hidden" id="diseaseHistory" name="diseaseHistory" value="None">
+                            <input type="text" id="drugAllergies" name="drugAllergies" placeholder=" ">
+                            <label for="drugAllergies">Drug Allergies (e.g. Penicillin, Sulfa, NSAIDs, Local Anesthesia)</label>
                         </div>
+                        <div class="input-group full-width" id="chiefComplaintGroup">
+                            <input type="text" id="chiefComplaint" name="chiefComplaint" placeholder=" ">
+                            <label for="chiefComplaint">Chief Complaint</label>
+                        </div>
+                        <div class="input-group full-width" id="treatmentSelectGroup">
+                            <!-- Quick Treatment Chips (like the app) -->
+                            <div class="quick-treatments-bar" id="regQuickTreatments">
+                                <button type="button" class="treatment-chip" data-treatment="CONSULTATION">CONSULTATION</button>
+                                <button type="button" class="treatment-chip" data-treatment="SCALING">SCALING</button>
+                                <button type="button" class="treatment-chip" data-treatment="RCT">RCT</button>
+                                <button type="button" class="treatment-chip" data-treatment="COMPOSITE">COMPOSITE</button>
+                                <button type="button" class="treatment-chip" data-treatment="CROWN PFM">CROWN PFM</button>
+                                <button type="button" class="treatment-chip" data-treatment="POST & CORE">POST & CORE</button>
+                                <button type="button" class="treatment-chip" data-treatment="NORMAL EXTRACTION">NORMAL EXTRACTION</button>
+                                <button type="button" class="treatment-chip" data-treatment="CLEAR ALIGNERS">CLEAR ALIGNERS</button>
+                            </div>
+                            <div class="treatment-suggest-wrap">
+                                <input type="text" id="treatmentInput" name="treatment" placeholder=" " autocomplete="off" list="treatmentsDatalist">
+                                <label for="treatmentInput" class="active-label">Treatment (Select above or type to search all 62 treatments)</label>
+                                <div id="regTreatmentDropdown" class="treatment-suggest-dropdown" style="display: none;"></div>
+                            </div>
+                            <!-- Hidden inputs for backward compatibility -->
+                            <input type="hidden" id="treatmentSelect" name="treatmentSelect" value="">
+                            <input type="hidden" id="customTreatment" name="customTreatment" value="">
+                        </div>
+                        <datalist id="treatmentsDatalist">
+                            <option value="POST & CORE">
+                            <option value="CROWN METAL">
+                            <option value="CROWN PFM">
+                            <option value="CROWN PFZ">
+                            <option value="EMAX CROWN, VENEER, INLAY">
+                            <option value="CROWN REMOVAL">
+                            <option value="ACRYLIC PARTIAL DENTURE">
+                            <option value="FLEXIBLE PARTIAL DENTURE">
+                            <option value="COMPLETE DENTURE">
+                            <option value="FLEXIBLE">
+                            <option value="BPS">
+                            <option value="SS CROWNS">
+                            <option value="SCALING">
+                            <option value="GINGIVECTOMY">
+                            <option value="SUBGINGIVAL SCALING/ CURETTAGE">
+                            <option value="GRAFT">
+                            <option value="DEPIGMENTATION">
+                            <option value="PERIODONTAL FLAP">
+                            <option value="SPLINTING">
+                            <option value="LASER">
+                            <option value="PULPOTOMY/ PULPECTOMY">
+                            <option value="PIT & FISSURE SEALANTS">
+                            <option value="FLUORIDE APPPLICATIONS">
+                            <option value="SPACE MAINTAINERS">
+                            <option value="PREFORMED ZIRCONIA">
+                            <option value="BLEACHING">
+                            <option value="DENTAL IMPLANTS">
+                            <option value="REGISTRATION">
+                            <option value="CONSULTATION">
+                            <option value="SPECIALIST CONSULTATION">
+                            <option value="DENTAL RADIOGRAPHS">
+                            <option value="GLASS IONOMER">
+                            <option value="AMALGAM">
+                            <option value="COMPOSITE">
+                            <option value="RCT">
+                            <option value="RE RCT">
+                            <option value="MICROSCOPE RCT">
+                            <option value="APICECTOMY">
+                            <option value="MTA">
+                            <option value="DECIDUOUS TOOTH EXTRACTION">
+                            <option value="NORMAL EXTRACTION">
+                            <option value="DIFFICULT EXTRACTION">
+                            <option value="3RD MOLAR">
+                            <option value="CANINE IMPACTION">
+                            <option value="INCISION AND DRAINAGE">
+                            <option value="VESTIBULOPLASTY">
+                            <option value="ALVEOLOPLASTY">
+                            <option value="OPERCULECTOMY">
+                            <option value="FIXED ORTHODONTICS PREADJUSTED">
+                            <option value="FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED">
+                            <option value="FIXED- SELF LIGATING">
+                            <option value="HAWLEYS APPLIANCE- ACTIVE">
+                            <option value="RETENTION APPLIANCE- PASSIVE">
+                            <option value="FIXED LINGUAL RETAINERS">
+                            <option value="VACCUFORM RETAINERS-">
+                            <option value="ORAL SCREEN">
+                            <option value="MYO FUNCTIONAL FIXED">
+                            <option value="MYOFUNCTIONAL REMOVABLE">
+                            <option value="CLEAR ALIGNERS">
+                        </datalist>
                         <div class="input-group">
                             <input type="date" id="lastVisitDate" name="lastVisitDate" placeholder=" ">
                             <label for="lastVisitDate" class="active-label">Date of Last Clinic Visit</label>
                         </div>
                         <div class="input-group">
+                            <select id="doctorSelect">
+                                <option value="" disabled selected>Select Attending Doctor</option>
+                                <optgroup label="Doctors">
+                                    <option value="Dr. Jeswin Jose BDS">Dr. Jeswin Jose BDS (Doctor)</option>
+                                    <option value="Dr. Olevia Emmatty Joseph BDS">Dr. Olevia Emmatty Joseph BDS (Doctor)</option>
+                                    <option value="Dr. Antony Davis BDS">Dr. Antony Davis BDS (Doctor)</option>
+                                </optgroup>
+                                <optgroup label="Consultant Specialists">
+                                    <option value="Dr. Megha Manjunath MDS (Dept.of Orthodontics)">Dr. Megha Manjunath MDS - Dept.of Orthodontics (പല്ല് നിരയാക്കുന്ന വിഭാഗം)</option>
+                                    <option value="Dr. Akshay.M MDS (Dept.of Oral Surgery)">Dr. Akshay.M MDS - Dept.of Oral Surgery (മുഖ താടിയെല്ല് ശസ്ത്രക്രിയ വിഭാഗം)</option>
+                                    <option value="Dr. Jimmy George MDS (Dept.of Endodontics)">Dr. Jimmy George MDS - Dept.of Endodontics (ദന്തവേരുചികിത്സാ വിഭാഗം)</option>
+                                    <option value="Dr. Reji Gopalan MDS (Dept.of Prosthodontics)">Dr. Reji Gopalan MDS - Dept.of Prosthodontics (കൃത്രിമ ദന്തരൂപകല്പന വിഭാഗം)</option>
+                                    <option value="Dr. Amritha Prabhakar MDS (Dept.of Pedodontics)">Dr. Amritha Prabhakar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                    <option value="Dr. Anurag Vinod Kumar MDS (Dept.of Pedodontics)">Dr. Anurag Vinod Kumar MDS - Dept.of Pedodontics (കുട്ടികളുടെ ദന്തരോഗ വിഭാഗം)</option>
+                                    <option value="Dr. Sharath MDS (Dept.of Periodontics)">Dr. Sharath MDS - Dept.of Periodontics</option>
+                                </optgroup>
+                                <option value="Other">Other / Type Doctor Name Manually...</option>
+                            </select>
+                            <label for="doctorSelect" class="active-label">Doctor Consulted</label>
+                        </div>
+                        <div class="input-group" id="doctorConsultedGroup" style="display: none;">
                             <input type="text" id="doctorConsulted" name="doctorConsulted" placeholder=" ">
-                            <label for="doctorConsulted">Doctor Consulted</label>
+                            <label for="doctorConsulted">Type Doctor Name Manually</label>
                         </div>
                     </div>
                 </div>
@@ -300,7 +411,7 @@
                     <img src="assets/img/logo.png" alt="Manjaly Dental Care Logo" class="inv-brand-logo-img">
                     <div class="inv-hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</div>
                     <div class="inv-hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
-                    <div class="inv-hospital-contact">Phone: +91 6238497517 • Email: manjalymdc@gmail.com</div>
+                    <div class="inv-hospital-contact">Phone: +91 9072467117, +91 6238497517 • Email: manjalymdc@gmail.com</div>
                 </div>
 
                 <div class="inv-doc-header">
@@ -373,19 +484,19 @@
                 </table>
 
                 <!-- Signatures & Hospital Seal Row for Black and White Printing -->
-                <div class="inv-signatures-row">
-                    <div class="inv-sign-col">
-                        <div class="inv-dr-sign-wrap">
-                            <img src="assets/img/Sign.jpg" alt="Doctor Signature" class="inv-dr-sign-img" id="invModalDrSign">
-                            <img src="assets/img/drseal.jpg" alt="Doctor Seal" class="inv-dr-seal-img" id="invModalDrSeal">
+                <div class="inv-signatures-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;">
+                    <div class="inv-sign-col" style="text-align: center;">
+                        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 4px;">
+                            <img src="assets/img/sign.jpg" alt="Doctor Signature" class="inv-seal-img" id="invModalSign" style="max-height: 52px; max-width: 90px; object-fit: contain;">
+                            <img src="assets/img/seal.jpg" alt="Doctor Seal" class="inv-seal-img" id="invModalDrSeal" style="max-height: 52px; max-width: 75px; object-fit: contain;">
                         </div>
-                        <div class="inv-sign-space" style="height: 15px;"></div>
-                        <div class="inv-sign-label">Doctor's Sign &amp; Seal</div>
+                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
+                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Doctor's Seal & Signature</div>
                     </div>
-                    <div class="inv-sign-col">
-                        <img src="assets/img/seal.jpg" alt="Hospital Seal" class="inv-seal-img" id="invModalSeal">
-                        <div class="inv-sign-space" style="height: 15px;"></div>
-                        <div class="inv-sign-label">Hospital Seal</div>
+                    <div class="inv-sign-col" style="text-align: center;">
+                        <img src="assets/img/Hospital Seal.jpg" alt="Authorized Hospital Seal" class="inv-seal-img" id="invModalSeal" style="max-height: 58px; max-width: 130px; object-fit: contain; margin-bottom: 4px;">
+                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
+                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Authorized Hospital Seal</div>
                     </div>
                 </div>
 
@@ -402,6 +513,9 @@
             <div class="modal-footer-actions">
                 <button type="button" class="btn-bw-toggle" id="toggleBwModeBtn" title="Toggle Black & White print preview">
                     <span>🌓</span> B&W Mode
+                </button>
+                <button type="button" class="btn-whatsapp-inv" id="shareWhatsappBtn">
+                    <span>💬</span> Share to WhatsApp
                 </button>
                 <button type="button" class="btn-print-inv" id="printInvoiceBtn">
                     <span>🖨️</span> Print Invoice (B&W Compatible)

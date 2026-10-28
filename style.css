@@ -300,12 +300,29 @@ body {
     transform: none;
 }
 
+/* Fix placeholder vs floating label overlap clash */
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    line-height: normal;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.input-group input:focus::placeholder,
+.input-group textarea:focus::placeholder {
+    opacity: 0.8;
+}
+
 /* Floating label magic */
 .input-group input:focus ~ label,
 .input-group input:not(:placeholder-shown) ~ label,
 .input-group textarea:focus ~ label,
 .input-group textarea:not(:placeholder-shown) ~ label,
 .input-group select ~ label,
+.input-group input[type="date"] ~ label,
+.input-group input[type="time"] ~ label,
 .active-label {
     top: 0.35rem;
     transform: none !important;
@@ -1958,8 +1975,7 @@ body {
 /* Signatures & Hospital Seal Row */
 .inv-signatures-row {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    justify-content: flex-end;
     margin-top: 2.5rem;
     margin-bottom: 1rem;
     padding: 0 1rem;
@@ -1976,30 +1992,6 @@ body {
     object-fit: contain;
     display: block;
     margin: 0 auto 6px auto;
-    mix-blend-mode: multiply;
-}
-
-.inv-dr-sign-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 68px;
-    margin-bottom: 6px;
-}
-
-.inv-dr-sign-img {
-    max-height: 58px;
-    max-width: 100px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-}
-
-.inv-dr-seal-img {
-    max-height: 58px;
-    max-width: 110px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
 }
 
 /* Hide Pharmacy & Stock Navigation Link */
@@ -2118,9 +2110,7 @@ body {
     border-top-color: #000000 !important;
 }
 
-.invoice-paper.bw-mode .inv-seal-img,
-.invoice-paper.bw-mode .inv-dr-sign-img,
-.invoice-paper.bw-mode .inv-dr-seal-img {
+.invoice-paper.bw-mode .inv-seal-img {
     filter: grayscale(100%) contrast(130%);
 }
 
@@ -2294,6 +2284,25 @@ body {
 
 .btn-download-inv:hover {
     background: #1e40af;
+}
+
+.btn-whatsapp-inv {
+    background: #16a34a;
+    color: white;
+    padding: 0.7rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-whatsapp-inv:hover {
+    background: #15803d;
 }
 
 .btn-close-inv {
@@ -2475,7 +2484,6 @@ body {
     }
 
     body.printing-invoice .inv-signatures-row {
-        justify-content: space-between !important;
         margin-top: 40px !important;
         margin-bottom: 15px !important;
     }
@@ -2485,30 +2493,6 @@ body {
         max-width: 140px !important;
         display: block !important;
         margin: 0 auto 6px auto !important;
-        mix-blend-mode: multiply !important;
-    }
-
-    body.printing-invoice .inv-dr-sign-wrap {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-        min-height: 68px !important;
-        margin-bottom: 6px !important;
-    }
-
-    body.printing-invoice .inv-dr-sign-img {
-        max-height: 58px !important;
-        max-width: 100px !important;
-        object-fit: contain !important;
-        mix-blend-mode: multiply !important;
-    }
-
-    body.printing-invoice .inv-dr-seal-img {
-        max-height: 58px !important;
-        max-width: 110px !important;
-        object-fit: contain !important;
-        mix-blend-mode: multiply !important;
     }
 
     body.printing-invoice .inv-sign-space {
@@ -3611,6 +3595,15 @@ body {
     font-size: 0.82rem;
     font-weight: 700;
     color: #0f172a;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.doctor-meta-info .doc-phone {
+    font-size: 0.72rem;
+    color: #0d9488;
+    font-weight: 600;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -4906,5 +4899,202 @@ body {
         background: white !important;
     }
 }
+
+/* --- Universal Admin & Staff Role Switcher --- */
+.sidebar-role-container {
+    padding: 0.65rem 0.85rem;
+    margin: 0.5rem 0.75rem 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+}
+.sidebar-role-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sidebar-role-toggle {
+    display: flex;
+    gap: 0.35rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px;
+    border-radius: 8px;
+}
+.role-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+.role-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+.role-btn.active {
+    background: white;
+    color: #0f766e;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.sidebar-link.role-locked {
+    opacity: 0.65;
+}
+.sidebar-link.role-locked:hover {
+    opacity: 0.9;
+}
+.role-lock-badge {
+    margin-left: auto;
+    font-size: 0.68rem;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+.mobile-role-pill {
+    margin-left: auto;
+    margin-right: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0f766e;
+    cursor: pointer;
+}
+.admin-restricted-view {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    max-width: 520px;
+    margin: 2rem auto;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    border: 1px solid #fee2e2;
+}
+.admin-restricted-view .restricted-icon {
+    width: 64px;
+    height: 64px;
+    line-height: 64px;
+    margin: 0 auto 1.25rem;
+    background: #fef2f2;
+    border-radius: 50%;
+    font-size: 2rem;
+    color: #dc2626;
+}
+.admin-restricted-view h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+.admin-restricted-view p {
+    font-size: 0.92rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* --- Treatments Suggestion & Quick Chips --- */
+.quick-treatments-bar {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.5rem;
+    scrollbar-width: thin;
+}
+.quick-treatments-bar::-webkit-scrollbar {
+    height: 4px;
+}
+.quick-treatments-bar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.treatment-chip {
+    flex-shrink: 0;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.treatment-chip:hover {
+    background: #e2e8f0;
+    border-color: #0d9488;
+    color: #0f766e;
+}
+.treatment-chip.active {
+    background: #ccfbf1;
+    border-color: #0d9488;
+    color: #0f766e;
+    font-weight: 700;
+}
+.treatment-suggest-wrap {
+    position: relative;
+    width: 100%;
+}
+.treatment-suggest-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #0d9488;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    z-index: 1050;
+}
+.treatment-suggest-item {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.85rem;
+    color: #1e293b;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.12s ease;
+}
+.treatment-suggest-item:hover,
+.treatment-suggest-item.highlighted {
+    background: #f0fdfa;
+    color: #0f766e;
+    font-weight: 600;
+}
+.treatment-suggest-item mark {
+    background: transparent;
+    color: #0f766e;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
 
 

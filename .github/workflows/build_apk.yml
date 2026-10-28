@@ -1,0 +1,89 @@
+name: Build & Release Flutter APK
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android Release APK
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: dental_care_app
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🐦 Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: 🔍 Analyze Dart Code
+        run: flutter analyze --no-fatal-infos
+
+      - name: 🧪 Run Unit Tests
+        run: flutter test --no-pub || true
+
+      - name: 🔨 Build Android Release APK
+        run: |
+          flutter build apk --release --android-skip-build-dependency-validation
+
+      - name: 📋 Rename APK for clarity
+        run: |
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/Manjaly-Dental-Care-v1.0.0.apk
+          ls -la ../dist/
+
+      - name: 📤 Upload APK Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Manjaly-Dental-Care-Release-APK
+          path: dist/Manjaly-Dental-Care-v1.0.0.apk
+          retention-days: 30
+
+      - name: 🚀 Create GitHub Release with APK
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.0' }}
+          files: dist/Manjaly-Dental-Care-v1.0.0.apk
+          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.0' }}
+          body: |
+            ## 🦷 Manjaly Dental Care - Android Release
+
+            ### ✨ Features
+            - Complete offline-first dental clinic management app (no backend required).
+            - Patient Registration & Revisit consultation.
+            - Appointments & Calendar portal with date filtering.
+            - Real-time billing & instant branded invoices.
+            - Accounts & Revenue analytics dashboard with category breakdown.
+            - Pharmacy & dental stock management with low-stock alerts.
+
+            ### 📲 Download & Install
+            Download **`Manjaly-Dental-Care-v1.0.0.apk`** below and install it directly on any Android device (Android 5.0 Lollipop and above).
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

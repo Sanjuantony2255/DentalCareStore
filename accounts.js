@@ -140,6 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main fetch function
     async function loadAccountsData() {
+        const role = localStorage.getItem('dental_user_role') || 'admin';
+        if (role === 'staff') {
+            showLoader(false);
+            return;
+        }
+
         showLoader(true);
         hideMessage();
 
@@ -578,4 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial Load
     loadAccountsData();
+
+    window.addEventListener('dental_role_changed', (e) => {
+        if (e.detail && e.detail.role === 'admin') {
+            loadAccountsData();
+        }
+    });
 });

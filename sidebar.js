@@ -93,11 +93,198 @@
         // Auto-close drawer on mobile when clicking any navigation link
         const navLinks = appSidebar.querySelectorAll('.sidebar-link');
         navLinks.forEach(link => {
-            link.addEventListener('click', () => {
+            link.addEventListener('click', (e) => {
+                // If this is the accounts link and current role is staff, intercept
+                if (link.getAttribute('href') === 'accounts.html' && getRole() === 'staff') {
+                    e.preventDefault();
+                    showAdminRequiredModal();
+                    return;
+                }
                 if (window.innerWidth <= 992) {
                     closeMobileDrawer();
                 }
             });
+        });
+
+        // 4. Role Management: Admin vs Staff
+        function getRole() {
+            return localStorage.getItem('dental_user_role') || 'admin';
+        }
+
+        function setRole(newRole) {
+            const role = (newRole === 'staff') ? 'staff' : 'admin';
+            localStorage.setItem('dental_user_role', role);
+            applyRoleState();
+            window.dispatchEvent(new CustomEvent('dental_role_changed', { detail: { role } }));
+        }
+
+        function renderRoleSwitcher() {
+            let roleBox = appSidebar.querySelector('.sidebar-role-container');
+            if (!roleBox) {
+                roleBox = document.createElement('div');
+                roleBox.className = 'sidebar-role-container';
+                const nav = appSidebar.querySelector('.sidebar-nav');
+                if (nav) {
+                    appSidebar.insertBefore(roleBox, nav);
+                } else {
+                    appSidebar.appendChild(roleBox);
+                }
+            }
+            const current = getRole();
+            roleBox.innerHTML = `
+                <div class="sidebar-role-label">
+                    <span>PORTAL ROLE</span>
+                    <span style="opacity:0.85;">${current === 'admin' ? '👑 FULL ACCESS' : '👤 RESTRICTED'}</span>
+                </div>
+                <div class="sidebar-role-toggle">
+                    <button type="button" class="role-btn ${current === 'admin' ? 'active' : ''}" data-role="admin">👑 Admin</button>
+                    <button type="button" class="role-btn ${current === 'staff' ? 'active' : ''}" data-role="staff">👤 Staff</button>
+                </div>
+            `;
+            roleBox.querySelectorAll('.role-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setRole(btn.getAttribute('data-role'));
+                });
+            });
+        }
+
+        function renderMobileRolePill() {
+            const mobileBar = document.querySelector('.mobile-top-bar');
+            if (!mobileBar) return;
+            let pill = mobileBar.querySelector('.mobile-role-pill');
+            if (!pill) {
+                pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'mobile-role-pill';
+                const actionLink = mobileBar.querySelector('.mobile-action-link');
+                if (actionLink) {
+                    mobileBar.insertBefore(pill, actionLink);
+                } else {
+                    mobileBar.appendChild(pill);
+                }
+                pill.addEventListener('click', () => {
+                    const nextRole = getRole() === 'admin' ? 'staff' : 'admin';
+                    setRole(nextRole);
+                });
+            }
+            const role = getRole();
+            pill.innerHTML = role === 'admin' ? '👑 Admin' : '👤 Staff';
+            pill.setAttribute('title', `Active role: ${role}. Click to switch.`);
+        }
+
+        function updateAccountsLinkAccess() {
+            const role = getRole();
+            const accountsLink = appSidebar.querySelector('a[href="accounts.html"]');
+            if (accountsLink) {
+                let badge = accountsLink.querySelector('.role-lock-badge');
+                if (role === 'staff') {
+                    accountsLink.classList.add('role-locked');
+                    accountsLink.setAttribute('title', 'Admin Only: Restricted for Staff');
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'role-lock-badge';
+                        badge.textContent = '🔒 Admin';
+                        accountsLink.appendChild(badge);
+                    }
+                } else {
+                    accountsLink.classList.remove('role-locked');
+                    accountsLink.removeAttribute('title');
+                    if (badge) badge.remove();
+                }
+            }
+        }
+
+        function showAdminRequiredModal() {
+            const existing = document.getElementById('adminRequiredModal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'adminRequiredModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:99999;padding:1rem;';
+            modal.innerHTML = `
+                <div style="background:white;border-radius:16px;max-width:440px;width:100%;padding:1.75rem;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
+                    <div style="width:54px;height:54px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:1.75rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">🔒</div>
+                    <h3 style="font-size:1.25rem;font-weight:800;color:#0f172a;margin-bottom:0.5rem;">Admin Access Required</h3>
+                    <p style="font-size:0.9rem;color:#64748b;line-height:1.5;margin-bottom:1.5rem;">Only clinic administrators have the right to view Accounts &amp; Revenue. Your current active role is <strong>Staff</strong>.</p>
+                    <div style="display:flex;gap:0.6rem;justify-content:center;">
+                        <button type="button" id="modalSwitchAdminBtn" style="background:#0f766e;color:white;border:none;padding:0.65rem 1.25rem;border-radius:8px;font-weight:700;cursor:pointer;">👑 Switch to Admin Mode</button>
+                        <button type="button" id="modalCloseAdminBtn" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:0.65rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('modalSwitchAdminBtn').addEventListener('click', () => {
+                setRole('admin');
+                modal.remove();
+                window.location.href = 'accounts.html';
+            });
+            document.getElementById('modalCloseAdminBtn').addEventListener('click', () => {
+                modal.remove();
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        function enforceAccountsPageAccess() {
+            const loc = (window.location.pathname || '').toLowerCase();
+            if (!loc.includes('accounts.html') && !loc.endsWith('/accounts')) {
+                return;
+            }
+            const role = getRole();
+            const container = document.querySelector('.app-main-content .container');
+            if (!container) return;
+
+            let restrictedCard = document.getElementById('accountsRestrictedCard');
+            const accountsSections = container.querySelectorAll('.accounts-header, .stat-cards-grid, .period-filter-bar, .category-cards-grid, .charts-grid, .payment-modes-card, .ledger-card, .revenue-alert');
+
+            if (role === 'staff') {
+                accountsSections.forEach(el => { el.style.display = 'none'; });
+                if (!restrictedCard) {
+                    restrictedCard = document.createElement('div');
+                    restrictedCard.id = 'accountsRestrictedCard';
+                    restrictedCard.className = 'admin-restricted-view fade-in';
+                    restrictedCard.innerHTML = `
+                        <div class="restricted-icon">🔒</div>
+                        <h2>Admin Access Restricted</h2>
+                        <p>Only clinic administrators have the right to view Accounts &amp; Revenue analytics. Your current active role is <strong>Staff</strong>.</p>
+                        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+                            <button type="button" id="cardSwitchAdminBtn" style="background:#0f766e;color:white;padding:0.65rem 1.25rem;border-radius:8px;font-weight:700;border:none;cursor:pointer;">
+                                👑 Switch to Admin Mode
+                            </button>
+                            <a href="appointments.html" style="background:#f1f5f9;color:#334155;padding:0.65rem 1.25rem;border-radius:8px;font-weight:600;text-decoration:none;border:1px solid #cbd5e1;display:inline-block;">
+                                📅 Go to Appointments
+                            </a>
+                        </div>
+                    `;
+                    container.prepend(restrictedCard);
+                    document.getElementById('cardSwitchAdminBtn').addEventListener('click', () => {
+                        setRole('admin');
+                    });
+                } else {
+                    restrictedCard.style.display = 'block';
+                }
+            } else {
+                if (restrictedCard) restrictedCard.style.display = 'none';
+                accountsSections.forEach(el => { el.style.display = ''; });
+            }
+        }
+
+        function applyRoleState() {
+            renderRoleSwitcher();
+            renderMobileRolePill();
+            updateAccountsLinkAccess();
+            enforceAccountsPageAccess();
+        }
+
+        // Initialize role controller
+        applyRoleState();
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'dental_user_role') {
+                applyRoleState();
+            }
         });
 
         // Close on ESC key
@@ -117,6 +304,13 @@
                 }
             }, 100);
         });
+
+        // Expose portal API globally
+        window.DentalPortal = {
+            getRole,
+            setRole,
+            isAdmin: () => getRole() === 'admin'
+        };
     }
 
     if (document.readyState === 'loading') {

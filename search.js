@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneInvoiceBtn = document.getElementById('doneInvoiceBtn');
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     const downloadInvoiceBtn = document.getElementById('downloadInvoiceBtn');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
     const editInvoiceChargesBtn = document.getElementById('editInvoiceChargesBtn');
 
     // View Invoice Modal Fields
@@ -396,66 +397,177 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // STEP C: Merge LocalStorage Cached Patients for instant discovery
-            try {
-                const localRaw = localStorage.getItem('dental_cached_patients');
-                if (localRaw) {
-                    const localPatients = JSON.parse(localRaw);
-                    localPatients.forEach(p => {
-                        const pName = (p.fullName || '').toLowerCase();
-                        const pPhone = (p.phone || '').toString();
-                        const pDigits = pPhone.replace(/\D/g, '');
-                        const pEmail = (p.email || '').toLowerCase();
+            // STEP B2: Direct Google Sheet CSV fetch for real-time manual additions and removals
+            if (visits.length === 0 && invoices.length === 0) {
+                try {
+                    const csvRes = await fetch('https://docs.google.com/spreadsheets/d/1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls/gviz/tq?tqx=out:csv');
+                    if (csvRes.ok) {
+                        const csvText = await csvRes.text();
+                        const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
+                        if (lines.length > 1) {
+                            const parseCsvLine = (lineStr) => {
+                                const rowCells = [];
+                                const cellRegex = /(?:^|,)(?:"([^"]*(?:""[^"]*)*)"|([^",]*))/g;
+                                let m;
+                                while ((m = cellRegex.exec(lineStr)) !== null) {
+                                    rowCells.push((m[1] !== undefined ? m[1].replace(/""/g, '"') : (m[2] || '')).trim());
+                                }
+                                return rowCells;
+                            };
 
-                        const pOp = (p.opNumber || '').toLowerCase().trim();
-                        let matched = false;
-                        if (currentFilter === 'name') {
-                            matched = pName.includes(qLower);
-                        } else if (currentFilter === 'phone') {
-                            matched = (qDigits.length >= 4 && (pDigits.includes(qDigits) || qDigits.includes(pDigits))) ||
-                                      (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits)));
-                        } else if (currentFilter === 'op') {
-                            matched = pOp && (pOp.includes(qLower) || qLower.includes(pOp));
-                        } else {
-                            matched = pName.includes(qLower) || pEmail.includes(qLower) || (pOp && (pOp.includes(qLower) || qLower.includes(pOp)));
-                            if (!matched && qDigits.length >= 4) {
-                                if (pDigits.includes(qDigits) || qDigits.includes(pDigits)) matched = true;
-                                if (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits))) matched = true;
+                            const rawHeaders = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+                            const getCol = (keywords, exclude = []) => {
+                                for (let c = 0; c < rawHeaders.length; c++) {
+                                    const h = rawHeaders[c];
+                                    if (exclude.some(ex => h.includes(ex))) continue;
+                                    if (keywords.some(kw => h.includes(kw))) return c;
+                                }
+                                return -1;
+                            };
+
+                            const cTime = getCol(['time']);
+                            const cName = getCol(['full name', 'patient name', 'name'], ['doctor', 'dentist']);
+                            const cPhone = getCol(['phone', 'mobile', 'contact']);
+                            const cEmail = getCol(['email', 'mail']);
+                            const cDob = getCol(['dob', 'birth', 'age']);
+                            const cGender = getCol(['gender', 'sex']);
+                            const cDoc = getCol(['doctor', 'consulted', 'dentist'], ['fee', 'charge']);
+                            const cMed = getCol(['medical']);
+                            const cAllerg = getCol(['allerg', 'drug']);
+                            const cDisease = getCol(['disease', 'treatment', 'complaint']);
+                            const cTotal = getCol(['total', 'amount']);
+                            const cOp = getCol(['op number', 'op no', 'op']);
+                            const cInv = getCol(['invoice no', 'invoice number', 'invoice'], ['drive', 'url', 'file']);
+
+                            const matchedVisits = [];
+                            for (let i = 1; i < lines.length; i++) {
+                                const row = parseCsvLine(lines[i]);
+                                if (!row || row.length === 0 || row.every(c => c === '')) continue;
+
+                                const timestamp = (cTime >= 0 && row[cTime]) ? row[cTime] : (row[0] || '');
+                                const fullName = (cName >= 0 && row[cName]) ? row[cName] : (row[1] || '');
+                                const phone = (cPhone >= 0 && row[cPhone]) ? row[cPhone] : (row[2] || '');
+                                if (!fullName && !phone) continue;
+
+                                const email = (cEmail >= 0 && row[cEmail]) ? row[cEmail] : (row[3] || '');
+                                const dob = (cDob >= 0 && row[cDob]) ? row[cDob] : (row[4] || '');
+                                const gender = (cGender >= 0 && row[cGender]) ? row[cGender] : (row[5] || 'Male');
+                                const doctorConsulted = (cDoc >= 0 && row[cDoc]) ? row[cDoc] : (row[6] || 'Dr. Jeswin Jose BDS');
+                                const medicalHistory = (cMed >= 0 && row[cMed]) ? row[cMed] : (row[7] || 'None');
+                                const drugAllergies = (cAllerg >= 0 && row[cAllerg]) ? row[cAllerg] : (row[8] || 'None');
+                                const diseaseHistory = (cDisease >= 0 && row[cDisease]) ? row[cDisease] : (row[9] || '');
+                                const totalAmount = parseFloat((cTotal >= 0 && row[cTotal]) ? row[cTotal].replace(/[^0-9.]/g, '') : (row[13] || 0)) || 0;
+                                const opNumber = (cOp >= 0 && row[cOp]) ? row[cOp] : (row[15] || '');
+                                const invoiceNo = (cInv >= 0 && row[cInv]) ? row[cInv] : (row[16] || ('INV-' + (timestamp.split(' ')[0] || '').replace(/\D/g, '')));
+
+                                const pName = fullName.toLowerCase();
+                                const pDigits = phone.replace(/\D/g, '');
+                                let rowMatched = false;
+
+                                if (currentFilter === 'name') {
+                                    rowMatched = pName.includes(qLower);
+                                } else if (currentFilter === 'phone') {
+                                    rowMatched = (qDigits.length >= 4 && (pDigits.includes(qDigits) || qDigits.includes(pDigits))) ||
+                                                 (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits)));
+                                } else if (currentFilter === 'op') {
+                                    rowMatched = opNumber && (opNumber.toLowerCase().includes(qLower) || qLower.includes(opNumber.toLowerCase()));
+                                } else {
+                                    rowMatched = pName.includes(qLower) || (opNumber && opNumber.toLowerCase().includes(qLower)) || (invoiceNo && invoiceNo.toLowerCase().includes(qLower));
+                                    if (!rowMatched && qDigits.length >= 4) {
+                                        if (pDigits.includes(qDigits) || qDigits.includes(pDigits)) rowMatched = true;
+                                        if (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits))) rowMatched = true;
+                                    }
+                                }
+
+                                if (rowMatched) {
+                                    matchedVisits.push({
+                                        timestamp,
+                                        fullName,
+                                        phone,
+                                        email,
+                                        dob,
+                                        age: dob,
+                                        gender,
+                                        doctorConsulted,
+                                        medicalHistory,
+                                        drugAllergies,
+                                        diseaseHistory,
+                                        totalAmount,
+                                        opNumber,
+                                        invoiceNo
+                                    });
+                                }
+                            }
+                            if (matchedVisits.length > 0) {
+                                visits = matchedVisits;
                             }
                         }
-
-                        if (matched) {
-                            const pVisits = Array.isArray(p.visits) ? p.visits : [p];
-                            pVisits.forEach(v => {
-                                const exists = visits.some(ev => (ev.timestamp === v.timestamp && ev.phone === v.phone) || (ev.invoiceNo && ev.invoiceNo === v.invoiceNo));
-                                if (!exists) {
-                                    visits.unshift({
-                                        ...v,
-                                        fullName: p.fullName,
-                                        phone: p.phone,
-                                        email: p.email,
-                                        dob: p.dob,
-                                        gender: p.gender
-                                    });
-                                }
-                            });
-
-                            const pInvs = Array.isArray(p.invoices) ? p.invoices : [];
-                            pInvs.forEach(inv => {
-                                const exists = invoices.some(ei => ei.invoiceNo === inv.invoiceNo);
-                                if (!exists) {
-                                    invoices.unshift({
-                                        ...inv,
-                                        patientName: p.fullName,
-                                        phone: p.phone
-                                    });
-                                }
-                            });
-                        }
-                    });
+                    }
+                } catch(csvErr) {
+                    console.log('Direct CSV fetch notice:', csvErr);
                 }
-            } catch(localErr) {
-                console.warn('Local merge notice:', localErr);
+            }
+
+            // STEP C: Merge LocalStorage Cached Patients ONLY as offline backup if live sheet returned 0
+            if (visits.length === 0 && invoices.length === 0) {
+                try {
+                    const localRaw = localStorage.getItem('dental_cached_patients');
+                    if (localRaw) {
+                        const localPatients = JSON.parse(localRaw);
+                        localPatients.forEach(p => {
+                            const pName = (p.fullName || '').toLowerCase();
+                            const pPhone = (p.phone || '').toString();
+                            const pDigits = pPhone.replace(/\D/g, '');
+                            const pEmail = (p.email || '').toLowerCase();
+
+                            const pOp = (p.opNumber || '').toLowerCase().trim();
+                            let matched = false;
+                            if (currentFilter === 'name') {
+                                matched = pName.includes(qLower);
+                            } else if (currentFilter === 'phone') {
+                                matched = (qDigits.length >= 4 && (pDigits.includes(qDigits) || qDigits.includes(pDigits))) ||
+                                          (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits)));
+                            } else if (currentFilter === 'op') {
+                                matched = pOp && (pOp.includes(qLower) || qLower.includes(pOp));
+                            } else {
+                                matched = pName.includes(qLower) || pEmail.includes(qLower) || (pOp && (pOp.includes(qLower) || qLower.includes(pOp)));
+                                if (!matched && qDigits.length >= 4) {
+                                    if (pDigits.includes(qDigits) || qDigits.includes(pDigits)) matched = true;
+                                    if (qDigits10.length >= 4 && (pDigits.includes(qDigits10) || qDigits10.includes(pDigits))) matched = true;
+                                }
+                            }
+
+                            if (matched) {
+                                const pVisits = Array.isArray(p.visits) ? p.visits : [p];
+                                pVisits.forEach(v => {
+                                    const exists = visits.some(ev => (ev.timestamp === v.timestamp && ev.phone === v.phone) || (ev.invoiceNo && ev.invoiceNo === v.invoiceNo));
+                                    if (!exists) {
+                                        visits.unshift({
+                                            ...v,
+                                            fullName: p.fullName,
+                                            phone: p.phone,
+                                            email: p.email,
+                                            dob: p.dob,
+                                            gender: p.gender
+                                        });
+                                    }
+                                });
+
+                                const pInvs = Array.isArray(p.invoices) ? p.invoices : [];
+                                pInvs.forEach(inv => {
+                                    const exists = invoices.some(ei => ei.invoiceNo === inv.invoiceNo);
+                                    if (!exists) {
+                                        invoices.unshift({
+                                            ...inv,
+                                            patientName: p.fullName,
+                                            phone: p.phone
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch(e) {}
             }
 
             cachedInvoicesList = invoices;
@@ -1119,21 +1231,69 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Download Invoice Handler
+    // Download / Save PDF Invoice Handler
     if (downloadInvoiceBtn) {
         downloadInvoiceBtn.addEventListener('click', () => {
             if (!currentSelectedInvoice) return;
 
+            // Open clean printable invoice preview for direct PDF saving/printing
             const invoiceHtml = generatePrintableHtml(currentSelectedInvoice);
-            const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Invoice_${currentSelectedInvoice.invoiceNo}_${currentSelectedInvoice.fullName.replace(/\s+/g, '_')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const printWin = window.open('', '_blank');
+            if (printWin) {
+                printWin.document.open();
+                printWin.document.write(invoiceHtml);
+                printWin.document.close();
+            } else {
+                const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Invoice_${currentSelectedInvoice.invoiceNo}_${currentSelectedInvoice.fullName.replace(/\s+/g, '_')}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    }
+
+    // Share Invoice to WhatsApp Handler (proper clinic branding)
+    if (shareWhatsappBtn) {
+        shareWhatsappBtn.addEventListener('click', () => {
+            if (!currentSelectedInvoice) return;
+            const inv = currentSelectedInvoice;
+            const displayDate = inv.date || (inv.timestamp ? inv.timestamp.split(' ')[0] : '') || inv.timestamp;
+            const text = `🏥 *MANJALY MULTI SPECIALITY DENTAL CARE*
+📍 Valakkavu, Thrissur, Kerala 680751
+📞 Phone: +91 9072467117, +91 6238497517 | ✉️ manjalymdc@gmail.com
+━━━━━━━━━━━━━━━━━━━━━━━━
+🧾 *OFFICIAL PATIENT INVOICE & RECEIPT*
+━━━━━━━━━━━━━━━━━━━━━━━━
+*Invoice No:* ${inv.invoiceNo}
+*Date:* ${displayDate}
+*Patient Name:* ${inv.fullName}
+*Phone:* ${inv.phone || 'N/A'}
+*Doctor Consulted:* ${inv.doctorConsulted}
+
+*CHARGES BREAKDOWN:*
+• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}
+• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}
+• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}
+────────────────────────
+*TOTAL AMOUNT:* ₹${parseFloat(inv.totalAmount).toFixed(2)}
+*Payment Mode:* PAID (${inv.paymentMode || 'Cash'})
+────────────────────────
+*Hospital:* Manjaly Multi Speciality Dental Care
+Thank you for choosing Manjaly Dental Care!
+Wishing you good oral health!
+━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+            const phoneDigits = (inv.phone || '').replace(/\\D/g, '');
+            const targetPhone = phoneDigits.length === 10 ? ('91' + phoneDigits) : phoneDigits;
+            const waUrl = targetPhone.length >= 10
+                ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(text)}`
+                : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(waUrl, '_blank');
         });
     }
 
@@ -1149,9 +1309,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayAddress = inv.address || inv.email || (currentPatientProfile && (currentPatientProfile.address || currentPatientProfile.email)) || 'N/A';
         const displayOp = inv.opNumber || (currentPatientProfile && currentPatientProfile.opNumber) || 'N/A';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
-        const sealSrc = (typeof window !== 'undefined' && window.INVOICE_SEAL_BASE64) ? window.INVOICE_SEAL_BASE64 : 'assets/img/seal.jpg';
-        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/Sign.jpg';
-        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DRSEAL_BASE64) ? window.INVOICE_DRSEAL_BASE64 : 'assets/img/drseal.jpg';
+        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/sign.jpg';
+        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) ? window.INVOICE_DR_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const hospSealSrc = (typeof window !== 'undefined' && window.INVOICE_HOSPITAL_SEAL_BASE64) ? window.INVOICE_HOSPITAL_SEAL_BASE64 : 'assets/img/Hospital Seal.jpg';
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -1162,10 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .invoice-box { max-width: 680px; margin: auto; border: 2px solid #000; padding: 24px; border-radius: 6px; }
         .hospital-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
         .hospital-logo { max-height: 55px; max-width: 180px; display: block; margin: 0 auto 8px auto; object-fit: contain; }
-        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; mix-blend-mode: multiply; }
-        .dr-sign-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; min-height: 65px; }
-        .dr-sign-img { max-height: 55px; max-width: 100px; object-fit: contain; mix-blend-mode: multiply; }
-        .dr-seal-img { max-height: 55px; max-width: 110px; object-fit: contain; mix-blend-mode: multiply; }
+        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; }
         .hospital-name { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; color: #000; }
         .hospital-sub { font-size: 12px; font-weight: 600; color: #222; margin-top: 4px; }
         .hospital-contact { font-size: 11px; color: #444; margin-top: 3px; }
@@ -1183,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         td.amt { text-align: right; font-weight: 600; }
         th.amt { text-align: right; }
         tr.total td { font-size: 14px; font-weight: bold; color: #000; border-top: 2px solid #000; border-bottom: 3px double #000; background: #fafafa; }
-        .signatures { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
+        .signatures { display: flex; justify-content: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
         .sign-col { text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .sign-line { height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px; }
         .footer { text-align: center; font-size: 10.5px; color: #333; margin-top: 15px; border-top: 1px solid #000; padding-top: 8px; font-style: italic; }
@@ -1199,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <img src="${logoSrc}" alt="Manjaly Multi Speciality Dental Care" class="hospital-logo">
             <h1 class="hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</h1>
             <div class="hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
-            <div class="hospital-contact">Phone: +91 6238497517 • Email: manjalymdc@gmail.com</div>
+            <div class="hospital-contact">Phone: +91 9072467117, +91 6238497517 • Email: manjalymdc@gmail.com</div>
         </div>
         <div class="doc-header">
             <div>
@@ -1232,19 +1389,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>
             </tbody>
         </table>
-        <div class="signatures">
-            <div class="sign-col">
-                <div class="dr-sign-wrap">
-                    <img src="${signSrc}" alt="Doctor Signature" class="dr-sign-img">
-                    <img src="${drSealSrc}" alt="Doctor Seal" class="dr-seal-img">
+        <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
+                    <img src="${signSrc}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
+                    <img src="${drSealSrc}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
                 </div>
-                <div class="sign-line"></div>
-                Doctor's Sign & Seal
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
+                Doctor's Seal & Signature
             </div>
-            <div class="sign-col">
-                <img src="${sealSrc}" alt="Hospital Seal" class="hospital-seal">
-                <div class="sign-line"></div>
-                Hospital Seal
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                <div style="display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px;">
+                    <img src="${hospSealSrc}" alt="Authorized Hospital Seal" class="hospital-seal" style="max-height: 58px; max-width: 125px; object-fit: contain;">
+                </div>
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
+                Authorized Hospital Seal
             </div>
         </div>
         <div class="footer">* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</div>

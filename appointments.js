@@ -37,9 +37,115 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptDateInput = document.getElementById('aptDate');
     const aptTimeInput = document.getElementById('aptTime');
     const aptDoctorInput = document.getElementById('aptDoctor');
+    const aptDoctorSelect = document.getElementById('aptDoctorSelect');
+    const aptDoctorGroup = document.getElementById('aptDoctorGroup');
+    if (aptDoctorSelect && aptDoctorInput) {
+        aptDoctorSelect.addEventListener('change', () => {
+            const val = aptDoctorSelect.value;
+            if (val === 'Other') {
+                if (aptDoctorGroup) aptDoctorGroup.style.display = 'flex';
+                aptDoctorInput.value = '';
+                aptDoctorInput.placeholder = 'Type doctor name manually...';
+                aptDoctorInput.focus();
+            } else {
+                if (aptDoctorGroup) aptDoctorGroup.style.display = 'none';
+                aptDoctorInput.value = val;
+            }
+        });
+    }
     const aptSubmitBtn = document.getElementById('aptSubmitBtn');
     const aptLoader = document.getElementById('aptLoader');
     const aptFormMessage = document.getElementById('aptFormMessage');
+
+    // Tab 1 Treatments Suggestion & Chips Setup
+    const aptReasonInput = document.getElementById('aptReason');
+    const aptQuickTreatments = document.getElementById('aptQuickTreatments');
+    const aptTreatmentDropdown = document.getElementById('aptTreatmentDropdown');
+
+    const ALL_CLINIC_TREATMENTS = [
+        'POST & CORE', 'CROWN METAL', 'CROWN PFM', 'CROWN PFZ', 'EMAX CROWN, VENEER, INLAY',
+        'CROWN REMOVAL', 'ACRYLIC PARTIAL DENTURE', 'FLEXIBLE PARTIAL DENTURE', 'COMPLETE DENTURE',
+        'FLEXIBLE', 'BPS', 'SS CROWNS', 'SCALING', 'GINGIVECTOMY', 'SUBGINGIVAL SCALING/ CURETTAGE',
+        'GRAFT', 'DEPIGMENTATION', 'PERIODONTAL FLAP', 'SPLINTING', 'LASER', 'PULPOTOMY/ PULPECTOMY',
+        'PIT & FISSURE SEALANTS', 'FLUORIDE APPPLICATIONS', 'SPACE MAINTAINERS', 'PREFORMED ZIRCONIA',
+        'BLEACHING', 'DENTAL IMPLANTS', 'REGISTRATION', 'CONSULTATION', 'SPECIALIST CONSULTATION',
+        'DENTAL RADIOGRAPHS', 'GLASS IONOMER', 'AMALGAM', 'COMPOSITE', 'RCT', 'RE RCT',
+        'MICROSCOPE RCT', 'APICECTOMY', 'MTA', 'DECIDUOUS TOOTH EXTRACTION', 'NORMAL EXTRACTION',
+        'DIFFICULT EXTRACTION', '3RD MOLAR', 'CANINE IMPACTION', 'INCISION AND DRAINAGE',
+        'VESTIBULOPLASTY', 'ALVEOLOPLASTY', 'OPERCULECTOMY', 'FIXED ORTHODONTICS PREADJUSTED',
+        'FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED', 'FIXED- SELF LIGATING',
+        'HAWLEYS APPLIANCE- ACTIVE', 'RETENTION APPLIANCE- PASSIVE', 'FIXED LINGUAL RETAINERS',
+        'VACCUFORM RETAINERS-', 'ORAL SCREEN', 'MYO FUNCTIONAL FIXED', 'MYOFUNCTIONAL REMOVABLE',
+        'CLEAR ALIGNERS'
+    ];
+
+    if (aptReasonInput) {
+        function setAptReason(val) {
+            aptReasonInput.value = val;
+            if (aptQuickTreatments) {
+                aptQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => {
+                    c.classList.toggle('active', c.getAttribute('data-treatment') === val);
+                });
+            }
+            if (aptTreatmentDropdown) aptTreatmentDropdown.style.display = 'none';
+        }
+
+        if (aptQuickTreatments) {
+            aptQuickTreatments.querySelectorAll('.treatment-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setAptReason(chip.getAttribute('data-treatment'));
+                    aptReasonInput.focus();
+                });
+            });
+        }
+
+        function filterAptTreatments(query) {
+            if (!aptTreatmentDropdown) return;
+            const q = (query || '').trim().toLowerCase();
+            const matches = ALL_CLINIC_TREATMENTS.filter(t => !q || t.toLowerCase().includes(q));
+            if (matches.length === 0) {
+                aptTreatmentDropdown.innerHTML = '<div style="padding: 0.65rem; color: #94a3b8; font-size: 0.8rem; text-align: center;">No matching treatments found</div>';
+                aptTreatmentDropdown.style.display = 'block';
+                return;
+            }
+            aptTreatmentDropdown.innerHTML = matches.map(t => {
+                let display = t;
+                if (q) {
+                    const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+                    display = t.replace(regex, '<mark>$1</mark>');
+                }
+                return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
+            }).join('');
+            aptTreatmentDropdown.style.display = 'block';
+
+            aptTreatmentDropdown.querySelectorAll('.treatment-suggest-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setAptReason(item.getAttribute('data-value'));
+                });
+            });
+        }
+
+        aptReasonInput.addEventListener('focus', () => {
+            filterAptTreatments(aptReasonInput.value);
+        });
+
+        aptReasonInput.addEventListener('input', () => {
+            filterAptTreatments(aptReasonInput.value);
+            if (aptQuickTreatments) {
+                aptQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => {
+                    c.classList.toggle('active', c.getAttribute('data-treatment') === aptReasonInput.value.trim());
+                });
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (aptTreatmentDropdown && !aptReasonInput.contains(e.target) && !aptTreatmentDropdown.contains(e.target)) {
+                aptTreatmentDropdown.style.display = 'none';
+            }
+        });
+    }
 
     // Tab 2: Today elements
     const todayAppointmentsContainer = document.getElementById('todayAppointmentsContainer');
@@ -223,6 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
         data.action = 'addAppointment';
 
         // Ensure doctor is clean
+        if (!data.doctor && aptDoctorSelect && aptDoctorSelect.value && aptDoctorSelect.value !== 'Other') {
+            data.doctor = aptDoctorSelect.value;
+        }
         data.doctor = (data.doctor || '').trim();
 
         try {
@@ -250,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (aptDateInput) aptDateInput.value = todayStr;
                 if (aptTimeInput) aptTimeInput.value = '10:00';
                 if (aptDoctorInput) aptDoctorInput.value = '';
+                if (aptQuickTreatments) aptQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => c.classList.remove('active'));
 
                 // Refresh counts
                 fetchTodayAppointments();

@@ -25,7 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const medicalHistorySelect = document.getElementById('medicalHistorySelect');
     const medicalHistoryInput = document.getElementById('medicalHistory');
     const drugAllergiesInput = document.getElementById('drugAllergies');
+    const chiefComplaintInput = document.getElementById('chiefComplaint');
     const diseaseHistoryInput = document.getElementById('diseaseHistory');
+    const treatmentInput = document.getElementById('treatmentInput');
+    const regQuickTreatments = document.getElementById('regQuickTreatments');
+    const regTreatmentDropdown = document.getElementById('regTreatmentDropdown');
+    const treatmentSelect = document.getElementById('treatmentSelect');
+    const customTreatmentInput = document.getElementById('customTreatment');
+    const customTreatmentGroup = document.getElementById('customTreatmentGroup');
+    const doctorSelect = document.getElementById('doctorSelect');
+    const doctorConsultedInput = document.getElementById('doctorConsulted');
+    const doctorConsultedGroup = document.getElementById('doctorConsultedGroup');
 
     // Billing Inputs
     const consultationInput = document.getElementById('consultationCharge');
@@ -34,6 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayTotal = document.getElementById('displayTotal');
     const totalAmountInput = document.getElementById('totalAmount');
     const paymentModeSelect = document.getElementById('paymentMode');
+    const registrationDateInput = document.getElementById('registrationDate');
+
+    // Default registration date to today (allows previous dates)
+    if (registrationDateInput && !registrationDateInput.value) {
+        registrationDateInput.value = new Date().toISOString().split('T')[0];
+    }
 
     // Invoice Modal Elements
     const invoiceModalOverlay = document.getElementById('invoiceModalOverlay');
@@ -41,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneInvoiceBtn = document.getElementById('doneInvoiceBtn');
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     const downloadInvoiceBtn = document.getElementById('downloadInvoiceBtn');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
 
     // Invoice Fields
     const invoicePaper = document.getElementById('invoicePaper');
@@ -131,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 4. Medical History Option & Drug Allergies Handlers
+    // 4. Medical History, Treatment & Doctor Select Handlers
     if (medicalHistorySelect && medicalHistoryInput) {
         medicalHistorySelect.addEventListener('change', () => {
             const sel = medicalHistorySelect.value;
@@ -145,9 +162,108 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (drugAllergiesInput && diseaseHistoryInput) {
-        drugAllergiesInput.addEventListener('input', () => {
-            diseaseHistoryInput.value = drugAllergiesInput.value;
+    // All 62 clinic dental treatments (matching app)
+    const ALL_CLINIC_TREATMENTS = [
+        'POST & CORE', 'CROWN METAL', 'CROWN PFM', 'CROWN PFZ', 'EMAX CROWN, VENEER, INLAY',
+        'CROWN REMOVAL', 'ACRYLIC PARTIAL DENTURE', 'FLEXIBLE PARTIAL DENTURE', 'COMPLETE DENTURE',
+        'FLEXIBLE', 'BPS', 'SS CROWNS', 'SCALING', 'GINGIVECTOMY', 'SUBGINGIVAL SCALING/ CURETTAGE',
+        'GRAFT', 'DEPIGMENTATION', 'PERIODONTAL FLAP', 'SPLINTING', 'LASER', 'PULPOTOMY/ PULPECTOMY',
+        'PIT & FISSURE SEALANTS', 'FLUORIDE APPPLICATIONS', 'SPACE MAINTAINERS', 'PREFORMED ZIRCONIA',
+        'BLEACHING', 'DENTAL IMPLANTS', 'REGISTRATION', 'CONSULTATION', 'SPECIALIST CONSULTATION',
+        'DENTAL RADIOGRAPHS', 'GLASS IONOMER', 'AMALGAM', 'COMPOSITE', 'RCT', 'RE RCT',
+        'MICROSCOPE RCT', 'APICECTOMY', 'MTA', 'DECIDUOUS TOOTH EXTRACTION', 'NORMAL EXTRACTION',
+        'DIFFICULT EXTRACTION', '3RD MOLAR', 'CANINE IMPACTION', 'INCISION AND DRAINAGE',
+        'VESTIBULOPLASTY', 'ALVEOLOPLASTY', 'OPERCULECTOMY', 'FIXED ORTHODONTICS PREADJUSTED',
+        'FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED', 'FIXED- SELF LIGATING',
+        'HAWLEYS APPLIANCE- ACTIVE', 'RETENTION APPLIANCE- PASSIVE', 'FIXED LINGUAL RETAINERS',
+        'VACCUFORM RETAINERS-', 'ORAL SCREEN', 'MYO FUNCTIONAL FIXED', 'MYOFUNCTIONAL REMOVABLE',
+        'CLEAR ALIGNERS'
+    ];
+
+    if (treatmentInput) {
+        function setTreatmentValue(val) {
+            treatmentInput.value = val;
+            if (treatmentSelect) treatmentSelect.value = val;
+            if (customTreatmentInput) customTreatmentInput.value = val;
+            if (regQuickTreatments) {
+                regQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => {
+                    c.classList.toggle('active', c.getAttribute('data-treatment') === val);
+                });
+            }
+            if (regTreatmentDropdown) regTreatmentDropdown.style.display = 'none';
+        }
+
+        if (regQuickTreatments) {
+            regQuickTreatments.querySelectorAll('.treatment-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setTreatmentValue(chip.getAttribute('data-treatment'));
+                    treatmentInput.focus();
+                });
+            });
+        }
+
+        function filterTreatments(query) {
+            if (!regTreatmentDropdown) return;
+            const q = (query || '').trim().toLowerCase();
+            const matches = ALL_CLINIC_TREATMENTS.filter(t => !q || t.toLowerCase().includes(q));
+            if (matches.length === 0) {
+                regTreatmentDropdown.innerHTML = '<div style="padding: 0.65rem; color: #94a3b8; font-size: 0.8rem; text-align: center;">No matching treatments found</div>';
+                regTreatmentDropdown.style.display = 'block';
+                return;
+            }
+            regTreatmentDropdown.innerHTML = matches.map(t => {
+                let display = t;
+                if (q) {
+                    const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+                    display = t.replace(regex, '<mark>$1</mark>');
+                }
+                return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
+            }).join('');
+            regTreatmentDropdown.style.display = 'block';
+
+            regTreatmentDropdown.querySelectorAll('.treatment-suggest-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setTreatmentValue(item.getAttribute('data-value'));
+                });
+            });
+        }
+
+        treatmentInput.addEventListener('focus', () => {
+            filterTreatments(treatmentInput.value);
+        });
+
+        treatmentInput.addEventListener('input', () => {
+            filterTreatments(treatmentInput.value);
+            if (treatmentSelect) treatmentSelect.value = treatmentInput.value;
+            if (customTreatmentInput) customTreatmentInput.value = treatmentInput.value;
+            if (regQuickTreatments) {
+                regQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => {
+                    c.classList.toggle('active', c.getAttribute('data-treatment') === treatmentInput.value.trim());
+                });
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (regTreatmentDropdown && !treatmentInput.contains(e.target) && !regTreatmentDropdown.contains(e.target)) {
+                regTreatmentDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    if (doctorSelect && doctorConsultedInput) {
+        doctorSelect.addEventListener('change', () => {
+            const val = doctorSelect.value;
+            if (val === 'Other') {
+                if (doctorConsultedGroup) doctorConsultedGroup.style.display = 'flex';
+                doctorConsultedInput.value = '';
+                doctorConsultedInput.placeholder = 'Type doctor name manually...';
+                doctorConsultedInput.focus();
+            } else {
+                if (doctorConsultedGroup) doctorConsultedGroup.style.display = 'none';
+                doctorConsultedInput.value = val;
+            }
         });
     }
 
@@ -225,10 +341,17 @@ document.addEventListener('DOMContentLoaded', () => {
         bannerNewPatientBtn.addEventListener('click', () => {
             form.reset();
             calculateTotal();
-            if (medicalHistorySelect) medicalHistorySelect.value = 'None';
-            if (medicalHistoryInput) medicalHistoryInput.value = 'None';
-            if (drugAllergiesInput) drugAllergiesInput.value = 'None';
-            if (diseaseHistoryInput) diseaseHistoryInput.value = 'None';
+            if (medicalHistorySelect) medicalHistorySelect.value = '';
+            if (medicalHistoryInput) medicalHistoryInput.value = '';
+            if (drugAllergiesInput) drugAllergiesInput.value = '';
+            if (chiefComplaintInput) chiefComplaintInput.value = '';
+            if (diseaseHistoryInput) diseaseHistoryInput.value = '';
+            if (treatmentInput) treatmentInput.value = '';
+            if (regQuickTreatments) regQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => c.classList.remove('active'));
+            if (treatmentSelect) treatmentSelect.value = '';
+            if (customTreatmentInput) customTreatmentInput.value = '';
+            if (customTreatmentGroup) customTreatmentGroup.style.display = 'none';
+            if (registrationDateInput) registrationDateInput.value = new Date().toISOString().split('T')[0];
             formSuccessBanner.classList.remove('active');
             const nameInput = document.getElementById('fullName');
             if (nameInput) nameInput.focus();
@@ -255,7 +378,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const now = new Date();
         const pad = (n) => ('0' + n).slice(-2);
-        data.timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const timePart = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const selectedDate = (data.registrationDate || (registrationDateInput ? registrationDateInput.value : '')).trim();
+        if (selectedDate) {
+            data.timestamp = `${selectedDate} ${timePart}`;
+            data.date = selectedDate;
+            data.registrationDate = selectedDate;
+        } else {
+            data.timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${timePart}`;
+            data.date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        }
 
         // Address & Email mapping
         data.address = (data.address || '').trim();
@@ -275,13 +407,29 @@ document.addEventListener('DOMContentLoaded', () => {
             data.opNumber = `OP-${prefix}-${randomCode}`;
         }
 
-        // Medical History & Drug Allergies mapping
-        const medSelected = medicalHistorySelect ? medicalHistorySelect.value : 'None';
+        // Medical History & Drug Allergies mapping (remove dummy placeholder values like 'None')
+        const medSelected = medicalHistorySelect ? medicalHistorySelect.value : '';
         const medInputVal = (data.medicalHistory || '').trim();
-        data.medicalHistory = medInputVal && medInputVal !== 'None' ? medInputVal : (medSelected !== 'None' ? medSelected : 'None');
+        data.medicalHistory = medInputVal && medInputVal !== 'None' ? medInputVal : (medSelected && medSelected !== 'None' ? medSelected : '');
         
-        data.drugAllergies = (data.drugAllergies || '').trim() || 'None';
-        data.diseaseHistory = data.drugAllergies; // keep backward compatibility
+        data.drugAllergies = (data.drugAllergies || '').trim();
+        if (data.drugAllergies === 'None') data.drugAllergies = '';
+
+        // Chief Complaint & Treatment mapping
+        const complaintVal = (data.chiefComplaint || (chiefComplaintInput ? chiefComplaintInput.value : '') || data.diseaseHistory || '').trim();
+        const selectedTreatment = (treatmentInput && treatmentInput.value.trim())
+            ? treatmentInput.value.trim()
+            : ((treatmentSelect && treatmentSelect.value && treatmentSelect.value !== 'Other')
+                ? treatmentSelect.value.trim()
+                : (data.customTreatment || (customTreatmentInput ? customTreatmentInput.value : '') || '').trim());
+        
+        data.chiefComplaint = complaintVal;
+        data.treatment = selectedTreatment;
+        if (complaintVal && selectedTreatment) {
+            data.diseaseHistory = `${complaintVal} - ${selectedTreatment}`;
+        } else {
+            data.diseaseHistory = complaintVal || selectedTreatment || '';
+        }
 
         // Ensure numeric charges
         data.consultationCharge = parseFloat(data.consultationCharge) || 0;
@@ -292,8 +440,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Clean doctor name
         let doc = (data.doctorConsulted || '').trim();
+        if (!doc && doctorSelect && doctorSelect.value && doctorSelect.value !== 'Other') {
+            doc = doctorSelect.value;
+        }
         if (doc.toLowerCase().includes('consulting specialist')) doc = '';
-        data.doctorConsulted = doc;
+        data.doctorConsulted = doc || 'Dr. Jeswin Jose BDS';
 
         try {
             // Optional non-blocking pre-check for returning patient
@@ -331,9 +482,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.status === 'success') {
                 const returnedInv = result.invoice || {};
+                const invDisplayDate = data.date || (data.timestamp ? data.timestamp.split(' ')[0] : '') || returnedInv.timestamp || data.timestamp;
                 currentInvoiceData = {
                     invoiceNo: returnedInv.invoiceNo || ('INV-' + Date.now().toString().slice(-6)),
-                    timestamp: returnedInv.timestamp || data.timestamp,
+                    timestamp: invDisplayDate,
+                    date: data.date || invDisplayDate,
                     fullName: data.fullName || 'Patient',
                     phone: data.phone || '',
                     address: data.address || '',
@@ -373,10 +526,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset form fields
                 form.reset();
                 calculateTotal();
-                if (medicalHistorySelect) medicalHistorySelect.value = 'None';
-                if (medicalHistoryInput) medicalHistoryInput.value = 'None';
-                if (drugAllergiesInput) drugAllergiesInput.value = 'None';
-                if (diseaseHistoryInput) diseaseHistoryInput.value = 'None';
+                if (medicalHistorySelect) medicalHistorySelect.value = '';
+                if (medicalHistoryInput) medicalHistoryInput.value = '';
+                if (drugAllergiesInput) drugAllergiesInput.value = '';
+                if (chiefComplaintInput) chiefComplaintInput.value = '';
+                if (diseaseHistoryInput) diseaseHistoryInput.value = '';
+                if (treatmentInput) treatmentInput.value = '';
+                if (regQuickTreatments) regQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => c.classList.remove('active'));
+                if (treatmentSelect) treatmentSelect.value = '';
+                if (customTreatmentInput) customTreatmentInput.value = '';
+                if (customTreatmentGroup) customTreatmentGroup.style.display = 'none';
+                if (registrationDateInput) registrationDateInput.value = new Date().toISOString().split('T')[0];
             } else {
                 showMessage(result.message || 'Error saving to Google Sheet. Please try again.', 'error');
                 showToast('Registration Error', result.message || 'Error saving record', 'error');
@@ -396,7 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 8. Invoice Modal Presentation
     function openInvoiceModal(inv) {
         invModalNumber.textContent = inv.invoiceNo;
-        invModalDate.textContent = 'Date: ' + inv.timestamp;
+        const displayDate = inv.date || (inv.timestamp ? inv.timestamp.split(' ')[0] : '') || inv.timestamp;
+        invModalDate.textContent = 'Date: ' + displayDate;
         invModalPatientName.textContent = inv.fullName;
         invModalPhone.textContent = inv.phone || 'N/A';
         const displayAge = inv.age ? (inv.age + ' yrs') : (inv.dob || 'N/A');
@@ -452,21 +613,69 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Download Standalone Invoice Handler
+    // Download / Save PDF Invoice Handler
     if (downloadInvoiceBtn) {
         downloadInvoiceBtn.addEventListener('click', () => {
             if (!currentInvoiceData) return;
 
+            // Open clean printable invoice preview for direct PDF saving/printing
             const invoiceHtml = generatePrintableHtml(currentInvoiceData);
-            const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Invoice_${currentInvoiceData.invoiceNo}_${currentInvoiceData.fullName.replace(/\s+/g, '_')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const printWin = window.open('', '_blank');
+            if (printWin) {
+                printWin.document.open();
+                printWin.document.write(invoiceHtml);
+                printWin.document.close();
+            } else {
+                const blob = new Blob([invoiceHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Invoice_${currentInvoiceData.invoiceNo}_${currentInvoiceData.fullName.replace(/\s+/g, '_')}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    }
+
+    // Share Invoice to WhatsApp Handler (proper clinic branding)
+    if (shareWhatsappBtn) {
+        shareWhatsappBtn.addEventListener('click', () => {
+            if (!currentInvoiceData) return;
+            const inv = currentInvoiceData;
+            const displayDate = inv.date || (inv.timestamp ? inv.timestamp.split(' ')[0] : '') || inv.timestamp;
+            const text = `🏥 *MANJALY MULTI SPECIALITY DENTAL CARE*
+📍 Valakkavu, Thrissur, Kerala 680751
+📞 Phone: +91 9072467117, +91 6238497517 | ✉️ manjalymdc@gmail.com
+━━━━━━━━━━━━━━━━━━━━━━━━
+🧾 *OFFICIAL PATIENT INVOICE & RECEIPT*
+━━━━━━━━━━━━━━━━━━━━━━━━
+*Invoice No:* ${inv.invoiceNo}
+*Date:* ${displayDate}
+*Patient Name:* ${inv.fullName}
+*Phone:* ${inv.phone || 'N/A'}
+*Doctor Consulted:* ${inv.doctorConsulted}
+
+*CHARGES BREAKDOWN:*
+• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}
+• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}
+• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}
+────────────────────────
+*TOTAL AMOUNT:* ₹${parseFloat(inv.totalAmount).toFixed(2)}
+*Payment Mode:* PAID (${inv.paymentMode || 'Cash'})
+────────────────────────
+*Hospital:* Manjaly Multi Speciality Dental Care
+Thank you for choosing Manjaly Dental Care!
+Wishing you good oral health!
+━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+            const phoneDigits = (inv.phone || '').replace(/\\D/g, '');
+            const targetPhone = phoneDigits.length === 10 ? ('91' + phoneDigits) : phoneDigits;
+            const waUrl = targetPhone.length >= 10
+                ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(text)}`
+                : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(waUrl, '_blank');
         });
     }
 
@@ -474,9 +683,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayAge = inv.age ? (inv.age + ' yrs') : (inv.dob || 'N/A');
         const displayAddress = inv.address || inv.email || 'N/A';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
-        const sealSrc = (typeof window !== 'undefined' && window.INVOICE_SEAL_BASE64) ? window.INVOICE_SEAL_BASE64 : 'assets/img/seal.jpg';
-        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/Sign.jpg';
-        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DRSEAL_BASE64) ? window.INVOICE_DRSEAL_BASE64 : 'assets/img/drseal.jpg';
+        const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/sign.jpg';
+        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) ? window.INVOICE_DR_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const hospSealSrc = (typeof window !== 'undefined' && window.INVOICE_HOSPITAL_SEAL_BASE64) ? window.INVOICE_HOSPITAL_SEAL_BASE64 : 'assets/img/Hospital Seal.jpg';
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -487,10 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .invoice-box { max-width: 680px; margin: auto; border: 2px solid #000; padding: 24px; border-radius: 6px; }
         .hospital-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
         .hospital-logo { max-height: 55px; max-width: 180px; display: block; margin: 0 auto 8px auto; object-fit: contain; }
-        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; mix-blend-mode: multiply; }
-        .dr-sign-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; min-height: 65px; }
-        .dr-sign-img { max-height: 55px; max-width: 100px; object-fit: contain; mix-blend-mode: multiply; }
-        .dr-seal-img { max-height: 55px; max-width: 110px; object-fit: contain; mix-blend-mode: multiply; }
+        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; }
         .hospital-name { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; color: #000; }
         .hospital-sub { font-size: 12px; font-weight: 600; color: #222; margin-top: 4px; }
         .hospital-contact { font-size: 11px; color: #444; margin-top: 3px; }
@@ -508,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
         td.amt { text-align: right; font-weight: 600; }
         th.amt { text-align: right; }
         tr.total td { font-size: 14px; font-weight: bold; color: #000; border-top: 2px solid #000; border-bottom: 3px double #000; background: #fafafa; }
-        .signatures { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
+        .signatures { display: flex; justify-content: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
         .sign-col { text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .sign-line { height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px; }
         .footer { text-align: center; font-size: 10.5px; color: #333; margin-top: 15px; border-top: 1px solid #000; padding-top: 8px; font-style: italic; }
@@ -524,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <img src="${logoSrc}" alt="Manjaly Multi Speciality Dental Care" class="hospital-logo">
             <h1 class="hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</h1>
             <div class="hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
-            <div class="hospital-contact">Phone: +91 6238497517 • Email: manjalymdc@gmail.com</div>
+            <div class="hospital-contact">Phone: +91 9072467117, +91 6238497517 • Email: manjalymdc@gmail.com</div>
         </div>
         <div class="doc-header">
             <div>
@@ -533,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="meta">
                 <h2>${inv.invoiceNo}</h2>
-                <p>Date: ${inv.timestamp}</p>
+                <p>Date: ${inv.date || inv.timestamp}</p>
                 <p><strong>PAID (${inv.paymentMode || 'Cash'})</strong></p>
             </div>
         </div>
@@ -557,19 +763,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>
             </tbody>
         </table>
-        <div class="signatures">
-            <div class="sign-col">
-                <div class="dr-sign-wrap">
-                    <img src="${signSrc}" alt="Doctor Signature" class="dr-sign-img">
-                    <img src="${drSealSrc}" alt="Doctor Seal" class="dr-seal-img">
+        <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
+                    <img src="${signSrc}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
+                    <img src="${drSealSrc}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
                 </div>
-                <div class="sign-line"></div>
-                Doctor's Sign & Seal
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
+                Doctor's Seal & Signature
             </div>
-            <div class="sign-col">
-                <img src="${sealSrc}" alt="Hospital Seal" class="hospital-seal">
-                <div class="sign-line"></div>
-                Hospital Seal
+            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                <div style="display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px;">
+                    <img src="${hospSealSrc}" alt="Authorized Hospital Seal" class="hospital-seal" style="max-height: 58px; max-width: 125px; object-fit: contain;">
+                </div>
+                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
+                Authorized Hospital Seal
             </div>
         </div>
         <div class="footer">* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</div>

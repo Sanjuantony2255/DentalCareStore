@@ -7,8 +7,7 @@
  *    via (Extensions > Apps Script), it automatically connects to your sheet. Leave SPREADSHEET_ID empty.
  * 2. Standalone script: If created at script.google.com, copy your Google Sheet ID
  *    from its URL (https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit) and paste below.
- */
-var SPREADSHEET_ID = ""; // Optional: Paste your Spreadsheet ID if using standalone Apps Script
+var SPREADSHEET_ID = "1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls";
 
 // CLINIC NOTIFICATION & GOOGLE CALENDAR EMAIL
 var CLINIC_NOTIFICATION_EMAIL = "sanjuantony01@gmail.com";
@@ -1001,7 +1000,7 @@ function buildInvoiceHtml(inv) {
     'td.amount { text-align: right; font-weight: 600; }' +
     'th.amount { text-align: right; }' +
     '.total-row td { font-size: 14px; font-weight: 800; color: #000; border-top: 2px solid #000; border-bottom: 3px double #000; background: #fafafa; }' +
-    '.signatures { display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }' +
+    '.signatures { display: flex; justify-content: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }' +
     '.sign-col { text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase; }' +
     '.sign-line { height: 40px; border-bottom: 1.5px solid #000; margin-bottom: 4px; }' +
     '.footer { text-align: center; margin-top: 15px; font-size: 11px; color: #444; border-top: 1px solid #000; padding-top: 8px; font-style: italic; }' +
@@ -1038,9 +1037,9 @@ function buildInvoiceHtml(inv) {
     '    <tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>' +
     '  </tbody>' +
     '</table>' +
-    '<div class="signatures">' +
-    '  <div class="sign-col"><div class="sign-line" style="height: 20px;"></div>Doctor\'s Sign & Seal</div>' +
-    '  <div class="sign-col"><div class="sign-line" style="height: 20px;"></div>Hospital Seal</div>' +
+    '<div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">' +
+    '  <div class="sign-col" style="text-align: center; width: 200px; font-size: 11px; font-weight: bold; text-transform: uppercase;"><div class="sign-line" style="height: 20px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>Doctor\'s Seal & Signature</div>' +
+    '  <div class="sign-col" style="text-align: center; width: 200px; font-size: 11px; font-weight: bold; text-transform: uppercase;"><div class="sign-line" style="height: 20px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>Authorized Hospital Seal</div>' +
     '</div>' +
     '<div class="footer"><p>* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</p></div>' +
     '</div></body></html>';
