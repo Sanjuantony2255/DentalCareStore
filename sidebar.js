@@ -107,15 +107,132 @@
         });
 
         // 4. Role Management: Admin vs Staff
+        // 4. Role Management: Admin vs Staff (Password 118022 Required to Enter Admin)
+        const ADMIN_PASSWORD = '118022';
+
         function getRole() {
             return localStorage.getItem('dental_user_role') || 'admin';
         }
 
-        function setRole(newRole) {
-            const role = (newRole === 'staff') ? 'staff' : 'admin';
+        function showRoleToast(msg, type) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'success' ? 'toast-success' : 'toast-error'}`;
+            toast.style.cssText = (type === 'success') 
+                ? 'background:#0f766e;color:white;padding:0.75rem 1.25rem;border-radius:8px;font-weight:700;margin-top:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.25s ease;'
+                : 'background:#dc2626;color:white;padding:0.75rem 1.25rem;border-radius:8px;font-weight:700;margin-top:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.25s ease;';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+
+        function actuallySetRole(role) {
             localStorage.setItem('dental_user_role', role);
             applyRoleState();
             window.dispatchEvent(new CustomEvent('dental_role_changed', { detail: { role } }));
+        }
+
+        function promptAdminPassword(onSuccess) {
+            const existing = document.getElementById('adminPasswordModal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'adminPasswordModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:999999;padding:1rem;';
+            modal.innerHTML = `
+                <div style="background:white;border-radius:16px;max-width:400px;width:100%;padding:1.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);animation:fadeIn 0.2s ease;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;">
+                        <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:1.4rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🔒</div>
+                        <div>
+                            <h3 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin:0 0 2px 0;">Admin Password Required</h3>
+                            <p style="font-size:0.82rem;color:#64748b;margin:0;">Enter password <strong>118022</strong> to access Admin mode.</p>
+                        </div>
+                    </div>
+                    <form id="adminPasswordForm" style="margin:0;">
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;font-size:0.75rem;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Password</label>
+                            <div style="position:relative;">
+                                <input type="password" id="adminPwdInput" placeholder="Enter password (118022)" autofocus
+                                    style="width:100%;padding:0.75rem 2.5rem 0.75rem 1rem;border:1.5px solid #cbd5e1;border-radius:8px;font-size:1rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;">
+                                <button type="button" id="adminPwdToggleVis" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:1rem;padding:0;">👁️</button>
+                            </div>
+                            <div id="adminPwdError" style="color:#dc2626;font-size:0.8rem;margin-top:6px;display:none;font-weight:600;">Incorrect password. Admin access denied.</div>
+                        </div>
+                        <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+                            <button type="button" id="adminPwdCancelBtn" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:0.65rem 1.1rem;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
+                            <button type="submit" id="adminPwdSubmitBtn" style="background:#0f766e;color:white;border:none;padding:0.65rem 1.3rem;border-radius:8px;font-weight:700;cursor:pointer;">Unlock Admin</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const input = document.getElementById('adminPwdInput');
+            const errorDiv = document.getElementById('adminPwdError');
+            const form = document.getElementById('adminPasswordForm');
+            const cancelBtn = document.getElementById('adminPwdCancelBtn');
+            const toggleVis = document.getElementById('adminPwdToggleVis');
+
+            setTimeout(() => input.focus(), 50);
+
+            toggleVis.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    toggleVis.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    toggleVis.textContent = '👁️';
+                }
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                modal.remove();
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const entered = (input.value || '').trim();
+                if (entered === ADMIN_PASSWORD) {
+                    modal.remove();
+                    actuallySetRole('admin');
+                    if (typeof onSuccess === 'function') {
+                        onSuccess();
+                    }
+                    showRoleToast('👑 Admin mode unlocked successfully', 'success');
+                } else {
+                    errorDiv.style.display = 'block';
+                    input.style.borderColor = '#dc2626';
+                    input.focus();
+                    input.select();
+                }
+            });
+        }
+
+        function setRole(newRole, onSuccess) {
+            const targetRole = (newRole === 'staff') ? 'staff' : 'admin';
+            const currentRole = getRole();
+
+            if (targetRole === 'admin' && currentRole === 'staff') {
+                promptAdminPassword(() => {
+                    if (typeof onSuccess === 'function') onSuccess();
+                });
+                return;
+            }
+
+            actuallySetRole(targetRole);
+            if (typeof onSuccess === 'function') {
+                onSuccess();
+            }
         }
 
         function renderRoleSwitcher() {
@@ -216,9 +333,10 @@
             document.body.appendChild(modal);
 
             document.getElementById('modalSwitchAdminBtn').addEventListener('click', () => {
-                setRole('admin');
                 modal.remove();
-                window.location.href = 'accounts.html';
+                setRole('admin', () => {
+                    window.location.href = 'accounts.html';
+                });
             });
             document.getElementById('modalCloseAdminBtn').addEventListener('click', () => {
                 modal.remove();

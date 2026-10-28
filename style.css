@@ -1994,6 +1994,19 @@ body {
     margin: 0 auto 6px auto;
 }
 
+.inv-sign-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.inv-sign-wrap .inv-seal-img {
+    display: inline-block !important;
+    margin: 0 !important;
+}
+
 /* Hide Pharmacy & Stock Navigation Link */
 .sidebar-link[href="pharmacy.html"] {
     display: none !important;
@@ -2493,6 +2506,11 @@ body {
         max-width: 140px !important;
         display: block !important;
         margin: 0 auto 6px auto !important;
+    }
+
+    body.printing-invoice .inv-sign-wrap .inv-seal-img {
+        display: inline-block !important;
+        margin: 0 4px !important;
     }
 
     body.printing-invoice .inv-sign-space {

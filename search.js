@@ -1081,6 +1081,19 @@ document.addEventListener('DOMContentLoaded', () => {
         invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
         invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
 
+        const invModalSign = document.getElementById('invModalSign');
+        if (invModalSign) {
+            if (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) {
+                invModalSign.src = window.INVOICE_SIGN_BASE64;
+            } else {
+                invModalSign.src = 'assets/img/sign.jpg';
+            }
+        }
+        const invModalDrSeal = document.getElementById('invModalDrSeal');
+        if (invModalDrSeal && typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) {
+            invModalDrSeal.src = window.INVOICE_DR_SEAL_BASE64;
+        }
+
         if (inv.driveFileUrl) {
             invDriveNotice.style.display = 'flex';
             invDriveLink.href = inv.driveFileUrl;
@@ -1392,8 +1405,8 @@ Wishing you good oral health!
         <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
             <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
                 <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
-                    <img src="${signSrc}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
-                    <img src="${drSealSrc}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
+                    <img src="${signSrc}" onerror="this.onerror=null; if(this.src.indexOf('assets/sign.jpg')===-1){this.src='assets/sign.jpg';}else{this.src='assets/img/Sign.jpg';}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
+                    <img src="${drSealSrc}" onerror="this.onerror=null; if(this.src.indexOf('drseal.jpg')===-1){this.src='assets/img/drseal.jpg';}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
                 </div>
                 <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
                 Doctor's Seal & Signature

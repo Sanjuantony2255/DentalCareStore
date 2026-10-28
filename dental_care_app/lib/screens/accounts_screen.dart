@@ -5,6 +5,7 @@ import '../models/invoice.dart';
 import '../theme/app_theme.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/invoice_receipt_dialog.dart';
+import '../widgets/admin_password_dialog.dart';
 
 class AccountsScreen extends StatefulWidget {
   final StorageService storage;
@@ -75,7 +76,32 @@ class _AccountsScreenState extends State<AccountsScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () => widget.storage.setUserRole('admin'),
+                          onPressed: () async {
+                            final granted = await promptAdminPassword(context);
+                            if (granted) {
+                              await widget.storage.setUserRole('admin');
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('👑 Admin mode unlocked successfully'),
+                                    backgroundColor: Color(0xFF0F766E),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                              setState(() {});
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Access Denied: Incorrect admin password'),
+                                    backgroundColor: Color(0xFFDC2626),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            }
+                          },
                         ),
                       ],
                     ),

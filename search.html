@@ -403,9 +403,9 @@
                 <!-- Signatures & Hospital Seal Row -->
                 <div class="inv-signatures-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;">
                     <div class="inv-sign-col" style="text-align: center;">
-                        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 4px;">
-                            <img src="assets/img/sign.jpg" alt="Doctor Signature" class="inv-seal-img" id="invModalSign" style="max-height: 52px; max-width: 90px; object-fit: contain;">
-                            <img src="assets/img/seal.jpg" alt="Doctor Seal" class="inv-seal-img" id="invModalDrSeal" style="max-height: 52px; max-width: 75px; object-fit: contain;">
+                        <div class="inv-sign-wrap" style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 4px;">
+                            <img src="assets/img/sign.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_SIGN_BASE64){this.src=window.INVOICE_SIGN_BASE64;}else if(this.src.indexOf('assets/sign.jpg')===-1){this.src='assets/sign.jpg';}else{this.src='assets/img/Sign.jpg';}" alt="Doctor Signature" class="inv-seal-img" id="invModalSign" style="max-height: 52px; max-width: 90px; object-fit: contain;">
+                            <img src="assets/img/seal.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_DR_SEAL_BASE64){this.src=window.INVOICE_DR_SEAL_BASE64;}else{this.src='assets/img/drseal.jpg';}" alt="Doctor Seal" class="inv-seal-img" id="invModalDrSeal" style="max-height: 52px; max-width: 75px; object-fit: contain;">
                         </div>
                         <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
                         <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Doctor's Seal & Signature</div>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/admin_password_dialog.dart';
 import 'registration_screen.dart';
 import 'appointments_screen.dart';
 import 'patients_screen.dart';
@@ -57,6 +58,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _requestAdminSwitch(BuildContext context, {VoidCallback? onSuccess}) async {
+    if (widget.storage.isAdmin) {
+      onSuccess?.call();
+      return;
+    }
+    final granted = await promptAdminPassword(context);
+    if (granted) {
+      await widget.storage.setUserRole('admin');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('👑 Admin mode unlocked successfully'),
+            backgroundColor: Color(0xFF0F766E),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      setState(() {});
+      onSuccess?.call();
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Access Denied: Incorrect admin password'),
+            backgroundColor: Color(0xFFDC2626),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   void _showRoleSwitchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -86,10 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Admin', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               subtitle: const Text('Full rights: Patients, Appointments, Invoices, Accounts & Revenue', style: TextStyle(fontSize: 11)),
               trailing: widget.storage.isAdmin ? const Icon(Icons.check_circle, color: AppTheme.primaryTeal) : null,
-              onTap: () {
-                widget.storage.setUserRole('admin');
+              onTap: () async {
                 Navigator.pop(ctx);
-                setState(() {});
+                if (!widget.storage.isAdmin) {
+                  await _requestAdminSwitch(context);
+                }
               },
             ),
             const SizedBox(height: 10),
@@ -159,10 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () {
-                    widget.storage.setUserRole('admin');
-                    setState(() {});
-                  },
+                  onPressed: () => _requestAdminSwitch(context),
                 ),
                 const SizedBox(height: 10),
                 TextButton(
@@ -357,7 +388,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Expanded(
                               child: InkWell(
-                                onTap: () => widget.storage.setUserRole('admin'),
+                                onTap: () async {
+                                  Navigator.pop(context);
+                                  if (!isAdmin) {
+                                    await _requestAdminSwitch(context);
+                                  }
+                                },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 6),
                                   decoration: BoxDecoration(
@@ -379,7 +415,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: InkWell(
-                                onTap: () => widget.storage.setUserRole('staff'),
+                                onTap: () {
+                                  widget.storage.setUserRole('staff');
+                                  Navigator.pop(context);
+                                  setState(() {});
+                                },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 6),
                                   decoration: BoxDecoration(
