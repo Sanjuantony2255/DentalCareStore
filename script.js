@@ -399,9 +399,29 @@ document.addEventListener('DOMContentLoaded', () => {
             data.dob = `${data.age} yrs`;
         }
 
-        // OP Number auto-fallback if blank
+        // OP Number auto-fallback if blank with duplicate prevention (same name & phone number)
         data.opNumber = (data.opNumber || '').trim();
-        if (!data.opNumber) {
+        const cleanPhoneDigits = (data.phone || '').toString().replace(/\D/g, '');
+        const cleanFullName = (data.fullName || '').toString().trim().toLowerCase();
+
+        let duplicateExisting = null;
+        try {
+            const cachedRaw = localStorage.getItem('dental_cached_patients');
+            if (cachedRaw) {
+                const cachedList = JSON.parse(cachedRaw);
+                duplicateExisting = cachedList.find(p => {
+                    const pName = (p.fullName || p.name || '').toString().trim().toLowerCase();
+                    const pPhone = (p.phone || '').toString().replace(/\D/g, '');
+                    return pName === cleanFullName && pPhone === cleanPhoneDigits;
+                });
+            }
+        } catch(e) {}
+
+        if (duplicateExisting && duplicateExisting.opNumber) {
+            data.opNumber = duplicateExisting.opNumber;
+            data.isRevisit = true;
+            console.log('Duplicate prevented: linking to existing OP Number:', data.opNumber);
+        } else if (!data.opNumber) {
             const randomCode = Math.floor(1000 + Math.random() * 9000);
             const prefix = `${now.getFullYear().toString().slice(-2)}${pad(now.getMonth() + 1)}`;
             data.opNumber = `OP-${prefix}-${randomCode}`;
@@ -447,12 +467,21 @@ document.addEventListener('DOMContentLoaded', () => {
         data.doctorConsulted = doc || 'Dr. Jeswin Jose BDS';
 
         try {
-            // Optional non-blocking pre-check for returning patient
+            // Check for returning patient by same name and phone to avoid new registration duplicates
             try {
                 const searchRes = await fetch(`${SCRIPT_URL}?action=search&query=${encodeURIComponent(data.phone)}`);
                 const searchJson = await searchRes.json();
                 if (searchJson.status === 'success' && Array.isArray(searchJson.data) && searchJson.data.length > 0) {
-                    console.log('Existing patient record found. Adding new revisit & billing record.');
+                    const match = searchJson.data.find(p => {
+                        const pName = (p.fullName || p.name || '').toString().trim().toLowerCase();
+                        const pPhone = (p.phone || '').toString().replace(/\D/g, '');
+                        return pName === cleanFullName && pPhone === cleanPhoneDigits;
+                    });
+                    if (match && match.opNumber) {
+                        data.opNumber = match.opNumber;
+                        data.isRevisit = true;
+                        console.log('Online check matched existing patient. Reusing OP Number:', data.opNumber);
+                    }
                 }
             } catch (searchErr) {
                 console.warn('Pre-check notice:', searchErr);

@@ -112,4 +112,45 @@ class Patient {
             .toList() ??
         [],
   );
+
+  Patient copyWith({
+    String? id,
+    String? opNumber,
+    String? name,
+    String? phone,
+    String? email,
+    String? dob,
+    int? age,
+    String? gender,
+    String? address,
+    String? doctor,
+    String? medicalHistory,
+    String? drugAllergies,
+    String? diseaseHistory,
+    String? registrationDate,
+    int? totalVisits,
+    double? totalBilled,
+    List<VisitRecord>? visits,
+  }) {
+    return Patient(
+      id: id ?? this.id,
+      opNumber: opNumber ?? this.opNumber,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      dob: dob ?? this.dob,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      address: address ?? this.address,
+      doctor: doctor ?? this.doctor,
+      medicalHistory: medicalHistory ?? this.medicalHistory,
+      drugAllergies: drugAllergies ?? this.drugAllergies,
+      diseaseHistory: diseaseHistory ?? this.diseaseHistory,
+      registrationDate: registrationDate ?? this.registrationDate,
+      totalVisits: totalVisits ?? this.totalVisits,
+      totalBilled: totalBilled ?? this.totalBilled,
+      visits: visits ?? this.visits,
+    );
+  }
 }
+

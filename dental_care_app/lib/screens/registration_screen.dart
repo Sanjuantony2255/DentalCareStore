@@ -118,12 +118,44 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   void _onPhoneChanged(String val) {
-    final qDigits = val.replaceAll(RegExp(r'\D'), '');
-    if (qDigits.length >= 10) {
+    _checkDuplicatePatient();
+  }
+
+  void _onNameChanged(String val) {
+    _checkDuplicatePatient();
+  }
+
+  void _checkDuplicatePatient() {
+    final cleanN = _nameController.text.trim().toLowerCase();
+    final qDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+
+    if (cleanN.isNotEmpty && qDigits.length >= 10) {
       final existing = widget.storage.patients.firstWhere(
         (p) {
           final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-          return pDigits == qDigits || pDigits.contains(qDigits) || qDigits.contains(pDigits);
+          final pName = p.name.trim().toLowerCase();
+          final phoneMatches = pDigits == qDigits || pDigits.endsWith(qDigits) || qDigits.endsWith(pDigits);
+          final nameMatches = pName == cleanN;
+          return phoneMatches && nameMatches;
+        },
+        orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
+      );
+
+      if (existing.id.isNotEmpty && !_isRevisit) {
+        _populatePatientData(existing);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Same name & phone detected: ${existing.name} (${existing.opNumber}). Reusing profile to avoid duplicate registration.'),
+            backgroundColor: AppTheme.primaryTeal,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } else if (qDigits.length >= 10 && cleanN.isEmpty) {
+      final existing = widget.storage.patients.firstWhere(
+        (p) {
+          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+          return pDigits == qDigits || pDigits.endsWith(qDigits) || qDigits.endsWith(pDigits);
         },
         orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
       );
@@ -414,13 +446,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final selectedDateStr = _dateController.text.trim().isNotEmpty
         ? _dateController.text.trim()
         : DateFormat('yyyy-MM-dd').format(_selectedDate);
-    final invId = 'INV-${now.year}-${DateFormat('MMddHHmm').format(now)}';
-    final patientId = _isRevisit && _opController.text.isNotEmpty
-        ? 'PAT-${_opController.text}'
-        : 'PAT-${DateFormat('ddHHmm').format(now)}';
+
+    // Duplicate prevention: If patient with same name and phone exists, reuse profile
+    final cleanN = _nameController.text.trim().toLowerCase();
+    final cleanP = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final existingPatient = widget.storage.patients.firstWhere(
+      (p) {
+        final pN = p.name.trim().toLowerCase();
+        final pP = p.phone.replaceAll(RegExp(r'\D'), '');
+        final phoneMatches = pP == cleanP || pP.endsWith(cleanP) || cleanP.endsWith(pP);
+        final nameMatches = pN == cleanN;
+        return cleanN.isNotEmpty && cleanP.length >= 10 && phoneMatches && nameMatches;
+      },
+      orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
+    );
+
+    final isReturning = _isRevisit || existingPatient.id.isNotEmpty;
     final opNumber = _opController.text.trim().isNotEmpty
         ? _opController.text.trim()
-        : 'OP-${now.day}${now.hour}${now.minute}';
+        : (existingPatient.opNumber.isNotEmpty
+            ? existingPatient.opNumber
+            : 'OP-${now.day}${now.hour}${now.minute}');
+    final patientId = isReturning && existingPatient.id.isNotEmpty
+        ? existingPatient.id
+        : (_isRevisit && _opController.text.isNotEmpty
+            ? 'PAT-${_opController.text}'
+            : 'PAT-${DateFormat('ddHHmm').format(now)}');
+    final invId = 'INV-${now.year}-${DateFormat('MMddHHmm').format(now)}';
 
     final effectiveDoctor = _doctor == 'Other (Type Manually)'
         ? (_manualDoctorController.text.trim().isNotEmpty
@@ -698,6 +750,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           hintText: 'Enter patient full name',
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter patient name' : null,
+                        onChanged: _onNameChanged,
                       ),
                       const SizedBox(height: 14),
                       Row(

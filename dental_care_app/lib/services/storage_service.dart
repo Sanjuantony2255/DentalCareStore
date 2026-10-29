@@ -209,9 +209,22 @@ class StorageService extends ChangeNotifier {
   // --- CRUD Operations ---
 
   Future<void> savePatient(Patient patient) async {
-    final idx = _patients.indexWhere((p) => p.id == patient.id || (p.phone == patient.phone && p.name == patient.name));
+    final cleanP = patient.phone.replaceAll(RegExp(r'\D'), '');
+    final cleanN = patient.name.trim().toLowerCase();
+
+    final idx = _patients.indexWhere((p) {
+      if (p.id == patient.id) return true;
+      final existingP = p.phone.replaceAll(RegExp(r'\D'), '');
+      final existingN = p.name.trim().toLowerCase();
+      return cleanP.isNotEmpty && cleanP == existingP && cleanN == existingN;
+    });
+
     if (idx >= 0) {
-      _patients[idx] = patient;
+      final existing = _patients[idx];
+      _patients[idx] = patient.copyWith(
+        id: existing.id.isNotEmpty ? existing.id : patient.id,
+        opNumber: existing.opNumber.isNotEmpty ? existing.opNumber : patient.opNumber,
+      );
     } else {
       _patients.insert(0, patient);
     }

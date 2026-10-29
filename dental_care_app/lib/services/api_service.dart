@@ -25,11 +25,13 @@ class ApiService {
       final response = await http.post(
         Uri.parse(defaultScriptUrl),
         body: {
-          'action': 'bookAppointment',
+          'action': 'addAppointment',
           'patientName': apt.patientName,
+          'fullName': apt.patientName,
           'phone': apt.phone,
           'doctor': apt.doctor,
           'date': apt.date,
+          'time': apt.timeSlot,
           'timeSlot': apt.timeSlot,
           'reason': apt.reason,
           'notes': apt.notes,
@@ -40,6 +42,63 @@ class ApiService {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Triggers full Google Calendar synchronization with clinic account (sanjuantony01@gmail.com)
+  static Future<bool> syncGoogleCalendarOnline() async {
+    try {
+      final response = await http.post(
+        Uri.parse(defaultScriptUrl),
+        body: {'action': 'syncCalendar'},
+      ).timeout(const Duration(seconds: 12));
+
+      return response.statusCode == 200 || response.statusCode == 302;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Generates a Google Calendar event template URL for an appointment
+  static String getGoogleCalendarUrl(Appointment apt) {
+    final cleanName = apt.patientName.isNotEmpty ? apt.patientName : 'Patient';
+    final docText = apt.doctor.isNotEmpty ? apt.doctor : 'Attending Doctor';
+    final title = Uri.encodeComponent('Dental Appointment: $cleanName ($docText)');
+
+    String dateDigits = apt.date.replaceAll(RegExp(r'[^0-9]'), '');
+    if (dateDigits.length != 8) {
+      final now = DateTime.now();
+      dateDigits = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    }
+
+    int startH = 10;
+    int startM = 0;
+    final match = RegExp(r'(\d{1,2}):(\d{2})\s*(AM|PM)?', caseSensitive: false).firstMatch(apt.timeSlot);
+    if (match != null) {
+      startH = int.tryParse(match.group(1) ?? '10') ?? 10;
+      startM = int.tryParse(match.group(2) ?? '0') ?? 0;
+      final ampm = (match.group(3) ?? '').toUpperCase();
+      if (ampm == 'PM' && startH < 12) startH += 12;
+      if (ampm == 'AM' && startH == 12) startH = 0;
+    }
+
+    int endH = startH;
+    int endM = startM + 30;
+    if (endM >= 60) {
+      endH = (endH + 1) % 24;
+      endM = endM - 60;
+    }
+
+    String pad(int n) => n.toString().padLeft(2, '0');
+    final startStr = '${pad(startH)}${pad(startM)}00';
+    final endStr = '${pad(endH)}${pad(endM)}00';
+    final datesStr = '${dateDigits}T$startStr/${dateDigits}T$endStr';
+
+    final details = Uri.encodeComponent(
+      'Patient: $cleanName\nPhone: ${apt.phone}\nDoctor: $docText\nReason: ${apt.reason}\nNotes: ${apt.notes}\nAppointment ID: ${apt.id}',
+    );
+    final location = Uri.encodeComponent('Manjaly Dental Care Clinic');
+
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=$title&dates=$datesStr&details=$details&location=$location&add=sanjuantony01%40gmail.com';
   }
 
   /// Reschedules an appointment in the Google Cloud database

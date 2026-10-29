@@ -405,7 +405,7 @@ function doPost(e) {
     var action = (e && e.parameter && e.parameter.action) || data.action || '';
 
     // 1. Add Appointment with Google Calendar sync
-    if (action === 'addAppointment') {
+    if (action === 'addAppointment' || action === 'bookAppointment') {
       return handleAddAppointment(ss, data);
     }
 
@@ -477,6 +477,46 @@ function handlePatientRegistration(ss, data) {
   var randomSuffix = Math.floor(1000 + Math.random() * 9000);
   var datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd");
   var invoiceNo = data.invoiceNo || ('INV-' + datePrefix + '-' + randomSuffix);
+
+  // Duplicate Check: Check if an existing patient with same name and phone digits exists to avoid duplicate registration
+  var cleanNameInput = (data.fullName || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+  var cleanPhoneInput = extractDigits(data.phone || '');
+  var existingOpNumber = '';
+
+  if (cleanNameInput && cleanPhoneInput) {
+    try {
+      var vData = visitsSheet.getDataRange().getValues();
+      if (vData && vData.length > 1) {
+        var vHeaders = vData[0];
+        var colN = 1, colP = 2, colOp = -1;
+        for (var hc = 0; hc < vHeaders.length; hc++) {
+          var hTxt = (vHeaders[hc] || '').toString().toLowerCase().trim();
+          if (hTxt.indexOf('full name') !== -1 || hTxt.indexOf('patient name') !== -1) colN = hc;
+          else if (hTxt.indexOf('phone') !== -1 || hTxt.indexOf('mobile') !== -1) colP = hc;
+          else if (hTxt.indexOf('op number') !== -1 || hTxt.indexOf('op no') !== -1) colOp = hc;
+        }
+        for (var vr = 1; vr < vData.length; vr++) {
+          var rowName = (vData[vr][colN] || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+          var rowPhone = extractDigits(vData[vr][colP] || '');
+          if (rowName === cleanNameInput && rowPhone === cleanPhoneInput) {
+            if (colOp !== -1 && vData[vr][colOp]) {
+              existingOpNumber = formatCellValue(vData[vr][colOp]);
+              break;
+            }
+          }
+        }
+      }
+    } catch (dupErr) {
+      Logger.log("Duplicate check notice: " + dupErr.toString());
+    }
+  }
+
+  var finalOpNumber = data.opNumber || existingOpNumber;
+  if (!finalOpNumber) {
+    var opDatePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMM");
+    finalOpNumber = "OP-" + opDatePrefix + "-" + Math.floor(1000 + Math.random() * 9000);
+  }
+  data.opNumber = finalOpNumber;
 
   var docName = (data.doctorConsulted || '').toString().trim();
   if (docName.toLowerCase().indexOf('consulting specialist') !== -1) docName = '';
@@ -668,7 +708,7 @@ function handleAddAppointment(ss, data) {
   var createdAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
 
   var dateStr = (data.date || '').toString().trim(); // YYYY-MM-DD
-  var timeStr = (data.time || '10:00').toString().trim(); // HH:mm
+  var timeStr = (data.time || data.timeSlot || '10:00').toString().trim(); // HH:mm or HH:mm AM/PM
   if (timeStr.indexOf('1899') !== -1 || !timeStr) timeStr = '10:00';
   var patientName = (data.patientName || data.fullName || '').toString().trim();
   var phone = (data.phone || '').toString().trim();
@@ -688,12 +728,24 @@ function handleAddAppointment(ss, data) {
     var cal = getClinicCalendar();
     if (cal && dateStr) {
       var dateParts = dateStr.split('-');
-      var timeParts = timeStr.split(':');
       var year = parseInt(dateParts[0], 10);
       var month = parseInt(dateParts[1], 10) - 1;
       var day = parseInt(dateParts[2], 10);
-      var hour = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 10;
-      var minute = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+
+      var hour = 10;
+      var minute = 0;
+      var ampmMatch = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (ampmMatch) {
+        hour = parseInt(ampmMatch[1], 10);
+        minute = parseInt(ampmMatch[2], 10);
+        var ampm = (ampmMatch[3] || '').toUpperCase();
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+      } else {
+        var timeParts = timeStr.split(':');
+        hour = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 10;
+        minute = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+      }
 
       var startTime = new Date(year, month, day, hour, minute);
       var endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes duration
