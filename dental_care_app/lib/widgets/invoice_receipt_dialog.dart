@@ -80,6 +80,7 @@ class InvoiceReceiptDialog extends StatelessWidget {
             <div><strong>Phone:</strong> ${inv.phone.isNotEmpty ? inv.phone : 'N/A'}</div>
             <div><strong>Doctor Consulted:</strong> ${inv.doctor}</div>
             <div><strong>Payment Mode:</strong> ${inv.paymentMode}</div>
+            ${inv.treatment.isNotEmpty ? '<div style="grid-column: span 2;"><strong>Treatment Details:</strong> ${inv.treatment}</div>' : ''}
             ${inv.notes.isNotEmpty ? '<div style="grid-column: span 2;"><strong>Clinical Notes:</strong> ${inv.notes}</div>' : ''}
         </div>
         <table>
@@ -87,10 +88,27 @@ class InvoiceReceiptDialog extends StatelessWidget {
                 <tr><th>#</th><th>Description</th><th class="amt">Amount</th></tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>Doctor Consultation Charge</td><td class="amt">₹${inv.consultationCharge.toStringAsFixed(2)}</td></tr>
-                <tr><td>2</td><td>X-Ray Examination Charge</td><td class="amt">₹${inv.xrayCharge.toStringAsFixed(2)}</td></tr>
-                <tr><td>3</td><td>Pharmacy / Medicines Charge</td><td class="amt">₹${inv.pharmacyCharge.toStringAsFixed(2)}</td></tr>
-                <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">₹${inv.totalAmount.toStringAsFixed(2)}</td></tr>
+                ${(() {
+                  final rows = <String>[];
+                  int rIdx = 1;
+                  if (inv.consultationCharge > 0 || (inv.treatmentCharge == 0 && inv.xrayCharge == 0 && inv.pharmacyCharge == 0 && inv.customCharges.isEmpty)) {
+                    rows.add('<tr><td>${rIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">₹${inv.consultationCharge.toStringAsFixed(2)}</td></tr>');
+                  }
+                  if (inv.treatmentCharge > 0) {
+                    rows.add('<tr><td>${rIdx++}</td><td>Dental Treatment: ${inv.treatment.isNotEmpty ? inv.treatment : "Procedure"}</td><td class="amt">₹${inv.treatmentCharge.toStringAsFixed(2)}</td></tr>');
+                  }
+                  if (inv.xrayCharge > 0) {
+                    rows.add('<tr><td>${rIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">₹${inv.xrayCharge.toStringAsFixed(2)}</td></tr>');
+                  }
+                  if (inv.pharmacyCharge > 0) {
+                    rows.add('<tr><td>${rIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">₹${inv.pharmacyCharge.toStringAsFixed(2)}</td></tr>');
+                  }
+                  for (final c in inv.customCharges) {
+                    rows.add('<tr><td>${rIdx++}</td><td>${c.title}</td><td class="amt">₹${c.amount.toStringAsFixed(2)}</td></tr>');
+                  }
+                  rows.add('<tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">₹${inv.totalAmount.toStringAsFixed(2)}</td></tr>');
+                  return rows.join('');
+                })()}
             </tbody>
         </table>
         <div class="signatures">
@@ -327,6 +345,26 @@ class InvoiceReceiptDialog extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (inv.treatment.isNotEmpty) ...[
+                        pw.SizedBox(height: 6),
+                        pw.Align(
+                          alignment: pw.Alignment.centerLeft,
+                          child: pw.RichText(
+                            text: pw.TextSpan(
+                              children: [
+                                const pw.TextSpan(
+                                  text: 'Treatment Details: ',
+                                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                ),
+                                pw.TextSpan(
+                                  text: inv.treatment,
+                                  style: const pw.TextStyle(fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       if (inv.notes.isNotEmpty) ...[
                         pw.SizedBox(height: 6),
                         pw.Align(
@@ -375,27 +413,66 @@ class InvoiceReceiptDialog extends StatelessWidget {
                         ),
                       ],
                     ),
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('1', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Doctor Consultation Charge', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.consultationCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
-                      ],
-                    ),
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('2', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('X-Ray Examination Charge', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.xrayCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
-                      ],
-                    ),
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('3', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pharmacy / Medicines Charge', style: const pw.TextStyle(fontSize: 9.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.pharmacyCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
-                      ],
-                    ),
+                    ...(() {
+                      final rows = <pw.TableRow>[];
+                      int idx = 1;
+                      if (inv.consultationCharge > 0 || (inv.treatmentCharge == 0 && inv.xrayCharge == 0 && inv.pharmacyCharge == 0 && inv.customCharges.isEmpty)) {
+                        rows.add(
+                          pw.TableRow(
+                            children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${idx++}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Doctor Consultation Charge', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.consultationCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
+                            ],
+                          ),
+                        );
+                      }
+                      if (inv.treatmentCharge > 0) {
+                        rows.add(
+                          pw.TableRow(
+                            children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${idx++}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Dental Treatment: ${inv.treatment.isNotEmpty ? inv.treatment : "Procedure"}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.treatmentCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
+                            ],
+                          ),
+                        );
+                      }
+                      if (inv.xrayCharge > 0) {
+                        rows.add(
+                          pw.TableRow(
+                            children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${idx++}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('X-Ray Examination Charge', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.xrayCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
+                            ],
+                          ),
+                        );
+                      }
+                      if (inv.pharmacyCharge > 0) {
+                        rows.add(
+                          pw.TableRow(
+                            children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${idx++}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pharmacy / Medicines Charge', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${inv.pharmacyCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
+                            ],
+                          ),
+                        );
+                      }
+                      for (final c in inv.customCharges) {
+                        rows.add(
+                          pw.TableRow(
+                            children: [
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${idx++}', style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(c.title, style: const pw.TextStyle(fontSize: 9.5))),
+                              pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('Rs. ${c.amount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 9.5)))),
+                            ],
+                          ),
+                        );
+                      }
+                      return rows;
+                    })(),
                     pw.TableRow(
                       decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                       children: [
@@ -597,6 +674,16 @@ class InvoiceReceiptDialog extends StatelessWidget {
       await tempFile.writeAsBytes(pdfBytes, flush: true);
 
       final currency = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+      final breakdownList = <String>[];
+      if (inv.consultationCharge > 0) breakdownList.add('• Consultation Fee: ${currency.format(inv.consultationCharge)}');
+      if (inv.treatmentCharge > 0) breakdownList.add('• Treatment (${inv.treatment.isNotEmpty ? inv.treatment : "Procedure"}): ${currency.format(inv.treatmentCharge)}');
+      if (inv.xrayCharge > 0) breakdownList.add('• X-Ray / Radiology: ${currency.format(inv.xrayCharge)}');
+      if (inv.pharmacyCharge > 0) breakdownList.add('• Pharmacy / Medicines: ${currency.format(inv.pharmacyCharge)}');
+      for (final c in inv.customCharges) {
+        breakdownList.add('• ${c.title}: ${currency.format(c.amount)}');
+      }
+      if (breakdownList.isEmpty) breakdownList.add('• Consultation Fee: ${currency.format(inv.totalAmount)}');
+
       final text = '''
 🏥 *MANJALY MULTI SPECIALITY DENTAL CARE*
 📍 Valakkavu, Thrissur, Kerala 680751
@@ -608,6 +695,9 @@ class InvoiceReceiptDialog extends StatelessWidget {
 *Date:* ${inv.date}
 *Patient Name:* ${inv.patientName}
 *Attending Doctor:* ${inv.doctor}
+${inv.treatment.isNotEmpty ? '*Treatment Details:* ${inv.treatment}\n' : ''}*CHARGES BREAKDOWN:*
+${breakdownList.join('\n')}
+────────────────────────
 *Total Billed:* ${currency.format(inv.totalAmount)} (${inv.paymentMode})
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Please find attached your official PDF invoice.
@@ -777,6 +867,10 @@ Thank you for choosing Manjaly Dental Care!
                     _infoRow('Doctor Consulted:', invoice.doctor),
                     const SizedBox(height: 5),
                     _infoRow('Payment Mode:', invoice.paymentMode),
+                    if (invoice.treatment.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      _infoRow('Treatment / Procedure:', invoice.treatment, isBold: true),
+                    ],
                   ],
                 ),
               ),
@@ -803,11 +897,30 @@ Thank you for choosing Manjaly Dental Care!
                       ),
                     ),
                     const Divider(height: 1, color: Color(0xFFCBD5E1)),
-                    _tableRow('1', 'Doctor Consultation Charge', currency.format(invoice.consultationCharge)),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    _tableRow('2', 'X-Ray Examination Charge', currency.format(invoice.xrayCharge)),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    _tableRow('3', 'Pharmacy / Medicines Charge', currency.format(invoice.pharmacyCharge)),
+                    ...(() {
+                      final widgets = <Widget>[];
+                      int idx = 1;
+                      if (invoice.consultationCharge > 0 || (invoice.treatmentCharge == 0 && invoice.xrayCharge == 0 && invoice.pharmacyCharge == 0 && invoice.customCharges.isEmpty)) {
+                        widgets.add(_tableRow('${idx++}', 'Doctor Consultation Charge', currency.format(invoice.consultationCharge)));
+                      }
+                      if (invoice.treatmentCharge > 0) {
+                        if (widgets.isNotEmpty) widgets.add(const Divider(height: 1, color: Color(0xFFE2E8F0)));
+                        widgets.add(_tableRow('${idx++}', 'Dental Treatment: ${invoice.treatment.isNotEmpty ? invoice.treatment : "Procedure"}', currency.format(invoice.treatmentCharge)));
+                      }
+                      if (invoice.xrayCharge > 0) {
+                        if (widgets.isNotEmpty) widgets.add(const Divider(height: 1, color: Color(0xFFE2E8F0)));
+                        widgets.add(_tableRow('${idx++}', 'X-Ray Examination Charge', currency.format(invoice.xrayCharge)));
+                      }
+                      if (invoice.pharmacyCharge > 0) {
+                        if (widgets.isNotEmpty) widgets.add(const Divider(height: 1, color: Color(0xFFE2E8F0)));
+                        widgets.add(_tableRow('${idx++}', 'Pharmacy / Medicines Charge', currency.format(invoice.pharmacyCharge)));
+                      }
+                      for (final c in invoice.customCharges) {
+                        if (widgets.isNotEmpty) widgets.add(const Divider(height: 1, color: Color(0xFFE2E8F0)));
+                        widgets.add(_tableRow('${idx++}', c.title, currency.format(c.amount)));
+                      }
+                      return widgets;
+                    })(),
                     const Divider(height: 1, color: Color(0xFFCBD5E1), thickness: 1.5),
                     // Total Row
                     Container(

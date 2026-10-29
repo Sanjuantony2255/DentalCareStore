@@ -154,6 +154,17 @@
                 <div class="form-section">
                     <h2><span class="icon">👤</span> Personal Information</h2>
                     
+                    <!-- Already Registered Patient Alert Banner -->
+                    <div id="alreadyRegisteredAlert" class="already-registered-alert" style="display: none;">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-body">
+                            <div class="alert-title">Already Registered Patient Detected</div>
+                            <div class="alert-desc">
+                                Patient is already registered. Suggested OP Number: <strong id="suggestedOpBadge" class="op-suggested-tag"></strong> (Auto-filled)
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="input-grid">
                         <div class="input-group">
                             <input type="text" id="fullName" name="fullName" required placeholder=" ">
@@ -340,8 +351,82 @@
 
                 <!-- Section 3: Billing & Charges -->
                 <div class="form-section">
-                    <h2><span class="icon">💳</span> Billing & Charges (Consultation, X-Ray, Pharmacy)</h2>
+                    <h2><span class="icon">💳</span> Billing & Charges (Consultation, Treatment & Custom Charges)</h2>
                     
+                    <!-- Charge dropdown: only contains treatment names; charge is in another option -->
+                    <div class="charge-select-row" style="margin-bottom: 1.1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 260px;">
+                            <label for="chargeOptionSelect" style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                                🦷 Treatment / Procedure (Charge Dropdown):
+                            </label>
+                            <select id="chargeOptionSelect" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; background: #fff;">
+                                <option value="" selected>-- Select Treatment Name --</option>
+                                <option value="POST & CORE">POST & CORE</option>
+                                <option value="CROWN METAL">CROWN METAL</option>
+                                <option value="CROWN PFM">CROWN PFM</option>
+                                <option value="CROWN PFZ">CROWN PFZ</option>
+                                <option value="EMAX CROWN, VENEER, INLAY">EMAX CROWN, VENEER, INLAY</option>
+                                <option value="CROWN REMOVAL">CROWN REMOVAL</option>
+                                <option value="ACRYLIC PARTIAL DENTURE">ACRYLIC PARTIAL DENTURE</option>
+                                <option value="FLEXIBLE PARTIAL DENTURE">FLEXIBLE PARTIAL DENTURE</option>
+                                <option value="COMPLETE DENTURE">COMPLETE DENTURE</option>
+                                <option value="FLEXIBLE">FLEXIBLE</option>
+                                <option value="BPS">BPS</option>
+                                <option value="SS CROWNS">SS CROWNS</option>
+                                <option value="SCALING">SCALING</option>
+                                <option value="GINGIVECTOMY">GINGIVECTOMY</option>
+                                <option value="SUBGINGIVAL SCALING/ CURETTAGE">SUBGINGIVAL SCALING/ CURETTAGE</option>
+                                <option value="GRAFT">GRAFT</option>
+                                <option value="DEPIGMENTATION">DEPIGMENTATION</option>
+                                <option value="PERIODONTAL FLAP">PERIODONTAL FLAP</option>
+                                <option value="SPLINTING">SPLINTING</option>
+                                <option value="LASER">LASER</option>
+                                <option value="PULPOTOMY/ PULPECTOMY">PULPOTOMY/ PULPECTOMY</option>
+                                <option value="PIT & FISSURE SEALANTS">PIT & FISSURE SEALANTS</option>
+                                <option value="FLUORIDE APPPLICATIONS">FLUORIDE APPPLICATIONS</option>
+                                <option value="SPACE MAINTAINERS">SPACE MAINTAINERS</option>
+                                <option value="PREFORMED ZIRCONIA">PREFORMED ZIRCONIA</option>
+                                <option value="BLEACHING">BLEACHING</option>
+                                <option value="DENTAL IMPLANTS">DENTAL IMPLANTS</option>
+                                <option value="REGISTRATION">REGISTRATION</option>
+                                <option value="CONSULTATION">CONSULTATION</option>
+                                <option value="SPECIALIST CONSULTATION">SPECIALIST CONSULTATION</option>
+                                <option value="DENTAL RADIOGRAPHS">DENTAL RADIOGRAPHS</option>
+                                <option value="GLASS IONOMER">GLASS IONOMER</option>
+                                <option value="AMALGAM">AMALGAM</option>
+                                <option value="COMPOSITE">COMPOSITE</option>
+                                <option value="RCT">RCT</option>
+                                <option value="RE RCT">RE RCT</option>
+                                <option value="MICROSCOPE RCT">MICROSCOPE RCT</option>
+                                <option value="APICECTOMY">APICECTOMY</option>
+                                <option value="MTA">MTA</option>
+                                <option value="DECIDUOUS TOOTH EXTRACTION">DECIDUOUS TOOTH EXTRACTION</option>
+                                <option value="NORMAL EXTRACTION">NORMAL EXTRACTION</option>
+                                <option value="DIFFICULT EXTRACTION">DIFFICULT EXTRACTION</option>
+                                <option value="3RD MOLAR">3RD MOLAR</option>
+                                <option value="CANINE IMPACTION">CANINE IMPACTION</option>
+                                <option value="INCISION AND DRAINAGE">INCISION AND DRAINAGE</option>
+                                <option value="VESTIBULOPLASTY">VESTIBULOPLASTY</option>
+                                <option value="ALVEOLOPLASTY">ALVEOLOPLASTY</option>
+                                <option value="OPERCULECTOMY">OPERCULECTOMY</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED">FIXED ORTHODONTICS PREADJUSTED</option>
+                                <option value="FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED">FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED</option>
+                                <option value="FIXED- SELF LIGATING">FIXED- SELF LIGATING</option>
+                                <option value="HAWLEYS APPLIANCE- ACTIVE">HAWLEYS APPLIANCE- ACTIVE</option>
+                                <option value="RETENTION APPLIANCE- PASSIVE">RETENTION APPLIANCE- PASSIVE</option>
+                                <option value="FIXED LINGUAL RETAINERS">FIXED LINGUAL RETAINERS</option>
+                                <option value="VACCUFORM RETAINERS-">VACCUFORM RETAINERS-</option>
+                                <option value="ORAL SCREEN">ORAL SCREEN</option>
+                                <option value="MYO FUNCTIONAL FIXED">MYOFUNCTIONAL FIXED</option>
+                                <option value="MYOFUNCTIONAL REMOVABLE">MYOFUNCTIONAL REMOVABLE</option>
+                                <option value="CLEAR ALIGNERS">CLEAR ALIGNERS</option>
+                            </select>
+                        </div>
+                        <button type="button" id="applyChargeOptionBtn" class="preset-chip" style="padding: 0.6rem 1.1rem; background: var(--primary-teal); color: white; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            + Select Treatment
+                        </button>
+                    </div>
+
                     <div class="charge-presets-row" style="margin-bottom: 1.2rem;">
                         <span style="font-size: 0.8rem; font-weight: 700; color: #475569; display: flex; align-items: center;">Quick Add:</span>
                         <button type="button" class="preset-chip" data-type="consultation" data-amt="300">+ ₹300 Consultation</button>
@@ -354,17 +439,21 @@
                     <div class="input-grid">
                         <div class="input-group">
                             <input type="number" id="consultationCharge" name="consultationCharge" min="0" step="any" placeholder=" ">
-                            <label for="consultationCharge">Consultation Charge (₹ / $)</label>
+                            <label for="consultationCharge">Consultation Charge (₹)</label>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="treatmentCharge" name="treatmentCharge" min="0" step="any" placeholder=" ">
+                            <label for="treatmentCharge" id="treatmentChargeLabel">Treatment / Procedure Charge (₹)</label>
                         </div>
                         <div class="input-group">
                             <input type="number" id="xrayCharge" name="xrayCharge" min="0" step="any" placeholder=" ">
-                            <label for="xrayCharge">X-Ray Charge (₹ / $)</label>
+                            <label for="xrayCharge">X-Ray Charge (₹)</label>
                         </div>
                         <div class="input-group">
                             <input type="number" id="pharmacyCharge" name="pharmacyCharge" min="0" step="any" placeholder=" ">
-                            <label for="pharmacyCharge">Pharmacy / Medicines Charge (₹ / $)</label>
+                            <label for="pharmacyCharge">Pharmacy / Medicines Charge (₹)</label>
                         </div>
-                        <div class="input-group">
+                        <div class="input-group full-width">
                             <select id="paymentMode" name="paymentMode">
                                 <option value="Cash" selected>Cash</option>
                                 <option value="UPI / Online">UPI / Online</option>
@@ -373,6 +462,37 @@
                             </select>
                             <label for="paymentMode" class="active-label">Payment Mode</label>
                         </div>
+                    </div>
+
+                    <!-- Custom / Additional Manual Charges Block -->
+                    <div class="custom-charges-block" style="margin-top: 1.2rem; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Custom / Additional Charges (Add Manually like Treatment):
+                            </span>
+                            <button type="button" id="addCustomChargeBtn" class="preset-chip" style="background: #0d9488; color: #fff; font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border: none; border-radius: 8px;">
+                                + Add Custom Charge Item
+                            </button>
+                        </div>
+                        <div id="customChargesList" class="custom-charges-list">
+                            <!-- Dynamic custom charge rows will be appended here -->
+                        </div>
+                        <datalist id="customChargePresetsList">
+                            <option value="Scaling & Polishing">
+                            <option value="Root Canal Treatment (RCT)">
+                            <option value="Tooth Extraction">
+                            <option value="Composite Restoration / Filling">
+                            <option value="Crown PFM / Ceramic">
+                            <option value="Flexible Denture">
+                            <option value="Dental Radiograph / RVG">
+                            <option value="Specialist Procedure Fee">
+                            <option value="Lab & Fabricating Charges">
+                            <option value="Suture Removal & Dressing">
+                            <option value="Local Anesthesia Kit">
+                        </datalist>
+                    </div>
+
+                    <div class="input-grid" style="margin-top: 1.2rem;">
                         <div class="input-group full-width">
                             <div class="total-summary-banner">
                                 <span class="total-label">Total Amount Due</span>
@@ -450,6 +570,10 @@
                         <div class="inv-field-label">OP Number / Mode</div>
                         <div class="inv-field-val" id="invModalOp">Official Receipt</div>
                     </div>
+                    <div style="grid-column: span 2;">
+                        <div class="inv-field-label">Treatment / Clinical Procedure</div>
+                        <div class="inv-field-val" id="invModalTreatment" style="color: var(--primary-dark); font-weight: 700;">-</div>
+                    </div>
                 </div>
 
                 <table class="inv-table">
@@ -457,10 +581,10 @@
                         <tr>
                             <th>#</th>
                             <th>Description</th>
-                            <th>Amount</th>
+                            <th>Amount (₹)</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="invModalTableBody">
                         <tr>
                             <td>1</td>
                             <td>Doctor Consultation Charge</td>

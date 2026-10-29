@@ -26,6 +26,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isRevisit = false;
+  bool _isAlreadyRegistered = false;
+  String? _suggestedOpNumber;
+  String? _suggestedPatientName;
   DateTime _selectedDate = DateTime.now();
   final _dateController = TextEditingController();
   final _nameController = TextEditingController();
@@ -55,6 +58,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _manualDoctorController = TextEditingController();
   String _medicalHistory = 'No Significant Medical History';
   String _paymentMode = 'UPI / Online';
+
+  final _treatmentChargeController = TextEditingController();
+  final List<Map<String, TextEditingController>> _customChargeRows = [];
+  String? _selectedChargeDropdown;
 
   final List<String> _medicalHistoryOptions = [
     'No Significant Medical History',
@@ -88,9 +95,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _drugAllergiesController.dispose();
     _manualDoctorController.dispose();
     _consultationController.dispose();
+    _treatmentChargeController.dispose();
     _xrayController.dispose();
     _pharmacyController.dispose();
     _notesController.dispose();
+    for (final row in _customChargeRows) {
+      row['title']?.dispose();
+      row['amount']?.dispose();
+    }
     super.dispose();
   }
 
@@ -112,65 +124,108 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   double get _totalAmount {
     final c = double.tryParse(_consultationController.text) ?? 0.0;
+    final t = double.tryParse(_treatmentChargeController.text) ?? 0.0;
     final x = double.tryParse(_xrayController.text) ?? 0.0;
     final p = double.tryParse(_pharmacyController.text) ?? 0.0;
-    return c + x + p;
+    double customs = 0.0;
+    for (final row in _customChargeRows) {
+      customs += double.tryParse(row['amount']?.text ?? '') ?? 0.0;
+    }
+    return c + t + x + p + customs;
   }
 
-  void _onPhoneChanged(String val) {
-    _checkDuplicatePatient();
+  void _addCustomChargeRow([String title = '', String amount = '']) {
+    setState(() {
+      _customChargeRows.add({
+        'title': TextEditingController(text: title),
+        'amount': TextEditingController(text: amount),
+      });
+    });
   }
 
-  void _onNameChanged(String val) {
-    _checkDuplicatePatient();
+  void _removeCustomChargeRow(int index) {
+    setState(() {
+      if (index >= 0 && index < _customChargeRows.length) {
+        final removed = _customChargeRows.removeAt(index);
+        removed['title']?.dispose();
+        removed['amount']?.dispose();
+      }
+    });
   }
 
-  void _checkDuplicatePatient() {
-    final cleanN = _nameController.text.trim().toLowerCase();
+  void _checkExistingPatient() {
+    final cleanName = _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     final qDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-
-    if (cleanN.isNotEmpty && qDigits.length >= 10) {
+    if (qDigits.length >= 10 && cleanName.length >= 2) {
       final existing = widget.storage.patients.firstWhere(
         (p) {
           final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-          final pName = p.name.trim().toLowerCase();
-          final phoneMatches = pDigits == qDigits || pDigits.endsWith(qDigits) || qDigits.endsWith(pDigits);
-          final nameMatches = pName == cleanN;
-          return phoneMatches && nameMatches;
+          final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+          final phoneMatch = pDigits.isNotEmpty &&
+              (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+          final nameMatch = pName.isNotEmpty && pName == cleanName;
+          return phoneMatch && nameMatch;
         },
         orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
       );
+      if (existing.id.isNotEmpty) {
+        final op = existing.opNumber.isNotEmpty ? existing.opNumber : 'OP-${existing.id.replaceAll(RegExp(r'\D'), '')}';
+        setState(() {
+          _isAlreadyRegistered = true;
+          _suggestedOpNumber = op;
+          _suggestedPatientName = existing.name;
+          _opController.text = op;
+        });
+        if (!_isRevisit) {
+          _populatePatientData(existing);
+        }
+        return;
+      }
+    } else if (qDigits.length >= 10 && cleanName.isEmpty) {
+      final matches = widget.storage.patients.where((p) {
+        final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+        return pDigits.isNotEmpty && (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+      }).toList();
+      if (matches.length == 1 && !_isRevisit) {
+        final p = matches.first;
+        final op = p.opNumber.isNotEmpty ? p.opNumber : 'OP-${p.id.replaceAll(RegExp(r'\D'), '')}';
+        setState(() {
+          _isAlreadyRegistered = true;
+          _suggestedOpNumber = op;
+          _suggestedPatientName = p.name;
+        });
+        _populatePatientData(p);
+        return;
+      }
+    }
 
-      if (existing.id.isNotEmpty && !_isRevisit) {
-        _populatePatientData(existing);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('⚠️ Same name & phone detected: ${existing.name} (${existing.opNumber}). Reusing profile to avoid duplicate registration.'),
-            backgroundColor: AppTheme.primaryTeal,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    } else if (qDigits.length >= 10 && cleanN.isEmpty) {
-      final existing = widget.storage.patients.firstWhere(
-        (p) {
-          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-          return pDigits == qDigits || pDigits.endsWith(qDigits) || qDigits.endsWith(pDigits);
-        },
-        orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
-      );
-      if (existing.id.isNotEmpty && !_isRevisit) {
-        _populatePatientData(existing);
-      }
+    if (_isAlreadyRegistered) {
+      setState(() {
+        _isAlreadyRegistered = false;
+        _suggestedOpNumber = null;
+        _suggestedPatientName = null;
+      });
     }
   }
 
+  void _onPhoneChanged(String val) {
+    _checkExistingPatient();
+  }
+
+  void _onNameChanged(String val) {
+    _checkExistingPatient();
+  }
+
   void _populatePatientData(Patient existing) {
+    final op = existing.opNumber.isNotEmpty ? existing.opNumber : 'OP-${existing.id.replaceAll(RegExp(r'\D'), '')}';
     setState(() {
       _isRevisit = true;
+      _isAlreadyRegistered = true;
+      _suggestedOpNumber = op;
+      _suggestedPatientName = existing.name;
       _nameController.text = existing.name;
       _phoneController.text = existing.phone;
-      _opController.text = existing.opNumber;
+      _opController.text = op;
       _ageController.text = existing.age > 0 ? existing.age.toString() : '';
       _emailController.text = existing.email;
       _addressController.text = existing.address;
@@ -199,7 +254,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Found returning patient: ${existing.name} (${existing.opNumber})'),
+        content: Text('Already registered patient recognized: ${existing.name} ($op)'),
         backgroundColor: AppTheme.primaryTeal,
         duration: const Duration(seconds: 3),
       ),
@@ -446,33 +501,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final selectedDateStr = _dateController.text.trim().isNotEmpty
         ? _dateController.text.trim()
         : DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final invId = 'INV-${now.year}-${DateFormat('MMddHHmm').format(now)}';
 
-    // Duplicate prevention: If patient with same name and phone exists, reuse profile
-    final cleanN = _nameController.text.trim().toLowerCase();
-    final cleanP = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-    final existingPatient = widget.storage.patients.firstWhere(
+    // When clicking Submit Registration / Revisit, consider person with same phone & name as the same patient and give already registered OP number
+    final cleanName = _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final qDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final existing = widget.storage.patients.firstWhere(
       (p) {
-        final pN = p.name.trim().toLowerCase();
-        final pP = p.phone.replaceAll(RegExp(r'\D'), '');
-        final phoneMatches = pP == cleanP || pP.endsWith(cleanP) || cleanP.endsWith(pP);
-        final nameMatches = pN == cleanN;
-        return cleanN.isNotEmpty && cleanP.length >= 10 && phoneMatches && nameMatches;
+        final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+        final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+        final phoneMatch = pDigits.isNotEmpty && qDigits.isNotEmpty &&
+            (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+        final nameMatch = pName.isNotEmpty && cleanName.isNotEmpty && pName == cleanName;
+        return phoneMatch && nameMatch;
       },
       orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
     );
 
-    final isReturning = _isRevisit || existingPatient.id.isNotEmpty;
-    final opNumber = _opController.text.trim().isNotEmpty
-        ? _opController.text.trim()
-        : (existingPatient.opNumber.isNotEmpty
-            ? existingPatient.opNumber
-            : 'OP-${now.day}${now.hour}${now.minute}');
-    final patientId = isReturning && existingPatient.id.isNotEmpty
-        ? existingPatient.id
-        : (_isRevisit && _opController.text.isNotEmpty
-            ? 'PAT-${_opController.text}'
-            : 'PAT-${DateFormat('ddHHmm').format(now)}');
-    final invId = 'INV-${now.year}-${DateFormat('MMddHHmm').format(now)}';
+    String opNumber = _opController.text.trim();
+    if (existing.id.isNotEmpty) {
+      final foundOp = existing.opNumber.isNotEmpty ? existing.opNumber : 'OP-${existing.id.replaceAll(RegExp(r'\D'), '')}';
+      opNumber = foundOp;
+      _opController.text = foundOp;
+      _isRevisit = true;
+    } else if (opNumber.isEmpty) {
+      opNumber = 'OP-${now.day}${now.hour}${now.minute}';
+    }
+
+    final patientId = (_isRevisit || existing.id.isNotEmpty) && opNumber.isNotEmpty
+        ? 'PAT-$opNumber'
+        : 'PAT-${DateFormat('ddHHmm').format(now)}';
 
     final effectiveDoctor = _doctor == 'Other (Type Manually)'
         ? (_manualDoctorController.text.trim().isNotEmpty
@@ -504,6 +562,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       registrationDate: selectedDateStr,
     );
 
+    final customChargesList = _customChargeRows
+        .map((r) => CustomChargeItem(
+              title: r['title']?.text.trim() ?? '',
+              amount: double.tryParse(r['amount']?.text.trim() ?? '') ?? 0.0,
+            ))
+        .where((c) => c.title.isNotEmpty || c.amount > 0)
+        .toList();
+
     final invoice = Invoice(
       id: invId,
       patientName: patient.name,
@@ -511,8 +577,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       doctor: effectiveDoctor,
       date: selectedDateStr,
       consultationCharge: double.tryParse(_consultationController.text) ?? 0.0,
+      treatmentCharge: double.tryParse(_treatmentChargeController.text) ?? 0.0,
+      treatment: _treatmentController.text.trim().isNotEmpty
+          ? _treatmentController.text.trim()
+          : effectiveDisease,
       xrayCharge: double.tryParse(_xrayController.text) ?? 0.0,
       pharmacyCharge: double.tryParse(_pharmacyController.text) ?? 0.0,
+      customCharges: customChargesList,
       totalAmount: _totalAmount,
       paymentMode: _paymentMode,
       notes: _notesController.text.trim(),
@@ -558,8 +629,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _medicalHistory = 'No Significant Medical History';
     _notesController.clear();
     _consultationController.clear();
+    _treatmentChargeController.clear();
     _xrayController.clear();
     _pharmacyController.clear();
+    for (final row in _customChargeRows) {
+      row['title']?.dispose();
+      row['amount']?.dispose();
+    }
+    _customChargeRows.clear();
+    _selectedChargeDropdown = null;
     setState(() {});
   }
 
@@ -716,6 +794,83 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
+                      if (_isAlreadyRegistered && (_suggestedOpNumber?.isNotEmpty ?? false)) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Icon(Icons.verified_user_rounded, color: Color(0xFF0F766E), size: 24),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Already Registered Patient Detected',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF065F46),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(color: Color(0xFF047857), fontSize: 12),
+                                        children: [
+                                          TextSpan(
+                                            text: _suggestedPatientName != null && _suggestedPatientName!.isNotEmpty
+                                                ? 'Patient "$_suggestedPatientName" is already registered. Suggested OP: '
+                                                : 'Patient is already registered. Suggested OP: ',
+                                          ),
+                                          TextSpan(
+                                            text: _suggestedOpNumber!,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
+                                          ),
+                                          const TextSpan(text: ' (Auto-filled)'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F766E),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _suggestedOpNumber!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       TextFormField(
                         controller: _dateController,
                         readOnly: true,
@@ -790,10 +945,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: _opController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'OP / Record Number',
-                                prefixIcon: Icon(Icons.tag, size: 20),
+                                prefixIcon: const Icon(Icons.tag, size: 20),
                                 hintText: 'OP-401',
+                                helperText: _isAlreadyRegistered && (_suggestedOpNumber?.isNotEmpty ?? false)
+                                    ? 'Auto-filled suggested OP'
+                                    : null,
+                                helperStyle: const TextStyle(
+                                  color: Color(0xFF0F766E),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
                               ),
                             ),
                           ),
@@ -959,6 +1122,39 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Charge dropdown: only contains treatment names; charge is in another option
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedChargeDropdown,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: '🦷 Treatment / Procedure (Charge Dropdown)',
+                          prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
+                        ),
+                        hint: const Text('-- Select Treatment Name --'),
+                        items: kDentalTreatments.toSet().map((treatName) {
+                          return DropdownMenuItem<String>(
+                            value: treatName,
+                            child: Text(
+                              treatName,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() {
+                            _selectedChargeDropdown = v;
+                            _treatmentController.text = v;
+                            if (kTreatmentSuggestedCharges.containsKey(v)) {
+                              _treatmentChargeController.text =
+                                  kTreatmentSuggestedCharges[v]!.toStringAsFixed(0);
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
                       // Consultation Charge
                       TextFormField(
                         controller: _consultationController,
@@ -978,6 +1174,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           _presetChip('₹200', 200, _consultationController),
                           _presetChip('₹350 (Std)', 350, _consultationController),
                           _presetChip('₹500 (Spl)', 500, _consultationController),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Treatment Charge
+                      TextFormField(
+                        controller: _treatmentChargeController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: _treatmentController.text.isNotEmpty
+                              ? '🦷 Treatment Charge: ${_treatmentController.text} (₹)'
+                              : '🦷 Treatment / Procedure Charge (₹)',
+                          prefixIcon: const Icon(Icons.healing_outlined, size: 20),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _presetChip('₹500', 500, _treatmentChargeController),
+                          _presetChip('₹1,000', 1000, _treatmentChargeController),
+                          _presetChip('₹2,500', 2500, _treatmentChargeController),
+                          _presetChip('₹3,000', 3000, _treatmentChargeController),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -1025,6 +1246,103 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           _presetChip('₹200', 200, _pharmacyController),
                           _presetChip('₹350', 350, _pharmacyController),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Custom Charges Section (Add Manually like Treatment)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    '➕ Custom Charges (Add Manually):',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _addCustomChargeRow(),
+                                  icon: const Icon(Icons.add, size: 14),
+                                  label: const Text('+ Add Charge', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryTeal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_customChargeRows.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Tap "+ Add Charge" to add custom procedures, lab fees, or other charges manually.',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                                ),
+                              ),
+                            ...List.generate(_customChargeRows.length, (idx) {
+                              final row = _customChargeRows[idx];
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: TextFormField(
+                                        controller: row['title'],
+                                        decoration: InputDecoration(
+                                          labelText: 'Charge Description #${idx + 1}',
+                                          hintText: 'e.g. Scaling, Lab Fee',
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        ),
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextFormField(
+                                        controller: row['amount'],
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Amount (₹)',
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        ),
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle, color: Colors.redAccent, size: 22),
+                                      tooltip: 'Remove',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => _removeCustomChargeRow(idx),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
 

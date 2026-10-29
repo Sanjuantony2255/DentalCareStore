@@ -27,7 +27,6 @@ class ApiService {
         body: {
           'action': 'addAppointment',
           'patientName': apt.patientName,
-          'fullName': apt.patientName,
           'phone': apt.phone,
           'doctor': apt.doctor,
           'date': apt.date,
@@ -42,63 +41,6 @@ class ApiService {
     } catch (_) {
       return false;
     }
-  }
-
-  /// Triggers full Google Calendar synchronization with clinic account (sanjuantony01@gmail.com)
-  static Future<bool> syncGoogleCalendarOnline() async {
-    try {
-      final response = await http.post(
-        Uri.parse(defaultScriptUrl),
-        body: {'action': 'syncCalendar'},
-      ).timeout(const Duration(seconds: 12));
-
-      return response.statusCode == 200 || response.statusCode == 302;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Generates a Google Calendar event template URL for an appointment
-  static String getGoogleCalendarUrl(Appointment apt) {
-    final cleanName = apt.patientName.isNotEmpty ? apt.patientName : 'Patient';
-    final docText = apt.doctor.isNotEmpty ? apt.doctor : 'Attending Doctor';
-    final title = Uri.encodeComponent('Dental Appointment: $cleanName ($docText)');
-
-    String dateDigits = apt.date.replaceAll(RegExp(r'[^0-9]'), '');
-    if (dateDigits.length != 8) {
-      final now = DateTime.now();
-      dateDigits = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-    }
-
-    int startH = 10;
-    int startM = 0;
-    final match = RegExp(r'(\d{1,2}):(\d{2})\s*(AM|PM)?', caseSensitive: false).firstMatch(apt.timeSlot);
-    if (match != null) {
-      startH = int.tryParse(match.group(1) ?? '10') ?? 10;
-      startM = int.tryParse(match.group(2) ?? '0') ?? 0;
-      final ampm = (match.group(3) ?? '').toUpperCase();
-      if (ampm == 'PM' && startH < 12) startH += 12;
-      if (ampm == 'AM' && startH == 12) startH = 0;
-    }
-
-    int endH = startH;
-    int endM = startM + 30;
-    if (endM >= 60) {
-      endH = (endH + 1) % 24;
-      endM = endM - 60;
-    }
-
-    String pad(int n) => n.toString().padLeft(2, '0');
-    final startStr = '${pad(startH)}${pad(startM)}00';
-    final endStr = '${pad(endH)}${pad(endM)}00';
-    final datesStr = '${dateDigits}T$startStr/${dateDigits}T$endStr';
-
-    final details = Uri.encodeComponent(
-      'Patient: $cleanName\nPhone: ${apt.phone}\nDoctor: $docText\nReason: ${apt.reason}\nNotes: ${apt.notes}\nAppointment ID: ${apt.id}',
-    );
-    final location = Uri.encodeComponent('Manjaly Dental Care Clinic');
-
-    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=$title&dates=$datesStr&details=$details&location=$location&add=sanjuantony01%40gmail.com';
   }
 
   /// Reschedules an appointment in the Google Cloud database
@@ -171,6 +113,9 @@ class ApiService {
           'medicalHistory': patient.medicalHistory,
           'drugAllergies': patient.drugAllergies,
           'diseaseHistory': patient.diseaseHistory,
+          'treatment': invoice.treatment.isNotEmpty ? invoice.treatment : patient.diseaseHistory,
+          'treatmentCharge': invoice.treatmentCharge.toString(),
+          'customCharges': jsonEncode(invoice.customCharges.map((c) => c.toJson()).toList()),
           'consultationCharge': invoice.consultationCharge.toString(),
           'xrayCharge': invoice.xrayCharge.toString(),
           'pharmacyCharge': invoice.pharmacyCharge.toString(),
@@ -306,9 +251,12 @@ class ApiService {
               }
             }
 
+            final rawOp = item['opNumber']?.toString().trim() ?? '';
+            final effectiveOp = rawOp.isNotEmpty ? rawOp : 'OP-${(name.hashCode.abs() % 900) + 100}';
+
             final parsedPatient = Patient(
               id: phone.isNotEmpty ? 'PAT-$phone' : 'PAT-${name.hashCode.abs()}',
-              opNumber: 'OP-${(name.hashCode.abs() % 900) + 100}',
+              opNumber: effectiveOp,
               name: name,
               phone: phone,
               email: email,
@@ -343,9 +291,11 @@ class ApiService {
             final hasHeader = headers.any((h) =>
                 h.toLowerCase().contains('time') ||
                 h.toLowerCase().contains('name') ||
-                h.toLowerCase().contains('phone'));
+                h.toLowerCase().contains('phone') ||
+                h.toLowerCase().contains('op'));
 
             final colTime = _findCol(headers, ['timestamp', 'time', 'date'], 0);
+            final colOp = _findCol(headers, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], -1);
             final colName = _findCol(headers, ['full name', 'patient name', 'name'], 1);
             final colPhone = _findCol(headers, ['phone', 'mobile', 'contact'], 2);
             final colEmail = _findCol(headers, ['email', 'mail'], 3);
@@ -367,7 +317,8 @@ class ApiService {
               if (timestamp.toLowerCase().contains('timestamp')) continue;
               final name = _safeCell(r, colName);
               final phone = _safeCell(r, colPhone);
-              if (name.isEmpty && phone.isEmpty) continue;
+              final rawOp = colOp >= 0 ? _safeCell(r, colOp) : '';
+              if (name.isEmpty && phone.isEmpty && rawOp.isEmpty) continue;
               if (isDummyPatient(name, phone, '')) continue;
 
               final email = _safeCell(r, colEmail);
@@ -392,17 +343,25 @@ class ApiService {
                 amount: totalAmt,
               );
 
-              final existingIdx = csvPatients.indexWhere((p) =>
-                (phone.isNotEmpty && p.phone == phone) ||
-                (name.isNotEmpty && p.name.toLowerCase() == name.toLowerCase())
-              );
+              final effectiveOp = rawOp.isNotEmpty ? rawOp : 'OP-${(name.hashCode.abs() % 900) + 100}';
+
+              final existingIdx = csvPatients.indexWhere((p) {
+                final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+                final curDigits = phone.replaceAll(RegExp(r'\D'), '');
+                final phoneMatch = pDigits.isNotEmpty && curDigits.isNotEmpty &&
+                    (pDigits == curDigits || (pDigits.length >= 10 && curDigits.length >= 10 && pDigits.endsWith(curDigits.substring(curDigits.length - 10))));
+                final nameMatch = p.name.trim().toLowerCase() == name.trim().toLowerCase();
+                final opMatch = rawOp.isNotEmpty && p.opNumber.isNotEmpty && p.opNumber.toLowerCase() == rawOp.toLowerCase();
+                return (phoneMatch && nameMatch) || opMatch;
+              });
 
               if (existingIdx >= 0) {
                 final ex = csvPatients[existingIdx];
+                final preservedOp = ex.opNumber.isNotEmpty ? ex.opNumber : effectiveOp;
                 ex.visits.add(visit);
                 csvPatients[existingIdx] = Patient(
                   id: ex.id,
-                  opNumber: ex.opNumber,
+                  opNumber: preservedOp,
                   name: ex.name,
                   phone: ex.phone,
                   email: ex.email,
@@ -420,7 +379,7 @@ class ApiService {
               } else {
                 csvPatients.add(Patient(
                   id: phone.isNotEmpty ? 'PAT-$phone' : 'PAT-${name.hashCode.abs()}',
-                  opNumber: 'OP-${(name.hashCode.abs() % 900) + 100}',
+                  opNumber: effectiveOp,
                   name: name,
                   phone: phone,
                   email: email,

@@ -1022,10 +1022,45 @@ document.addEventListener('DOMContentLoaded', () => {
         invModalDoctor.textContent = inv.doctorConsulted;
         invModalPayment.textContent = 'PAID (' + inv.paymentMode + ')';
 
-        invModalConsultation.textContent = parseFloat(inv.consultationCharge).toFixed(2);
-        invModalXray.textContent = parseFloat(inv.xrayCharge).toFixed(2);
-        invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
-        invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
+        const invModalTreatment = document.getElementById('invModalTreatment');
+        if (invModalTreatment) {
+            invModalTreatment.textContent = inv.treatment || inv.diseaseHistory || (currentPatientProfile && currentPatientProfile.diseaseHistory) || 'General Consultation';
+        }
+
+        const invModalTableBody = document.getElementById('invModalTableBody');
+        if (invModalTableBody) {
+            let rowHtml = '';
+            let rIdx = 1;
+            const cAmt = parseFloat(inv.consultationCharge) || 0;
+            const tAmt = parseFloat(inv.treatmentCharge) || 0;
+            const xAmt = parseFloat(inv.xrayCharge) || 0;
+            const pAmt = parseFloat(inv.pharmacyCharge) || 0;
+            const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+            if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+                rowHtml += `<tr><td>${rIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${cAmt.toFixed(2)}</td></tr>`;
+            }
+            if (tAmt > 0 || (inv.treatment && inv.treatment.trim().length > 0 && tAmt > 0)) {
+                rowHtml += `<tr><td>${rIdx++}</td><td>Dental Treatment: ${escapeHtml(inv.treatment || 'Clinical Procedure')}</td><td class="amt">${tAmt.toFixed(2)}</td></tr>`;
+            }
+            if (xAmt > 0) {
+                rowHtml += `<tr><td>${rIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xAmt.toFixed(2)}</td></tr>`;
+            }
+            if (pAmt > 0) {
+                rowHtml += `<tr><td>${rIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pAmt.toFixed(2)}</td></tr>`;
+            }
+            customs.forEach(c => {
+                rowHtml += `<tr><td>${rIdx++}</td><td>${escapeHtml(c.title || 'Custom Charge')}</td><td class="amt">${(parseFloat(c.amount) || 0).toFixed(2)}</td></tr>`;
+            });
+
+            rowHtml += `<tr class="inv-total-row"><td colspan="2" style="text-align: right; font-weight: 700;">Total Amount:</td><td id="invModalTotal" style="font-weight: 800; font-size: 1.15rem; color: #0d9488;">${(parseFloat(inv.totalAmount) || 0).toFixed(2)}</td></tr>`;
+            invModalTableBody.innerHTML = rowHtml;
+        } else {
+            invModalConsultation.textContent = parseFloat(inv.consultationCharge).toFixed(2);
+            invModalXray.textContent = parseFloat(inv.xrayCharge).toFixed(2);
+            invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
+            invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
+        }
 
         const invModalSign = document.getElementById('invModalSign');
         if (invModalSign) {
@@ -1233,11 +1268,23 @@ document.addEventListener('DOMContentLoaded', () => {
 *Patient Name:* ${inv.fullName}
 *Phone:* ${inv.phone || 'N/A'}
 *Doctor Consulted:* ${inv.doctorConsulted}
+*Treatment Details:* ${inv.treatment || inv.diseaseHistory || (currentPatientProfile && currentPatientProfile.diseaseHistory) || 'General Consultation'}
 
 *CHARGES BREAKDOWN:*
-• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}
-• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}
-• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}
+${(() => {
+    let lines = [];
+    if (parseFloat(inv.consultationCharge) > 0) lines.push(`• Consultation Fee: ₹${parseFloat(inv.consultationCharge).toFixed(2)}`);
+    if (parseFloat(inv.treatmentCharge) > 0) lines.push(`• Treatment (${inv.treatment || 'Procedure'}): ₹${parseFloat(inv.treatmentCharge).toFixed(2)}`);
+    if (parseFloat(inv.xrayCharge) > 0) lines.push(`• X-Ray / Radiology: ₹${parseFloat(inv.xrayCharge).toFixed(2)}`);
+    if (parseFloat(inv.pharmacyCharge) > 0) lines.push(`• Pharmacy / Medicines: ₹${parseFloat(inv.pharmacyCharge).toFixed(2)}`);
+    if (Array.isArray(inv.customCharges)) {
+        inv.customCharges.forEach(c => {
+            lines.push(`• ${c.title || 'Custom Charge'}: ₹${(parseFloat(c.amount) || 0).toFixed(2)}`);
+        });
+    }
+    if (lines.length === 0) lines.push(`• Consultation Fee: ₹${parseFloat(inv.totalAmount || 0).toFixed(2)}`);
+    return lines.join('\n');
+})()}
 ────────────────────────
 *TOTAL AMOUNT:* ₹${parseFloat(inv.totalAmount).toFixed(2)}
 *Payment Mode:* PAID (${inv.paymentMode || 'Cash'})
@@ -1335,6 +1382,7 @@ Wishing you good oral health!
             <div><strong>OP Number:</strong> ${displayOp}</div>
             <div><strong>Doctor Consulted:</strong> ${inv.doctorConsulted}</div>
             <div><strong>Payment Mode:</strong> ${inv.paymentMode || 'Cash'}</div>
+            <div style="grid-column: span 2;"><strong>Treatment Details:</strong> ${inv.treatment || inv.diseaseHistory || (currentPatientProfile && currentPatientProfile.diseaseHistory) || 'General Consultation'}</div>
             <div style="grid-column: span 2;"><strong>Address of Patient:</strong> ${displayAddress}</div>
         </div>
         <table>
@@ -1342,10 +1390,33 @@ Wishing you good oral health!
                 <tr><th>#</th><th>Description</th><th class="amt">Amount</th></tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>Doctor Consultation Charge</td><td class="amt">${parseFloat(inv.consultationCharge).toFixed(2)}</td></tr>
-                <tr><td>2</td><td>X-Ray Examination Charge</td><td class="amt">${parseFloat(inv.xrayCharge).toFixed(2)}</td></tr>
-                <tr><td>3</td><td>Pharmacy / Medicines Charge</td><td class="amt">${parseFloat(inv.pharmacyCharge).toFixed(2)}</td></tr>
-                <tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>
+                ${(() => {
+                    let rows = [];
+                    let rIdx = 1;
+                    const cAmt = parseFloat(inv.consultationCharge) || 0;
+                    const tAmt = parseFloat(inv.treatmentCharge) || 0;
+                    const xAmt = parseFloat(inv.xrayCharge) || 0;
+                    const pAmt = parseFloat(inv.pharmacyCharge) || 0;
+                    const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+                    if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${cAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (tAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Dental Treatment: ${inv.treatment || 'Clinical Procedure'}</td><td class="amt">${tAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (xAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xAmt.toFixed(2)}</td></tr>`);
+                    }
+                    if (pAmt > 0) {
+                        rows.push(`<tr><td>${rIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pAmt.toFixed(2)}</td></tr>`);
+                    }
+                    customs.forEach(c => {
+                        rows.push(`<tr><td>${rIdx++}</td><td>${c.title || 'Custom Charge'}</td><td class="amt">${(parseFloat(c.amount) || 0).toFixed(2)}</td></tr>`);
+                    });
+                    rows.push(`<tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>`);
+                    return rows.join('');
+                })()}
             </tbody>
         </table>
         <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">

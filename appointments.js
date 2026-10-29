@@ -34,12 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tab 1: Book Appointment elements
     const appointmentForm = document.getElementById('appointmentForm');
-    const aptPatientNameInput = document.getElementById('aptPatientName');
-    const aptPhoneInput = document.getElementById('aptPhone');
-    const aptEmailInput = document.getElementById('aptEmail');
-    const aptNameSuggestions = document.getElementById('aptNameSuggestions');
-    const aptPhoneSuggestions = document.getElementById('aptPhoneSuggestions');
-    const aptHistorySuggestions = document.getElementById('aptHistorySuggestions');
     const aptDateInput = document.getElementById('aptDate');
     const aptTimeInput = document.getElementById('aptTime');
     const aptDoctorInput = document.getElementById('aptDoctor');
@@ -63,196 +57,315 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptLoader = document.getElementById('aptLoader');
     const aptFormMessage = document.getElementById('aptFormMessage');
 
-    // --- Existing Patients Suggestions Setup ---
-    let existingPatientsList = [];
+    // Tab 1 Registered Patient Autocomplete Elements
+    const aptPatientName = document.getElementById('aptPatientName');
+    const aptPhone = document.getElementById('aptPhone');
+    const aptEmail = document.getElementById('aptEmail');
+    const aptNameDropdown = document.getElementById('aptNameDropdown');
+    const aptPhoneDropdown = document.getElementById('aptPhoneDropdown');
+    const aptRegisteredBadge = document.getElementById('aptRegisteredBadge');
+    const aptRegisteredName = document.getElementById('aptRegisteredName');
+    const aptRegisteredOp = document.getElementById('aptRegisteredOp');
+    const aptRegisteredPhone = document.getElementById('aptRegisteredPhone');
+    const aptClearSuggestedBtn = document.getElementById('aptClearSuggestedBtn');
 
-    function loadExistingPatients() {
+    let registeredPatients = [];
+
+    // Helper: Normalize patient records from various storage schemas
+    function normalizePatient(p) {
+        if (!p) return null;
+        const name = (p.fullName || p.patientName || p.name || '').toString().trim();
+        const phone = (p.phone || '').toString().trim();
+        const opNumber = (p.opNumber || p.op || p.id || '').toString().trim();
+        const email = (p.email || (p.address && p.address.includes('@') ? p.address : '') || '').toString().trim();
+        const doctor = (p.doctor || p.doctorConsulted || '').toString().trim();
+        if (!name && !phone) return null;
+        return { name, phone, opNumber, email, doctor };
+    }
+
+    // Helper: Merge and deduplicate patient lists
+    function mergePatients(existingList, newList) {
+        const map = new Map();
+        [...existingList, ...newList].forEach(item => {
+            const p = normalizePatient(item);
+            if (!p) return;
+            const key = (p.phone.replace(/\D/g, '') || p.name.toLowerCase());
+            if (!map.has(key) || (!map.get(key).opNumber && p.opNumber)) {
+                map.set(key, p);
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    // Load registered patients from local caches & fetch from server
+    async function loadRegisteredPatients() {
         try {
-            const raw = localStorage.getItem('dental_cached_patients');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    existingPatientsList = parsed;
+            const rawCache = localStorage.getItem('dental_cached_patients');
+            if (rawCache) {
+                const parsed = JSON.parse(rawCache);
+                if (Array.isArray(parsed)) {
+                    registeredPatients = mergePatients(registeredPatients, parsed);
+                }
+            }
+            const rawDir = localStorage.getItem('dental_cached_patients_directory');
+            if (rawDir) {
+                const parsedDir = JSON.parse(rawDir);
+                if (Array.isArray(parsedDir)) {
+                    registeredPatients = mergePatients(registeredPatients, parsedDir);
                 }
             }
         } catch (e) {
-            console.warn('Error reading cached patients:', e);
+            console.warn('Cache read error:', e);
         }
 
-        // Fetch latest patients from server in background
-        fetch(`${SCRIPT_URL}?action=getPatients`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === 'success' && Array.isArray(result.data)) {
-                    existingPatientsList = result.data;
-                    try {
-                        localStorage.setItem('dental_cached_patients', JSON.stringify(result.data));
-                    } catch(e) {}
+        // Fetch registered patients in background from Google Apps Script
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=getPatients`);
+            const json = await res.json();
+            if (json && json.status === 'success' && Array.isArray(json.data)) {
+                registeredPatients = mergePatients(registeredPatients, json.data);
+                try {
+                    localStorage.setItem('dental_cached_patients', JSON.stringify(registeredPatients.slice(0, 300)));
+                } catch (e) {}
+            }
+        } catch (fetchErr) {
+            console.warn('Background patient sync notice:', fetchErr);
+        }
+    }
+    loadRegisteredPatients();
+
+    // Select a registered patient and autofill form
+    function selectRegisteredPatient(p) {
+        if (!p) return;
+        if (aptPatientName) aptPatientName.value = p.name;
+        if (aptPhone) aptPhone.value = p.phone;
+        if (aptEmail && p.email && p.email.includes('@') && !aptEmail.value) {
+            aptEmail.value = p.email;
+        }
+
+        // Try to match doctor if available
+        if (p.doctor && aptDoctorSelect) {
+            const cleanDoc = p.doctor.toLowerCase();
+            for (let opt of aptDoctorSelect.options) {
+                if (opt.value && opt.value !== 'Other' && opt.value.toLowerCase().includes(cleanDoc)) {
+                    aptDoctorSelect.value = opt.value;
+                    if (aptDoctorInput) aptDoctorInput.value = opt.value;
+                    if (aptDoctorGroup) aptDoctorGroup.style.display = 'none';
+                    break;
                 }
-            })
-            .catch(() => {});
-    }
-    loadExistingPatients();
+            }
+        }
 
-    function cleanDigits(str) {
-        return (str || '').toString().replace(/\D/g, '');
+        // Display recognized registered badge
+        if (aptRegisteredBadge) {
+            if (aptRegisteredName) aptRegisteredName.textContent = p.name;
+            if (aptRegisteredOp) aptRegisteredOp.textContent = p.opNumber || 'Registered';
+            if (aptRegisteredPhone) aptRegisteredPhone.textContent = p.phone || '-';
+            aptRegisteredBadge.style.display = 'flex';
+        }
+
+        // Close dropdowns
+        if (aptNameDropdown) aptNameDropdown.style.display = 'none';
+        if (aptPhoneDropdown) aptPhoneDropdown.style.display = 'none';
     }
 
-    function searchPatients(query) {
+    // Clear registered patient badge
+    if (aptClearSuggestedBtn && aptRegisteredBadge) {
+        aptClearSuggestedBtn.addEventListener('click', () => {
+            aptRegisteredBadge.style.display = 'none';
+        });
+    }
+
+    // Escape regex characters
+    function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Filter & render suggestions for Patient Name
+    function filterNameSuggestions(query) {
+        if (!aptNameDropdown) return;
         const q = (query || '').trim().toLowerCase();
-        if (!q) return [];
-        const qDig = cleanDigits(q);
-        return existingPatientsList.filter(p => {
-            const name = (p.fullName || p.name || '').toLowerCase();
-            const phone = (p.phone || '').toString();
-            const phoneDig = cleanDigits(phone);
-            const op = (p.opNumber || '').toLowerCase();
-            return name.includes(q) ||
-                   (qDig.length >= 3 && phoneDig.includes(qDig)) ||
-                   phone.includes(q) ||
-                   op.includes(q);
-        }).slice(0, 6);
-    }
-
-    function renderPatientSuggestions(matches, container, onSelect, query) {
-        if (!container) return;
-        if (!matches || matches.length === 0) {
-            container.innerHTML = '';
-            container.style.display = 'none';
+        if (q.length < 1) {
+            aptNameDropdown.style.display = 'none';
             return;
         }
 
-        const q = (query || '').trim().toLowerCase();
-        container.innerHTML = matches.map(p => {
-            const name = p.fullName || p.name || 'Patient';
-            const phone = p.phone || '';
-            const op = p.opNumber || '';
-            let displayName = escapeHtml(name);
-            if (q) {
-                const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
-                displayName = displayName.replace(regex, '<mark>$1</mark>');
-            }
+        const matches = registeredPatients.filter(p => {
+            const pName = (p.name || '').toLowerCase();
+            const pPhone = (p.phone || '').replace(/\D/g, '');
+            return pName.includes(q) || (q.length >= 3 && pPhone.includes(q));
+        }).slice(0, 8);
+
+        if (matches.length === 0) {
+            aptNameDropdown.style.display = 'none';
+            return;
+        }
+
+        const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
+        aptNameDropdown.innerHTML = matches.map(p => {
+            const displayName = p.name ? p.name.replace(regex, '<mark>$1</mark>') : 'Unknown';
+            const opHtml = p.opNumber ? `<span class="patient-suggest-op">${escapeHtml(p.opNumber)}</span>` : '';
             return `
-                <div class="patient-suggest-item" data-name="${escapeHtml(name)}" data-phone="${escapeHtml(phone)}" data-email="${escapeHtml(p.email || p.address || '')}">
-                    <div>
-                        <strong>👤 ${displayName}</strong>
-                        <span class="p-meta">📞 ${escapeHtml(phone)}</span>
-                        ${op ? `<span class="p-meta" style="color:#0d9488; font-weight: 600;">(${escapeHtml(op)})</span>` : ''}
+                <div class="patient-suggest-item" data-phone="${escapeHtml(p.phone)}" data-name="${escapeHtml(p.name)}">
+                    <div class="patient-suggest-main">
+                        <span class="patient-suggest-name">${displayName}</span>
+                        <span class="patient-suggest-phone">📞 ${escapeHtml(p.phone || '-')}</span>
                     </div>
-                    <span style="font-size: 0.72rem; color: #0d9488; font-weight: 600;">Select</span>
+                    <div class="patient-suggest-meta">
+                        ${opHtml}
+                        <span style="font-size:0.75rem; color:#0d9488; font-weight:600;">Select</span>
+                    </div>
                 </div>
             `;
         }).join('');
 
-        container.style.display = 'block';
+        aptNameDropdown.style.display = 'block';
 
-        container.querySelectorAll('.patient-suggest-item').forEach(item => {
+        aptNameDropdown.querySelectorAll('.patient-suggest-item').forEach((item, idx) => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const selName = item.getAttribute('data-name');
-                const selPhone = item.getAttribute('data-phone');
-                const selEmail = item.getAttribute('data-email');
-                onSelect(selName, selPhone, selEmail);
-                container.style.display = 'none';
+                selectRegisteredPatient(matches[idx]);
             });
         });
     }
 
-    // Name input suggestions in Book Appointment form
-    if (aptPatientNameInput && aptNameSuggestions) {
-        aptPatientNameInput.addEventListener('input', () => {
-            const val = aptPatientNameInput.value;
-            if (val.trim().length >= 1) {
-                const matches = searchPatients(val);
-                renderPatientSuggestions(matches, aptNameSuggestions, (name, phone, email) => {
-                    aptPatientNameInput.value = name;
-                    if (aptPhoneInput) aptPhoneInput.value = phone;
-                    if (aptEmailInput && email && !aptEmailInput.value) aptEmailInput.value = email;
-                }, val);
-            } else {
-                aptNameSuggestions.style.display = 'none';
+    // Filter & render suggestions for Phone Number
+    function filterPhoneSuggestions(query) {
+        if (!aptPhoneDropdown) return;
+        const qDigits = (query || '').replace(/\D/g, '');
+        if (qDigits.length < 2) {
+            aptPhoneDropdown.style.display = 'none';
+            return;
+        }
+
+        const matches = registeredPatients.filter(p => {
+            const pPhoneDigits = (p.phone || '').replace(/\D/g, '');
+            return pPhoneDigits.includes(qDigits);
+        }).slice(0, 8);
+
+        if (matches.length === 0) {
+            aptPhoneDropdown.style.display = 'none';
+            return;
+        }
+
+        aptPhoneDropdown.innerHTML = matches.map(p => {
+            const phoneStr = p.phone || '';
+            const regex = new RegExp(`(${escapeRegExp(qDigits)})`, 'g');
+            const displayPhone = phoneStr.replace(regex, '<mark>$1</mark>');
+            const opHtml = p.opNumber ? `<span class="patient-suggest-op">${escapeHtml(p.opNumber)}</span>` : '';
+            return `
+                <div class="patient-suggest-item" data-phone="${escapeHtml(p.phone)}" data-name="${escapeHtml(p.name)}">
+                    <div class="patient-suggest-main">
+                        <span class="patient-suggest-name">${escapeHtml(p.name || 'Patient')}</span>
+                        <span class="patient-suggest-phone">📞 ${displayPhone}</span>
+                    </div>
+                    <div class="patient-suggest-meta">
+                        ${opHtml}
+                        <span style="font-size:0.75rem; color:#0d9488; font-weight:600;">Select</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        aptPhoneDropdown.style.display = 'block';
+
+        aptPhoneDropdown.querySelectorAll('.patient-suggest-item').forEach((item, idx) => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectRegisteredPatient(matches[idx]);
+            });
+        });
+    }
+
+    // Attach listeners for Name input
+    if (aptPatientName) {
+        aptPatientName.addEventListener('input', () => {
+            filterNameSuggestions(aptPatientName.value);
+        });
+        aptPatientName.addEventListener('focus', () => {
+            if (aptPatientName.value.trim().length >= 1) {
+                filterNameSuggestions(aptPatientName.value);
             }
         });
+        aptPatientName.addEventListener('keydown', (e) => {
+            if (!aptNameDropdown || aptNameDropdown.style.display === 'none') return;
+            const items = aptNameDropdown.querySelectorAll('.patient-suggest-item');
+            if (!items.length) return;
+            const current = aptNameDropdown.querySelector('.patient-suggest-item.highlighted');
+            let idx = Array.from(items).indexOf(current);
 
-        aptPatientNameInput.addEventListener('focus', () => {
-            if (aptPatientNameInput.value.trim().length >= 1) {
-                const matches = searchPatients(aptPatientNameInput.value);
-                renderPatientSuggestions(matches, aptNameSuggestions, (name, phone, email) => {
-                    aptPatientNameInput.value = name;
-                    if (aptPhoneInput) aptPhoneInput.value = phone;
-                    if (aptEmailInput && email && !aptEmailInput.value) aptEmailInput.value = email;
-                }, aptPatientNameInput.value);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                idx = (idx + 1) % items.length;
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[idx].classList.add('highlighted');
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                idx = (idx - 1 + items.length) % items.length;
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[idx].classList.add('highlighted');
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                if (current) {
+                    e.preventDefault();
+                    current.click();
+                }
+            } else if (e.key === 'Escape') {
+                aptNameDropdown.style.display = 'none';
             }
         });
     }
 
-    // Phone input suggestions in Book Appointment form
-    if (aptPhoneInput && aptPhoneSuggestions) {
-        aptPhoneInput.addEventListener('input', () => {
-            const val = aptPhoneInput.value;
-            if (val.trim().length >= 2) {
-                const matches = searchPatients(val);
-                renderPatientSuggestions(matches, aptPhoneSuggestions, (name, phone, email) => {
-                    if (aptPatientNameInput) aptPatientNameInput.value = name;
-                    aptPhoneInput.value = phone;
-                    if (aptEmailInput && email && !aptEmailInput.value) aptEmailInput.value = email;
-                }, val);
-            } else {
-                aptPhoneSuggestions.style.display = 'none';
+    // Attach listeners for Phone input
+    if (aptPhone) {
+        aptPhone.addEventListener('input', () => {
+            filterPhoneSuggestions(aptPhone.value);
+        });
+        aptPhone.addEventListener('focus', () => {
+            if (aptPhone.value.replace(/\D/g, '').length >= 2) {
+                filterPhoneSuggestions(aptPhone.value);
             }
         });
+        aptPhone.addEventListener('keydown', (e) => {
+            if (!aptPhoneDropdown || aptPhoneDropdown.style.display === 'none') return;
+            const items = aptPhoneDropdown.querySelectorAll('.patient-suggest-item');
+            if (!items.length) return;
+            const current = aptPhoneDropdown.querySelector('.patient-suggest-item.highlighted');
+            let idx = Array.from(items).indexOf(current);
 
-        aptPhoneInput.addEventListener('focus', () => {
-            if (aptPhoneInput.value.trim().length >= 2) {
-                const matches = searchPatients(aptPhoneInput.value);
-                renderPatientSuggestions(matches, aptPhoneSuggestions, (name, phone, email) => {
-                    if (aptPatientNameInput) aptPatientNameInput.value = name;
-                    aptPhoneInput.value = phone;
-                    if (aptEmailInput && email && !aptEmailInput.value) aptEmailInput.value = email;
-                }, aptPhoneInput.value);
-            }
-        });
-    }
-
-    // History Search suggestions in Appointments history tab
-    if (aptHistorySearchInput && aptHistorySuggestions) {
-        aptHistorySearchInput.addEventListener('input', () => {
-            const val = aptHistorySearchInput.value;
-            if (val.trim().length >= 1) {
-                const matches = searchPatients(val);
-                renderPatientSuggestions(matches, aptHistorySuggestions, (name, phone) => {
-                    aptHistorySearchInput.value = name;
-                    fetchAllAppointments(name);
-                }, val);
-            } else {
-                aptHistorySuggestions.style.display = 'none';
-            }
-        });
-
-        aptHistorySearchInput.addEventListener('focus', () => {
-            if (aptHistorySearchInput.value.trim().length >= 1) {
-                const matches = searchPatients(aptHistorySearchInput.value);
-                renderPatientSuggestions(matches, aptHistorySuggestions, (name, phone) => {
-                    aptHistorySearchInput.value = name;
-                    fetchAllAppointments(name);
-                }, aptHistorySearchInput.value);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                idx = (idx + 1) % items.length;
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[idx].classList.add('highlighted');
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                idx = (idx - 1 + items.length) % items.length;
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[idx].classList.add('highlighted');
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                if (current) {
+                    e.preventDefault();
+                    current.click();
+                }
+            } else if (e.key === 'Escape') {
+                aptPhoneDropdown.style.display = 'none';
             }
         });
     }
 
-    // Dismiss suggestion dropdowns on outer click
+    // Close suggestion dropdowns when clicking outside
     document.addEventListener('click', (e) => {
-        if (aptNameSuggestions && aptPatientNameInput && !aptPatientNameInput.contains(e.target) && !aptNameSuggestions.contains(e.target)) {
-            aptNameSuggestions.style.display = 'none';
+        if (aptNameDropdown && !aptPatientName?.contains(e.target) && !aptNameDropdown.contains(e.target)) {
+            aptNameDropdown.style.display = 'none';
         }
-        if (aptPhoneSuggestions && aptPhoneInput && !aptPhoneInput.contains(e.target) && !aptPhoneSuggestions.contains(e.target)) {
-            aptPhoneSuggestions.style.display = 'none';
-        }
-        if (aptHistorySuggestions && aptHistorySearchInput && !aptHistorySearchInput.contains(e.target) && !aptHistorySuggestions.contains(e.target)) {
-            aptHistorySuggestions.style.display = 'none';
+        if (aptPhoneDropdown && !aptPhone?.contains(e.target) && !aptPhoneDropdown.contains(e.target)) {
+            aptPhoneDropdown.style.display = 'none';
         }
     });
-
 
     // Tab 1 Treatments Suggestion & Chips Setup
     const aptReasonInput = document.getElementById('aptReason');
@@ -405,8 +518,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const urlName = urlParams.get('patientName') || urlParams.get('name');
         const urlPhone = urlParams.get('phone');
-        if (urlName && aptPatientNameInput) aptPatientNameInput.value = urlName;
-        if (urlPhone && aptPhoneInput) aptPhoneInput.value = urlPhone;
+        if (urlName && aptPatientName) aptPatientName.value = urlName;
+        if (urlPhone && aptPhone) aptPhone.value = urlPhone;
+        if (urlName || urlPhone) {
+            setTimeout(() => {
+                const match = registeredPatients.find(p => {
+                    const pPhone = (p.phone || '').replace(/\D/g, '');
+                    const qPhone = (urlPhone || '').replace(/\D/g, '');
+                    return (qPhone && pPhone === qPhone) || (urlName && (p.name || '').toLowerCase() === urlName.toLowerCase());
+                });
+                if (match) selectRegisteredPatient(match);
+            }, 300);
+        }
     } catch (paramErr) {}
 
     // Google Calendar URL Generator for appointments
@@ -557,6 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (aptTimeInput) aptTimeInput.value = '10:00';
                 if (aptDoctorInput) aptDoctorInput.value = '';
                 if (aptQuickTreatments) aptQuickTreatments.querySelectorAll('.treatment-chip').forEach(c => c.classList.remove('active'));
+                if (aptRegisteredBadge) aptRegisteredBadge.style.display = 'none';
+                if (aptNameDropdown) aptNameDropdown.style.display = 'none';
+                if (aptPhoneDropdown) aptPhoneDropdown.style.display = 'none';
 
                 // Refresh counts
                 fetchTodayAppointments();

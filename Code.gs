@@ -232,6 +232,7 @@ function getVisitsSheet(ss) {
 
   var headers = [
     'Timestamp', 
+    'OP Number',
     'Full Name', 
     'Phone', 
     'Email', 
@@ -468,6 +469,60 @@ function handlePatientRegistration(ss, data) {
   var timestamp = data.timestamp || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
   var phoneStr = data.phone ? "'" + data.phone.toString().trim() : '';
 
+  // Intelligent OP Number lookup & preservation for returning patient with same phone & name
+  var inputPhone = (data.phone || '').toString().trim();
+  var inputPhoneDigits = extractDigits(inputPhone);
+  var inputName = (data.fullName || data.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+  var existingOpNumber = '';
+
+  var sheetsToCheck = [visitsSheet];
+  var pSheet = ss.getSheetByName("Patients");
+  if (pSheet && pSheet !== visitsSheet) sheetsToCheck.unshift(pSheet);
+  var pvSheet = ss.getSheetByName("Patient_Visits");
+  if (pvSheet && pvSheet !== visitsSheet && pvSheet !== pSheet) sheetsToCheck.push(pvSheet);
+
+  for (var sIdx = 0; sIdx < sheetsToCheck.length && !existingOpNumber; sIdx++) {
+    var checkSheet = sheetsToCheck[sIdx];
+    var existingRows = checkSheet.getDataRange().getValues();
+    if (existingRows && existingRows.length > 1) {
+      var sheetHeaders = existingRows[0].map(function(h) { return (h || '').toString().toLowerCase().trim(); });
+      var cName = getHeaderColumnIndex(sheetHeaders, ['full name', 'patient name', 'name', 'patient'], ['doctor', 'dentist'], 1);
+      var cPhone = getHeaderColumnIndex(sheetHeaders, ['phone', 'mobile', 'contact', 'cell'], [], 2);
+      var cOp = getHeaderColumnIndex(sheetHeaders, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], [], -1);
+
+      for (var r = 1; r < existingRows.length; r++) {
+        var rowR = existingRows[r];
+        var rowName = (cName >= 0 && cName < rowR.length ? formatCellValue(rowR[cName]) : '').toLowerCase().replace(/\s+/g, ' ').trim();
+        var rowPhone = cPhone >= 0 && cPhone < rowR.length ? formatCellValue(rowR[cPhone]) : '';
+        var rowPhoneDigits = extractDigits(rowPhone);
+        
+        var nameMatches = inputName && rowName && (inputName === rowName);
+        var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
+        
+        if (nameMatches && phoneMatches) {
+          if (cOp >= 0 && cOp < rowR.length) {
+            var foundOp = formatCellValue(rowR[cOp]);
+            if (foundOp) {
+              existingOpNumber = foundOp;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // If a registered person with same phone number and name has an OP number, ALWAYS use that exact same OP number!
+  if (existingOpNumber) {
+    data.opNumber = existingOpNumber;
+  } else if (!data.opNumber || data.opNumber.toString().trim() === '') {
+    var randomCode = Math.floor(1000 + Math.random() * 9000);
+    var pfx = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMM");
+    data.opNumber = 'OP-' + pfx + '-' + randomCode;
+  } else {
+    data.opNumber = data.opNumber.toString().trim();
+  }
+
   var consultation = parseFloat(data.consultationCharge) || 0;
   var xray = parseFloat(data.xrayCharge) || 0;
   var pharmacy = parseFloat(data.pharmacyCharge) || 0;
@@ -477,46 +532,6 @@ function handlePatientRegistration(ss, data) {
   var randomSuffix = Math.floor(1000 + Math.random() * 9000);
   var datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd");
   var invoiceNo = data.invoiceNo || ('INV-' + datePrefix + '-' + randomSuffix);
-
-  // Duplicate Check: Check if an existing patient with same name and phone digits exists to avoid duplicate registration
-  var cleanNameInput = (data.fullName || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
-  var cleanPhoneInput = extractDigits(data.phone || '');
-  var existingOpNumber = '';
-
-  if (cleanNameInput && cleanPhoneInput) {
-    try {
-      var vData = visitsSheet.getDataRange().getValues();
-      if (vData && vData.length > 1) {
-        var vHeaders = vData[0];
-        var colN = 1, colP = 2, colOp = -1;
-        for (var hc = 0; hc < vHeaders.length; hc++) {
-          var hTxt = (vHeaders[hc] || '').toString().toLowerCase().trim();
-          if (hTxt.indexOf('full name') !== -1 || hTxt.indexOf('patient name') !== -1) colN = hc;
-          else if (hTxt.indexOf('phone') !== -1 || hTxt.indexOf('mobile') !== -1) colP = hc;
-          else if (hTxt.indexOf('op number') !== -1 || hTxt.indexOf('op no') !== -1) colOp = hc;
-        }
-        for (var vr = 1; vr < vData.length; vr++) {
-          var rowName = (vData[vr][colN] || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
-          var rowPhone = extractDigits(vData[vr][colP] || '');
-          if (rowName === cleanNameInput && rowPhone === cleanPhoneInput) {
-            if (colOp !== -1 && vData[vr][colOp]) {
-              existingOpNumber = formatCellValue(vData[vr][colOp]);
-              break;
-            }
-          }
-        }
-      }
-    } catch (dupErr) {
-      Logger.log("Duplicate check notice: " + dupErr.toString());
-    }
-  }
-
-  var finalOpNumber = data.opNumber || existingOpNumber;
-  if (!finalOpNumber) {
-    var opDatePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMM");
-    finalOpNumber = "OP-" + opDatePrefix + "-" + Math.floor(1000 + Math.random() * 9000);
-  }
-  data.opNumber = finalOpNumber;
 
   var docName = (data.doctorConsulted || '').toString().trim();
   if (docName.toLowerCase().indexOf('consulting specialist') !== -1) docName = '';
@@ -539,6 +554,9 @@ function handlePatientRegistration(ss, data) {
       medicalHistory: data.medicalHistory || '',
       diseaseHistory: data.drugAllergies || data.diseaseHistory || '',
       drugAllergies: data.drugAllergies || data.diseaseHistory || '',
+      treatment: data.treatment || data.diseaseHistory || '',
+      treatmentCharge: parseFloat(data.treatmentCharge) || 0,
+      customCharges: data.customCharges || [],
       consultationCharge: consultation,
       xrayCharge: xray,
       pharmacyCharge: pharmacy,
@@ -575,7 +593,7 @@ function handlePatientRegistration(ss, data) {
     driveFileUrl: driveResult.fileUrl || ''
   };
   appendVisitRowMapped(visitsSheet, visitRecord, [
-    'Timestamp', 'Full Name', 'Phone', 'Email', 'DOB', 'Gender', 
+    'Timestamp', 'OP Number', 'Full Name', 'Phone', 'Email', 'DOB', 'Gender', 
     'Medical History', 'Disease History', 'Last Visit Date', 'Doctor Consulted',
     'Consultation Charge', 'X-Ray Charge', 'Pharmacy Charge', 'Total Amount', 
     'Payment Mode', 'Invoice No', 'Google Drive Invoice URL'
@@ -708,8 +726,21 @@ function handleAddAppointment(ss, data) {
   var createdAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
 
   var dateStr = (data.date || '').toString().trim(); // YYYY-MM-DD
-  var timeStr = (data.time || data.timeSlot || '10:00').toString().trim(); // HH:mm or HH:mm AM/PM
-  if (timeStr.indexOf('1899') !== -1 || !timeStr) timeStr = '10:00';
+  var timeRaw = (data.time || data.timeSlot || '10:00').toString().trim(); // HH:mm or HH:mm AM/PM
+  if (timeRaw.indexOf('1899') !== -1 || !timeRaw) timeRaw = '10:00';
+
+  // Parse hour and minute supporting 12-hour AM/PM and 24-hour formats
+  var isPM = timeRaw.toUpperCase().indexOf('PM') !== -1;
+  var isAM = timeRaw.toUpperCase().indexOf('AM') !== -1;
+  var timeDigits = timeRaw.replace(/[^0-9:]/g, '');
+  var timeParts = timeDigits.split(':');
+  var hour = timeParts.length > 0 ? (parseInt(timeParts[0], 10) || 10) : 10;
+  var minute = timeParts.length > 1 ? (parseInt(timeParts[1], 10) || 0) : 0;
+  if (isPM && hour < 12) hour += 12;
+  if (isAM && hour === 12) hour = 0;
+  var padTwo = function(n) { return ('0' + n).slice(-2); };
+  var timeStr = padTwo(hour) + ':' + padTwo(minute);
+
   var patientName = (data.patientName || data.fullName || '').toString().trim();
   var phone = (data.phone || '').toString().trim();
   var email = (data.email || '').toString().trim();
@@ -731,21 +762,6 @@ function handleAddAppointment(ss, data) {
       var year = parseInt(dateParts[0], 10);
       var month = parseInt(dateParts[1], 10) - 1;
       var day = parseInt(dateParts[2], 10);
-
-      var hour = 10;
-      var minute = 0;
-      var ampmMatch = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-      if (ampmMatch) {
-        hour = parseInt(ampmMatch[1], 10);
-        minute = parseInt(ampmMatch[2], 10);
-        var ampm = (ampmMatch[3] || '').toUpperCase();
-        if (ampm === 'PM' && hour < 12) hour += 12;
-        if (ampm === 'AM' && hour === 12) hour = 0;
-      } else {
-        var timeParts = timeStr.split(':');
-        hour = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 10;
-        minute = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
-      }
 
       var startTime = new Date(year, month, day, hour, minute);
       var endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes duration
@@ -1078,15 +1094,40 @@ function buildInvoiceHtml(inv) {
     '  <div class="info-item"><span class="info-label">OP Number: </span>' + opStr + '</div>' +
     '  <div class="info-item"><span class="info-label">Doctor Consulted: </span>' + (inv.doctorConsulted || 'Attending Doctor') + '</div>' +
     '  <div class="info-item"><span class="info-label">Payment Mode: </span>' + (inv.paymentMode || 'Cash') + '</div>' +
+    '  <div class="info-item" style="grid-column: span 2;"><span class="info-label">Treatment / Clinical Procedure: </span>' + (inv.treatment || inv.diseaseHistory || 'General Consultation') + '</div>' +
     '  <div class="info-item" style="grid-column: span 2;"><span class="info-label">Address of Patient: </span>' + addrStr + '</div>' +
     '</div>' +
     '<table>' +
     '  <thead><tr><th>#</th><th>Description</th><th class="amount">Amount</th></tr></thead>' +
     '  <tbody>' +
-    '    <tr><td>1</td><td>Doctor Consultation Charge</td><td class="amount">' + parseFloat(inv.consultationCharge).toFixed(2) + '</td></tr>' +
-    '    <tr><td>2</td><td>X-Ray Examination Charge</td><td class="amount">' + parseFloat(inv.xrayCharge).toFixed(2) + '</td></tr>' +
-    '    <tr><td>3</td><td>Pharmacy / Medicines Charge</td><td class="amount">' + parseFloat(inv.pharmacyCharge).toFixed(2) + '</td></tr>' +
-    '    <tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>' +
+    (function() {
+      var rows = '';
+      var idx = 1;
+      var cAmt = parseFloat(inv.consultationCharge) || 0;
+      var tAmt = parseFloat(inv.treatmentCharge) || 0;
+      var xAmt = parseFloat(inv.xrayCharge) || 0;
+      var pAmt = parseFloat(inv.pharmacyCharge) || 0;
+      var customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+      if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Doctor Consultation Charge</td><td class="amount">' + cAmt.toFixed(2) + '</td></tr>';
+      }
+      if (tAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Dental Treatment: ' + (inv.treatment || 'Clinical Procedure') + '</td><td class="amount">' + tAmt.toFixed(2) + '</td></tr>';
+      }
+      if (xAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>X-Ray Examination Charge</td><td class="amount">' + xAmt.toFixed(2) + '</td></tr>';
+      }
+      if (pAmt > 0) {
+        rows += '<tr><td>' + (idx++) + '</td><td>Pharmacy / Medicines Charge</td><td class="amount">' + pAmt.toFixed(2) + '</td></tr>';
+      }
+      for (var k = 0; k < customs.length; k++) {
+        var c = customs[k];
+        rows += '<tr><td>' + (idx++) + '</td><td>' + (c.title || 'Custom Charge') + '</td><td class="amount">' + (parseFloat(c.amount) || 0).toFixed(2) + '</td></tr>';
+      }
+      rows += '<tr class="total-row"><td colspan="2" style="text-align:right;">Total Amount Due:</td><td class="amount">' + parseFloat(inv.totalAmount).toFixed(2) + '</td></tr>';
+      return rows;
+    })() +
     '  </tbody>' +
     '</table>' +
     '<div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">' +
@@ -1177,7 +1218,12 @@ function doGet(e) {
     var action = e && e.parameter ? e.parameter.action : '';
     var ss = getSpreadsheet();
 
-    // 1. Get Appointments (Today, Upcoming, Datewise, or History)
+    // 1. Add Appointment with Google Calendar sync (GET fallback)
+    if (action === 'addAppointment' || action === 'bookAppointment') {
+      return handleAddAppointment(ss, e.parameter);
+    }
+
+    // 2. Get Appointments (Today, Upcoming, Datewise, or History)
     if (action === 'getAppointments') {
       return handleGetAppointments(ss, e.parameter);
     }
@@ -1367,7 +1413,7 @@ function handleSearchPatient(ss, params) {
     var colPayment = getHeaderColumnIndex(headersLower, ['payment', 'mode'], [], 14);
     var colInvoice = getHeaderColumnIndex(headersLower, ['invoice no', 'invoice number', 'invoice'], ['drive', 'url', 'file'], 15);
     var colDrive = getHeaderColumnIndex(headersLower, ['drive', 'url', 'link', 'file'], [], 16);
-    var colOp = getHeaderColumnIndex(headersLower, ['op number', 'op no', 'opnum', 'op'], [], -1);
+    var colOp = getHeaderColumnIndex(headersLower, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], [], -1);
 
     var getRowVal = function(row, colIdx) {
       if (colIdx >= 0 && colIdx < row.length) {
@@ -1617,141 +1663,172 @@ function handleSyncCalendar(ss) {
  * Groups visits by unique patient phone/name, summarizes visits & invoices
  */
 function handleGetPatients(ss) {
-  var visitsSheet = getVisitsSheet(ss);
-  var visitData = visitsSheet.getDataRange().getValues();
+  var targetSheets = [];
+  var pSheet = ss.getSheetByName("Patients");
+  var vSheet = ss.getSheetByName("Visits");
+  var pvSheet = ss.getSheetByName("Patient_Visits");
+  if (pSheet) targetSheets.push(pSheet);
+  if (vSheet && vSheet !== pSheet) targetSheets.push(vSheet);
+  if (pvSheet && pvSheet !== pSheet && pvSheet !== vSheet) targetSheets.push(pvSheet);
+  if (targetSheets.length === 0) {
+    targetSheets.push(getVisitsSheet(ss));
+  }
 
   var patientsMap = {};
   var totalVisits = 0;
 
-  if (visitData && visitData.length > 1) {
-    var headers = visitData[0];
-    var headersLower = [];
-    for (var c = 0; c < headers.length; c++) {
-      headersLower.push((headers[c] || '').toString().toLowerCase().trim());
-    }
+  for (var sIdx = 0; sIdx < targetSheets.length; sIdx++) {
+    var visitsSheet = targetSheets[sIdx];
+    var visitData = visitsSheet.getDataRange().getValues();
 
-    var colTimestamp = getHeaderColumnIndex(headersLower, ['time'], [], 0);
-    var colName = getHeaderColumnIndex(headersLower, ['full name', 'patient name', 'name'], ['doctor', 'dentist'], 1);
-    var colPhone = getHeaderColumnIndex(headersLower, ['phone', 'mobile', 'contact'], [], 2);
-    var colEmail = getHeaderColumnIndex(headersLower, ['email', 'mail'], [], 3);
-    var colDob = getHeaderColumnIndex(headersLower, ['dob', 'birth', 'age'], [], 4);
-    var colGender = getHeaderColumnIndex(headersLower, ['gender', 'sex'], [], 5);
-    var colMedical = getHeaderColumnIndex(headersLower, ['medical'], [], 6);
-    var colDisease = getHeaderColumnIndex(headersLower, ['disease'], [], 7);
-    var colLastVisit = getHeaderColumnIndex(headersLower, ['last visit', 'lastvisit'], [], 8);
-    var colDoctor = getHeaderColumnIndex(headersLower, ['doctor', 'consulted', 'dentist'], ['charge', 'fee', 'amount'], 9);
-    var colConsult = getHeaderColumnIndex(headersLower, ['consultation charge', 'consult charge', 'consultation fee', 'consult fee', 'consultation', 'consult'], ['doctor', 'dentist', 'specialist'], 10);
-    var colXray = getHeaderColumnIndex(headersLower, ['xray', 'x-ray'], [], 11);
-    var colPharm = getHeaderColumnIndex(headersLower, ['pharm', 'medicin'], [], 12);
-    var colTotal = getHeaderColumnIndex(headersLower, ['total amount', 'total', 'amount'], [], 13);
-    var colPayment = getHeaderColumnIndex(headersLower, ['payment', 'mode'], [], 14);
-    var colInvoice = getHeaderColumnIndex(headersLower, ['invoice no', 'invoice number', 'invoice'], ['drive', 'url', 'file'], 15);
-    var colDrive = getHeaderColumnIndex(headersLower, ['drive', 'url', 'link', 'file'], [], 16);
-    var colOp = getHeaderColumnIndex(headersLower, ['op number', 'op no', 'opnum', 'op'], [], -1);
+    if (visitData && visitData.length > 1) {
+      var headers = visitData[0];
+      var headersLower = [];
+      for (var c = 0; c < headers.length; c++) {
+        headersLower.push((headers[c] || '').toString().toLowerCase().trim());
+      }
 
-    var getRowVal = function(row, colIdx) {
-      if (colIdx >= 0 && colIdx < row.length) return formatCellValue(row[colIdx]);
-      return '';
-    };
+      var colTimestamp = getHeaderColumnIndex(headersLower, ['time', 'date', 'visit date', 'registered'], [], 0);
+      var colOp = getHeaderColumnIndex(headersLower, ['op number', 'op no', 'opnum', 'op#', 'op', 'patient id'], [], -1);
+      var colName = getHeaderColumnIndex(headersLower, ['full name', 'patient name', 'name', 'patient'], ['doctor', 'dentist'], 1);
+      var colPhone = getHeaderColumnIndex(headersLower, ['phone', 'mobile', 'contact', 'cell'], [], 2);
+      var colEmail = getHeaderColumnIndex(headersLower, ['email', 'mail', 'address', 'place', 'location', 'city'], [], 3);
+      var colDob = getHeaderColumnIndex(headersLower, ['dob', 'birth', 'age', 'years'], [], 4);
+      var colGender = getHeaderColumnIndex(headersLower, ['gender', 'sex'], [], 5);
+      var colMedical = getHeaderColumnIndex(headersLower, ['medical', 'medical history'], [], 6);
+      var colDisease = getHeaderColumnIndex(headersLower, ['disease', 'complaint', 'treatment', 'procedure'], [], 7);
+      var colLastVisit = getHeaderColumnIndex(headersLower, ['last visit', 'lastvisit', 'visit date', 'date'], [], 8);
+      var colDoctor = getHeaderColumnIndex(headersLower, ['doctor', 'consulted', 'dentist'], ['charge', 'fee', 'amount'], 9);
+      var colConsult = getHeaderColumnIndex(headersLower, ['consultation charge', 'consult charge', 'consultation fee', 'consult fee', 'consultation', 'consult'], ['doctor', 'dentist', 'specialist'], 10);
+      var colXray = getHeaderColumnIndex(headersLower, ['xray', 'x-ray'], [], 11);
+      var colPharm = getHeaderColumnIndex(headersLower, ['pharm', 'medicin'], [], 12);
+      var colTotal = getHeaderColumnIndex(headersLower, ['total amount', 'total', 'amount', 'fee'], [], 13);
+      var colPayment = getHeaderColumnIndex(headersLower, ['payment', 'mode'], [], 14);
+      var colInvoice = getHeaderColumnIndex(headersLower, ['invoice no', 'invoice number', 'invoice'], ['drive', 'url', 'file'], 15);
+      var colDrive = getHeaderColumnIndex(headersLower, ['drive', 'url', 'link', 'file'], [], 16);
 
-    for (var i = 1; i < visitData.length; i++) {
-      var row = visitData[i];
-      if (!row || row.length === 0) continue;
+      var getRowVal = function(row, colIdx) {
+        if (colIdx >= 0 && colIdx < row.length) return formatCellValue(row[colIdx]);
+        return '';
+      };
 
-      var rawName = getRowVal(row, colName).trim();
-      var rawPhone = getRowVal(row, colPhone).trim();
-      var rawDob = getRowVal(row, colDob).trim();
-      if (!rawName && !rawPhone) continue;
+      for (var i = 1; i < visitData.length; i++) {
+        var row = visitData[i];
+        if (!row || row.length === 0) continue;
 
-      totalVisits++;
-      var phoneDigits = extractDigits(rawPhone);
-      var cleanName = rawName.toLowerCase().replace(/\s+/g, ' ');
-      var normDob = normalizeDate(rawDob);
+        var rawName = getRowVal(row, colName).trim();
+        var rawPhone = getRowVal(row, colPhone).trim();
+        var rawOp = colOp !== -1 ? getRowVal(row, colOp).trim() : '';
+        var rawDob = getRowVal(row, colDob).trim();
+        if (!rawName && !rawPhone && !rawOp) continue;
 
-      // Identity Rule: Same phone number, name, and date of birth is the SAME PERSON
-      var existingKey = null;
-      for (var k in patientsMap) {
-        var p = patientsMap[k];
-        var pName = (p.fullName || '').toLowerCase().replace(/\s+/g, ' ').trim();
-        var pDigits = extractDigits(p.phone);
-        var pDob = normalizeDate(p.dob);
+        totalVisits++;
+        var phoneDigits = extractDigits(rawPhone);
+        var cleanName = rawName.toLowerCase().replace(/\s+/g, ' ').trim();
 
-        var nameMatch = cleanName === pName;
-        var phoneMatch = phoneDigits === pDigits;
+        // Identity Rule: Same phone number AND same name, OR matching OP Number is the SAME PERSON
+        var existingKey = null;
+        for (var k in patientsMap) {
+          var p = patientsMap[k];
+          var pName = (p.fullName || '').toLowerCase().replace(/\s+/g, ' ').trim();
+          var pDigits = extractDigits(p.phone);
 
-        if (nameMatch && phoneMatch) {
-          if (normDob && pDob) {
-            if (normDob === pDob) {
-              existingKey = k;
-              break;
-            }
-          } else {
-            // One or both DOBs empty: treat as same person and backfill DOB
+          var nameMatch = cleanName && pName && (cleanName === pName);
+          var phoneMatch = phoneDigits && pDigits && (phoneDigits === pDigits || (phoneDigits.length >= 10 && pDigits.length >= 10 && phoneDigits.slice(-10) === pDigits.slice(-10)));
+          var opMatch = rawOp && p.opNumber && (rawOp.toLowerCase() === p.opNumber.toLowerCase());
+
+          if ((nameMatch && phoneMatch) || opMatch) {
             existingKey = k;
-            if (!p.dob && rawDob) p.dob = rawDob;
             break;
           }
         }
-      }
 
-      var patientKey = existingKey || (cleanName ? (cleanName + (phoneDigits ? ('_' + phoneDigits) : '') + (normDob ? ('_' + normDob) : '')) : (phoneDigits ? ('phone_' + phoneDigits) : ('pt_' + i)));
+        var patientKey = existingKey || (cleanName ? (cleanName + (phoneDigits ? ('_' + phoneDigits) : '')) : (rawOp ? ('op_' + rawOp) : ('pt_' + i)));
 
-      var doc = getRowVal(row, colDoctor);
-      if (doc.toLowerCase().indexOf('consulting specialist') !== -1) doc = '';
+        var doc = getRowVal(row, colDoctor);
+        if (doc.toLowerCase().indexOf('consulting specialist') !== -1) doc = '';
 
-      var consultRaw = getRowVal(row, colConsult);
-      var consult = parseFloat(consultRaw) || 0;
-      if (consultRaw && doc && consultRaw.toLowerCase().trim() === doc.toLowerCase().trim()) {
-        consult = 0;
-      }
-      var xray = parseFloat(getRowVal(row, colXray)) || 0;
-      var pharm = parseFloat(getRowVal(row, colPharm)) || 0;
-      var tot = parseFloat(getRowVal(row, colTotal)) || (consult + xray + pharm);
+        var consultRaw = getRowVal(row, colConsult);
+        var consult = parseFloat(consultRaw) || 0;
+        if (consultRaw && doc && consultRaw.toLowerCase().trim() === doc.toLowerCase().trim()) {
+          consult = 0;
+        }
+        var xray = parseFloat(getRowVal(row, colXray)) || 0;
+        var pharm = parseFloat(getRowVal(row, colPharm)) || 0;
+        var tot = parseFloat(getRowVal(row, colTotal)) || (consult + xray + pharm);
 
-      var visitObj = {
-        timestamp: getRowVal(row, colTimestamp),
-        doctorConsulted: doc,
-        medicalHistory: getRowVal(row, colMedical),
-        diseaseHistory: getRowVal(row, colDisease),
-        lastVisitDate: getRowVal(row, colLastVisit),
-        consultationCharge: consult,
-        xrayCharge: xray,
-        pharmacyCharge: pharm,
-        totalAmount: tot,
-        paymentMode: getRowVal(row, colPayment) || 'Cash',
-        invoiceNo: getRowVal(row, colInvoice),
-        opNumber: colOp !== -1 ? getRowVal(row, colOp) : '',
-        driveFileUrl: getRowVal(row, colDrive)
-      };
-
-      if (!patientsMap[patientKey]) {
-        patientsMap[patientKey] = {
-          fullName: rawName,
-          phone: rawPhone,
-          email: getRowVal(row, colEmail),
-          address: getRowVal(row, colEmail),
-          dob: getRowVal(row, colDob),
-          age: getRowVal(row, colDob),
-          opNumber: colOp !== -1 ? getRowVal(row, colOp) : '',
-          gender: getRowVal(row, colGender) || 'Not Specified',
+        var visitObj = {
+          timestamp: getRowVal(row, colTimestamp),
           doctorConsulted: doc,
           medicalHistory: getRowVal(row, colMedical),
           diseaseHistory: getRowVal(row, colDisease),
-          latestVisit: visitObj.timestamp || getRowVal(row, colLastVisit),
-          firstVisit: visitObj.timestamp,
-          visitsCount: 1,
-          totalBilled: tot,
-          visits: [visitObj],
-          invoices: []
+          lastVisitDate: getRowVal(row, colLastVisit),
+          consultationCharge: consult,
+          xrayCharge: xray,
+          pharmacyCharge: pharm,
+          totalAmount: tot,
+          paymentMode: getRowVal(row, colPayment) || 'Cash',
+          invoiceNo: getRowVal(row, colInvoice),
+          opNumber: rawOp,
+          driveFileUrl: getRowVal(row, colDrive)
         };
-      } else {
-        var p = patientsMap[patientKey];
-        p.visitsCount++;
-        p.totalBilled += tot;
-        if (!p.email && getRowVal(row, colEmail)) p.email = getRowVal(row, colEmail);
-        if (!p.dob && getRowVal(row, colDob)) p.dob = getRowVal(row, colDob);
-        if (doc) p.doctorConsulted = doc;
-        p.visits.push(visitObj);
+
+        if (!patientsMap[patientKey]) {
+          patientsMap[patientKey] = {
+            fullName: rawName || (rawOp ? ('Patient ' + rawOp) : 'Valued Patient'),
+            phone: rawPhone,
+            email: getRowVal(row, colEmail),
+            address: getRowVal(row, colEmail),
+            dob: rawDob,
+            age: rawDob,
+            opNumber: rawOp,
+            gender: getRowVal(row, colGender) || 'Not Specified',
+            doctorConsulted: doc,
+            medicalHistory: getRowVal(row, colMedical),
+            diseaseHistory: getRowVal(row, colDisease),
+            latestVisit: visitObj.timestamp || getRowVal(row, colLastVisit),
+            firstVisit: visitObj.timestamp,
+            visitsCount: 1,
+            totalBilled: tot,
+            visits: [visitObj],
+            invoices: []
+          };
+        } else {
+          var p = patientsMap[patientKey];
+          p.visitsCount++;
+          p.totalBilled += tot;
+          if (!p.opNumber && rawOp) p.opNumber = rawOp;
+          if (!p.fullName && rawName) p.fullName = rawName;
+          if (!p.phone && rawPhone) p.phone = rawPhone;
+          if (!p.email && getRowVal(row, colEmail)) p.email = getRowVal(row, colEmail);
+          if (!p.address && getRowVal(row, colEmail)) p.address = getRowVal(row, colEmail);
+          if (!p.dob && rawDob) p.dob = rawDob;
+          if (!p.gender || p.gender === 'Not Specified') {
+            var g = getRowVal(row, colGender);
+            if (g) p.gender = g;
+          }
+          if (!p.medicalHistory && getRowVal(row, colMedical)) p.medicalHistory = getRowVal(row, colMedical);
+          if (!p.diseaseHistory && getRowVal(row, colDisease)) p.diseaseHistory = getRowVal(row, colDisease);
+          if (doc && (!p.doctorConsulted || p.doctorConsulted === 'Attending Doctor')) p.doctorConsulted = doc;
+          
+          if (!visitObj.opNumber && p.opNumber) {
+            visitObj.opNumber = p.opNumber;
+          }
+          p.visits.push(visitObj);
+        }
+      }
+    }
+  }
+
+  // Ensure every patient profile has an OP number if found in any visit
+  for (var key in patientsMap) {
+    var item = patientsMap[key];
+    if (!item.opNumber && item.visits) {
+      for (var v = 0; v < item.visits.length; v++) {
+        if (item.visits[v].opNumber) {
+          item.opNumber = item.visits[v].opNumber;
+          break;
+        }
       }
     }
   }

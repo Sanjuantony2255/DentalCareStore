@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/appointment.dart';
+import '../models/patient.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -27,6 +28,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    if (widget.storage.patients.isEmpty) {
+      widget.storage.syncWithCloud();
+    }
   }
 
   @override
@@ -181,6 +185,23 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     String doctor = kClinicDoctors[0];
     final manualDoctorCtrl = TextEditingController();
 
+    Patient? selectedPatient;
+    List<Patient> nameSuggestions = [];
+    List<Patient> phoneSuggestions = [];
+
+    // Pre-match registered patient if initial values were provided
+    if ((patientName != null && patientName.isNotEmpty) || (phone != null && phone.isNotEmpty)) {
+      final cleanP = (phone ?? '').replaceAll(RegExp(r'\D'), '');
+      final cleanN = (patientName ?? '').trim().toLowerCase();
+      try {
+        selectedPatient = widget.storage.patients.firstWhere((p) {
+          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+          final pN = p.name.trim().toLowerCase();
+          return (cleanP.isNotEmpty && pDigits == cleanP) || (cleanN.isNotEmpty && pN == cleanN);
+        });
+      } catch (_) {}
+    }
+
     final timeSlots = [
       '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',
       '11:30 AM', '02:00 PM', '02:30 PM', '04:00 PM', '05:30 PM'
@@ -194,311 +215,459 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Book New Appointment',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+        builder: (ctx, setModalState) {
+          void selectPatient(Patient p) {
+            nameCtrl.text = p.name;
+            phoneCtrl.text = p.phone;
+            if (p.doctor.isNotEmpty) {
+              final docMatch = kClinicDoctors.firstWhere(
+                (d) => d.toLowerCase().contains(p.doctor.toLowerCase()) || p.doctor.toLowerCase().contains(d.toLowerCase()),
+                orElse: () => '',
+              );
+              if (docMatch.isNotEmpty) {
+                doctor = docMatch;
+              }
+            }
+            selectedPatient = p;
+            nameSuggestions = [];
+            phoneSuggestions = [];
+            setModalState(() {});
+          }
+
+          void onNameChanged(String val) {
+            final q = val.trim().toLowerCase();
+            if (q.isEmpty) {
+              setModalState(() {
+                nameSuggestions = [];
+                if (selectedPatient != null && selectedPatient!.name.trim().toLowerCase() != q) {
+                  selectedPatient = null;
+                }
+              });
+              return;
+            }
+            final matches = widget.storage.patients.where((p) {
+              final pName = p.name.trim().toLowerCase();
+              final pPhone = p.phone.replaceAll(RegExp(r'\D'), '');
+              return pName.contains(q) || (q.length >= 3 && pPhone.contains(q));
+            }).take(5).toList();
+
+            setModalState(() {
+              nameSuggestions = matches;
+              phoneSuggestions = [];
+              if (selectedPatient != null && selectedPatient!.name.trim().toLowerCase() != q) {
+                selectedPatient = null;
+              }
+            });
+          }
+
+          void onPhoneChanged(String val) {
+            final qDigits = val.replaceAll(RegExp(r'\D'), '');
+            if (qDigits.length < 2) {
+              setModalState(() {
+                phoneSuggestions = [];
+                if (selectedPatient != null && selectedPatient!.phone.replaceAll(RegExp(r'\D'), '') != qDigits) {
+                  selectedPatient = null;
+                }
+              });
+              return;
+            }
+            final matches = widget.storage.patients.where((p) {
+              final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+              return pDigits.contains(qDigits);
+            }).take(5).toList();
+
+            setModalState(() {
+              phoneSuggestions = matches;
+              nameSuggestions = [];
+              if (selectedPatient != null && selectedPatient!.phone.replaceAll(RegExp(r'\D'), '') != qDigits) {
+                selectedPatient = null;
+              }
+            });
+          }
+
+          Widget buildSuggestionCard(List<Patient> list) {
+            if (list.isEmpty) return const SizedBox.shrink();
+            return Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.primaryTeal.withValues(alpha: 0.35)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primarySubtle,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.people_outline, size: 14, color: AppTheme.primaryDark),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Registered Patients (${list.length})',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryDark),
+                        ),
+                        const Spacer(),
+                        const Text(
+                          'Tap to select',
+                          style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Patient Name *', prefixIcon: Icon(Icons.person_outline)),
-                  onChanged: (_) => setModalState(() {}),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone Number *', prefixIcon: Icon(Icons.phone_outlined)),
-                  onChanged: (_) => setModalState(() {}),
-                ),
-                Builder(
-                  builder: (context) {
-                    final nQuery = nameCtrl.text.trim().toLowerCase();
-                    final pDigits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-                    if (nQuery.isEmpty && pDigits.length < 2) return const SizedBox.shrink();
-
-                    final matches = widget.storage.patients.where((p) {
-                      final pn = p.name.toLowerCase();
-                      final pp = p.phone.replaceAll(RegExp(r'\D'), '');
-                      return (nQuery.isNotEmpty && pn.contains(nQuery)) ||
-                             (pDigits.length >= 2 && pp.contains(pDigits));
-                    }).take(3).toList();
-
-                    if (matches.isEmpty) return const SizedBox.shrink();
-
-                    return Container(
-                      margin: const EdgeInsets.only(top: 8, bottom: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF86EFAC)),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.person_search_outlined, size: 14, color: Color(0xFF166534)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Suggested Existing Patients:',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          ...matches.map((p) => InkWell(
-                            onTap: () {
-                              setModalState(() {
-                                nameCtrl.text = p.name;
-                                phoneCtrl.text = p.phone;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
+                  ),
+                  ...list.map((p) {
+                    final op = p.opNumber.isNotEmpty ? p.opNumber : (p.id.isNotEmpty ? 'OP-${p.id.replaceAll(RegExp(r'\D'), '')}' : '');
+                    return InkWell(
+                      onTap: () => selectPatient(p),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.account_circle, size: 18, color: AppTheme.primaryTeal),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      '${p.name} • 📞 ${p.phone} (${p.opNumber})',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  Text(
+                                    p.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
                                   ),
-                                  const Text('Select', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryTeal)),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.phone, size: 11, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        p.phone,
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
-                          )),
-                        ],
+                            if (op.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primarySubtle,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  op,
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primaryDark),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     );
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: doctor,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Attending Doctor', prefixIcon: Icon(Icons.medical_services_outlined)),
-                  items: kClinicDoctors.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (v) => setModalState(() => doctor = v ?? kClinicDoctors[0]),
-                ),
-                if (doctor == 'Other (Type Manually)') ...[
+                  }),
+                ],
+              ),
+            );
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Book New Appointment',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Patient Name *',
+                      hintText: 'Type to search registered patients...',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      suffixIcon: nameCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                nameCtrl.clear();
+                                onNameChanged('');
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: onNameChanged,
+                  ),
+                  if (nameSuggestions.isNotEmpty) buildSuggestionCard(nameSuggestions),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: manualDoctorCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Type Doctor Name Manually *',
-                      prefixIcon: Icon(Icons.person_add_alt_outlined),
-                      hintText: 'e.g. Dr. Jeswin Jose BDS',
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number *',
+                      hintText: 'Type to suggest by phone...',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      suffixIcon: phoneCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                phoneCtrl.clear();
+                                onPhoneChanged('');
+                              },
+                            )
+                          : null,
                     ),
+                    onChanged: onPhoneChanged,
                   ),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: date,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 90)),
-                          );
-                          if (picked != null) setModalState(() => date = picked);
-                        },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Date', prefixIcon: Icon(Icons.calendar_today_outlined)),
-                          child: Text(DateFormat('yyyy-MM-dd').format(date)),
-                        ),
+                  if (phoneSuggestions.isNotEmpty) buildSuggestionCard(phoneSuggestions),
+                  if (selectedPatient != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF34D399)),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: timeSlot,
-                        decoration: const InputDecoration(labelText: 'Time Slot', prefixIcon: Icon(Icons.access_time)),
-                        items: timeSlots.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                        onChanged: (v) => setModalState(() => timeSlot = v ?? timeSlots[0]),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Treatment / Procedure',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-                    ),
-                    InkWell(
-                      onTap: () => _openTreatmentSelectSheet(ctx, (t) {
-                        setModalState(() => reasonCtrl.text = t);
-                      }),
-                      child: const Text(
-                        'Browse All 58 Treatments →',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF059669)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Registered Patient: ${selectedPatient!.name} (${selectedPatient!.opNumber.isNotEmpty ? selectedPatient!.opNumber : "Registered"})',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                selectedPatient = null;
+                              });
+                            },
+                            child: const Icon(Icons.close, size: 16, color: Color(0xFF065F46)),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      'CONSULTATION',
-                      'SCALING',
-                      'RCT',
-                      'COMPOSITE',
-                      'CROWN PFM',
-                      'POST & CORE',
-                      'NORMAL EXTRACTION',
-                      'CLEAR ALIGNERS',
-                    ].map((t) {
-                      final isSel = reasonCtrl.text == t;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ActionChip(
-                          label: Text(t, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.w700 : FontWeight.w500, color: isSel ? AppTheme.primaryDark : const Color(0xFF334155))),
-                          backgroundColor: isSel ? AppTheme.primarySubtle : const Color(0xFFF1F5F9),
-                          side: BorderSide(color: isSel ? AppTheme.primaryTeal : const Color(0xFFCBD5E1)),
-                          onPressed: () => setModalState(() => reasonCtrl.text = t),
-                        ),
-                      );
-                    }).toList(),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: doctor,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Attending Doctor', prefixIcon: Icon(Icons.medical_services_outlined)),
+                    items: kClinicDoctors.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: (v) => setModalState(() => doctor = v ?? kClinicDoctors[0]),
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: reasonCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Treatment / Reason *',
-                    prefixIcon: const Icon(Icons.healing_outlined),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.list_alt_rounded, color: AppTheme.primaryTeal),
-                      tooltip: 'Select treatment',
-                      onPressed: () => _openTreatmentSelectSheet(ctx, (t) {
-                        setModalState(() => reasonCtrl.text = t);
-                      }),
+                  if (doctor == 'Other (Type Manually)') ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: manualDoctorCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Type Doctor Name Manually *',
+                        prefixIcon: Icon(Icons.person_add_alt_outlined),
+                        hintText: 'e.g. Dr. Jeswin Jose BDS',
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: notesCtrl,
-                  decoration: const InputDecoration(labelText: 'Notes (Optional)', prefixIcon: Icon(Icons.notes_outlined)),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF86EFAC)),
-                  ),
-                  child: const Row(
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      Icon(Icons.calendar_month, color: Color(0xFF166534), size: 18),
-                      SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          'Google Calendar Sync Active: Booking automatically pushes notifications & reminders to sanjuantony01@gmail.com.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w600),
+                        child: InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: date,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 90)),
+                            );
+                            if (picked != null) setModalState(() => date = picked);
+                          },
+                          child: InputDecorator(
+                            decoration: const InputDecoration(labelText: 'Date', prefixIcon: Icon(Icons.calendar_today_outlined)),
+                            child: Text(DateFormat('yyyy-MM-dd').format(date)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: timeSlot,
+                          decoration: const InputDecoration(labelText: 'Time Slot', prefixIcon: Icon(Icons.access_time)),
+                          items: timeSlots.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                          onChanged: (v) => setModalState(() => timeSlot = v ?? timeSlots[0]),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter name and phone')),
-                      );
-                      return;
-                    }
-
-                    final effectiveDoctor = doctor == 'Other (Type Manually)'
-                        ? (manualDoctorCtrl.text.trim().isNotEmpty
-                            ? manualDoctorCtrl.text.trim()
-                            : 'Attending Doctor')
-                        : doctor;
-
-                    final apt = Appointment(
-                      id: 'APT-${DateTime.now().millisecondsSinceEpoch % 100000}',
-                      patientName: nameCtrl.text.trim(),
-                      phone: phoneCtrl.text.trim(),
-                      doctor: effectiveDoctor,
-                      date: DateFormat('yyyy-MM-dd').format(date),
-                      timeSlot: timeSlot,
-                      reason: reasonCtrl.text.trim(),
-                      notes: notesCtrl.text.trim(),
-                      status: 'Upcoming',
-                    );
-
-                    await widget.storage.saveAppointment(apt);
-                    ApiService.syncAppointmentOnline(apt);
-
-                    if (!ctx.mounted) return;
-                    Navigator.pop(ctx);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Appointment booked & synced to Google Calendar for ${apt.patientName}!'),
-                        backgroundColor: AppTheme.primaryTeal,
-                        action: SnackBarAction(
-                          label: 'View Calendar',
-                          textColor: Colors.white,
-                          onPressed: () async {
-                            final uri = Uri.parse(ApiService.getGoogleCalendarUrl(apt));
-                            try {
-                              final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              if (!launched) await launchUrl(uri);
-                            } catch (_) {
-                              await launchUrl(uri);
-                            }
-                          },
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Treatment / Procedure',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                      ),
+                      InkWell(
+                        onTap: () => _openTreatmentSelectSheet(ctx, (t) {
+                          setModalState(() => reasonCtrl.text = t);
+                        }),
+                        child: const Text(
+                          'Browse All 58 Treatments →',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryTeal),
                         ),
                       ),
-                    );
-                  },
-                  child: const Text('Confirm Appointment'),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        'CONSULTATION',
+                        'SCALING',
+                        'RCT',
+                        'COMPOSITE',
+                        'CROWN PFM',
+                        'POST & CORE',
+                        'NORMAL EXTRACTION',
+                        'CLEAR ALIGNERS',
+                      ].map((t) {
+                        final isSel = reasonCtrl.text == t;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ActionChip(
+                            label: Text(t, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.w700 : FontWeight.w500, color: isSel ? AppTheme.primaryDark : const Color(0xFF334155))),
+                            backgroundColor: isSel ? AppTheme.primarySubtle : const Color(0xFFF1F5F9),
+                            side: BorderSide(color: isSel ? AppTheme.primaryTeal : const Color(0xFFCBD5E1)),
+                            onPressed: () => setModalState(() => reasonCtrl.text = t),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reasonCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Treatment / Reason *',
+                      prefixIcon: const Icon(Icons.healing_outlined),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.list_alt_rounded, color: AppTheme.primaryTeal),
+                        tooltip: 'Select treatment',
+                        onPressed: () => _openTreatmentSelectSheet(ctx, (t) {
+                          setModalState(() => reasonCtrl.text = t);
+                        }),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesCtrl,
+                    decoration: const InputDecoration(labelText: 'Notes (Optional)', prefixIcon: Icon(Icons.notes_outlined)),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF86EFAC)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.notifications_active_outlined, size: 16, color: Color(0xFF16A34A)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Google Calendar Sync Active: Notification push reminders will be scheduled for this appointment.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter name and phone')),
+                        );
+                        return;
+                      }
+
+                      final effectiveDoctor = doctor == 'Other (Type Manually)'
+                          ? (manualDoctorCtrl.text.trim().isNotEmpty
+                              ? manualDoctorCtrl.text.trim()
+                              : 'Attending Doctor')
+                          : doctor;
+
+                      final apt = Appointment(
+                        id: 'APT-${DateTime.now().millisecondsSinceEpoch % 100000}',
+                        patientName: nameCtrl.text.trim(),
+                        phone: phoneCtrl.text.trim(),
+                        doctor: effectiveDoctor,
+                        date: DateFormat('yyyy-MM-dd').format(date),
+                        timeSlot: timeSlot,
+                        reason: reasonCtrl.text.trim(),
+                        notes: notesCtrl.text.trim(),
+                        status: 'Upcoming',
+                      );
+
+                      await widget.storage.saveAppointment(apt);
+                      ApiService.syncAppointmentOnline(apt);
+
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✓ Appointment booked & synced to Google Calendar for ${apt.patientName}!'),
+                          backgroundColor: AppTheme.primaryTeal,
+                        ),
+                      );
+                    },
+                    child: const Text('Confirm Appointment & Sync'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
 
   void _openRescheduleDialog(Appointment apt) {
     DateTime date = DateTime.tryParse(apt.date) ?? DateTime.now();
@@ -647,29 +816,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 : const Text('Appointments & Calendar'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.sync_rounded),
-                tooltip: 'Sync Google Calendar',
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Syncing with Google Calendar (sanjuantony01@gmail.com)...'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                  final ok = await ApiService.syncGoogleCalendarOnline();
-                  await widget.storage.syncWithCloud();
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok
-                          ? '✓ Synced with Google Calendar (sanjuantony01@gmail.com)! Reminders & notifications active.'
-                          : 'Google Calendar sync command sent to sanjuantony01@gmail.com.'),
-                      backgroundColor: AppTheme.primaryTeal,
-                    ),
-                  );
-                },
-              ),
-              IconButton(
                 icon: Icon(_showSearch ? Icons.close : Icons.search),
                 tooltip: _showSearch ? 'Close Search' : 'Search Appointments',
                 onPressed: () {
@@ -700,135 +846,90 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text('Book Appointment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
-          body: Column(
+          body: TabBarView(
+            controller: _tabController,
             children: [
-              if (_showSearch && query.isNotEmpty)
-                Builder(
-                  builder: (context) {
-                    final matchingPatientSuggestions = widget.storage.patients.where((p) {
-                      final pName = p.name.toLowerCase();
-                      final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-                      return pName.contains(query) || (qDigits.length >= 2 && pDigits.contains(qDigits));
-                    }).take(4).toList();
+              // Tab 1: Today
+              _buildAppointmentsList(
+                filteredToday,
+                query.isNotEmpty
+                    ? 'No appointments today matched "$query".'
+                    : 'No appointments scheduled for today.',
+              ),
 
-                    if (matchingPatientSuggestions.isEmpty) return const SizedBox.shrink();
+              // Tab 2: Upcoming
+              _buildAppointmentsList(
+                filteredUpcoming,
+                query.isNotEmpty
+                    ? 'No upcoming appointments matched "$query".'
+                    : 'No upcoming appointments.',
+              ),
 
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      color: const Color(0xFFF1F5F9),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            const Text('Suggested Patients: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                            ...matchingPatientSuggestions.map((p) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: ActionChip(
-                                avatar: const Icon(Icons.person, size: 14, color: AppTheme.primaryTeal),
-                                label: Text('${p.name} (📞 ${p.phone})', style: const TextStyle(fontSize: 11)),
-                                backgroundColor: Colors.white,
-                                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                onPressed: () {
-                                  _searchController.text = p.name;
-                                  setState(() {});
-                                },
-                              ),
-                            )),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Tab 1: Today
-                    _buildAppointmentsList(
-                      filteredToday,
-                      query.isNotEmpty
-                          ? 'No appointments today matched "$query".'
-                          : 'No appointments scheduled for today.',
-                    ),
-
-                    // Tab 2: Upcoming
-                    _buildAppointmentsList(
-                      filteredUpcoming,
-                      query.isNotEmpty
-                          ? 'No upcoming appointments matched "$query".'
-                          : 'No upcoming appointments.',
-                    ),
-
-                    // Tab 3: Date Filter
-                    Column(
+              // Tab 3: Date Filter
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: Colors.white,
+                    child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          color: Colors.white,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: _selectedDate,
-                                      firstDate: DateTime(2025),
-                                      lastDate: DateTime(2028),
-                                    );
-                                    if (picked != null) setState(() => _selectedDate = picked);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.calendar_month, size: 20, color: AppTheme.primaryTeal),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          DateFormat('EEE, dd MMM yyyy').format(_selectedDate),
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedDate,
+                                firstDate: DateTime(2025),
+                                lastDate: DateTime(2028),
+                              );
+                              if (picked != null) setState(() => _selectedDate = picked);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_month, size: 20, color: AppTheme.primaryTeal),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    DateFormat('EEE, dd MMM yyyy').format(_selectedDate),
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                                   ),
-                                ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.today, color: AppTheme.primaryTeal),
-                                tooltip: 'Today',
-                                onPressed: () => setState(() => _selectedDate = DateTime.now()),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                        Expanded(
-                          child: _buildAppointmentsList(
-                            filteredDatewise,
-                            query.isNotEmpty
-                                ? 'No appointments on ${DateFormat('dd MMM yyyy').format(_selectedDate)} matched "$query".'
-                                : 'No appointments for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.',
-                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.today, color: AppTheme.primaryTeal),
+                          tooltip: 'Today',
+                          onPressed: () => setState(() => _selectedDate = DateTime.now()),
                         ),
                       ],
                     ),
-
-                    // Tab 4: All
-                    _buildAppointmentsList(
-                      filteredAll,
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  Expanded(
+                    child: _buildAppointmentsList(
+                      filteredDatewise,
                       query.isNotEmpty
-                          ? 'No appointments matched "$query".'
-                          : 'No appointment history available.',
+                          ? 'No appointments on ${DateFormat('dd MMM yyyy').format(_selectedDate)} matched "$query".'
+                          : 'No appointments for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.',
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+
+              // Tab 4: All
+              _buildAppointmentsList(
+                filteredAll,
+                query.isNotEmpty
+                    ? 'No appointments matched "$query".'
+                    : 'No appointment history available.',
               ),
             ],
           ),
@@ -970,19 +1071,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       icon: const Icon(Icons.phone, size: 20, color: AppTheme.primaryTeal),
                       tooltip: 'Call Patient',
                       onPressed: () => _callPatient(apt.phone),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.calendar_month_outlined, size: 20, color: Color(0xFF047857)),
-                      tooltip: 'Google Calendar Notification & Event',
-                      onPressed: () async {
-                        final uri = Uri.parse(ApiService.getGoogleCalendarUrl(apt));
-                        try {
-                          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          if (!launched) await launchUrl(uri);
-                        } catch (_) {
-                          await launchUrl(uri);
-                        }
-                      },
                     ),
                     if (!isCompleted && !isCancelled) ...[
                       OutlinedButton(

@@ -238,6 +238,55 @@ body {
     font-size: 1.5rem;
 }
 
+.already-registered-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: #ecfdf5;
+    border: 1.5px solid #10b981;
+    border-radius: 12px;
+    padding: 0.85rem 1.2rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.already-registered-alert .alert-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.already-registered-alert .alert-body {
+    flex: 1;
+}
+
+.already-registered-alert .alert-title {
+    font-weight: 700;
+    color: #065f46;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.2px;
+}
+
+.already-registered-alert .alert-desc {
+    color: #047857;
+    font-size: 0.88rem;
+    line-height: 1.4;
+}
+
+.op-suggested-tag {
+    display: inline-block;
+    background: #0f766e;
+    color: #ffffff;
+    padding: 0.18rem 0.6rem;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0 0.25rem;
+    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+}
+
 .input-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -640,6 +689,85 @@ body {
     background: var(--primary-color);
     color: white;
     transform: scale(1.04);
+}
+
+/* Custom Charges Dynamic Row */
+.custom-charges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.custom-charge-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    animation: fadeInCharge 0.2s ease-out;
+}
+
+@keyframes fadeInCharge {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-charge-row .charge-title-input {
+    flex: 2;
+    padding: 8px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.custom-charge-row .charge-title-input:focus {
+    border-color: var(--primary-teal);
+}
+
+.custom-charge-row .charge-amt-input {
+    flex: 1;
+    min-width: 100px;
+    max-width: 160px;
+    padding: 8px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.custom-charge-row .charge-amt-input:focus {
+    border-color: var(--primary-teal);
+}
+
+.custom-charge-row .btn-remove-charge {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.custom-charge-row .btn-remove-charge:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #b91c1c;
 }
 
 .dob-age-badge {
@@ -5113,6 +5241,8 @@ body {
     font-weight: 700;
     text-decoration: underline;
 }
+
+/* --- Registered Patient Suggestions for Appointment Form --- */
 .patient-suggest-wrap {
     position: relative;
     width: 100%;
@@ -5122,40 +5252,108 @@ body {
     top: 100%;
     left: 0;
     right: 0;
-    max-height: 240px;
+    max-height: 260px;
     overflow-y: auto;
-    background: white;
-    border: 1px solid #0d9488;
+    background: #ffffff;
+    border: 1.5px solid #0d9488;
     border-top: none;
     border-radius: 0 0 10px 10px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 14px 28px rgba(13, 148, 136, 0.15), 0 8px 16px rgba(0, 0, 0, 0.08);
     z-index: 1050;
 }
 .patient-suggest-item {
-    padding: 0.6rem 0.9rem;
-    font-size: 0.85rem;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.88rem;
     color: #1e293b;
     cursor: pointer;
     border-bottom: 1px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     transition: background 0.12s ease;
 }
 .patient-suggest-item:hover,
 .patient-suggest-item.highlighted {
     background: #f0fdfa;
     color: #0f766e;
-    font-weight: 600;
-}
-.patient-suggest-item .p-meta {
-    font-size: 0.75rem;
-    color: #64748b;
-    margin-left: 0.4rem;
 }
 .patient-suggest-item mark {
     background: transparent;
-    color: #0f766e;
+    color: #0d9488;
     font-weight: 700;
     text-decoration: underline;
+}
+.patient-suggest-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.patient-suggest-name {
+    font-weight: 600;
+    color: #0f172a;
+}
+.patient-suggest-phone {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+.patient-suggest-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.patient-suggest-op {
+    background: #ccfbf1;
+    color: #0f766e;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+.registered-patient-pill {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1.5px solid #34d399;
+    color: #065f46;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    animation: fadeIn 0.25s ease-in-out;
+}
+.registered-patient-pill .pill-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: #10b981;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+.registered-patient-pill strong {
+    font-weight: 700;
+    color: #047857;
+}
+.btn-clear-suggested {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #047857;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.btn-clear-suggested:hover {
+    opacity: 1;
 }

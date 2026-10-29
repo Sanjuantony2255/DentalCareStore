@@ -163,19 +163,20 @@
                         <h2><span class="icon">➕</span> Schedule New Appointment</h2>
                         
                         <div class="input-grid">
-                            <div class="input-group">
-                                <div class="patient-suggest-wrap">
-                                    <input type="text" id="aptPatientName" name="patientName" required placeholder=" " autocomplete="off">
-                                    <label for="aptPatientName">Patient Full Name</label>
-                                    <div id="aptNameSuggestions" class="patient-suggest-dropdown" style="display: none;"></div>
-                                </div>
+                            <div class="input-group patient-suggest-wrap">
+                                <input type="text" id="aptPatientName" name="patientName" required placeholder=" " autocomplete="off">
+                                <label for="aptPatientName">Patient Full Name</label>
+                                <div id="aptNameDropdown" class="patient-suggest-dropdown" style="display: none;"></div>
                             </div>
-                            <div class="input-group">
-                                <div class="patient-suggest-wrap">
-                                    <input type="tel" id="aptPhone" name="phone" required placeholder=" " autocomplete="off">
-                                    <label for="aptPhone">Phone Number</label>
-                                    <div id="aptPhoneSuggestions" class="patient-suggest-dropdown" style="display: none;"></div>
-                                </div>
+                            <div class="input-group patient-suggest-wrap">
+                                <input type="tel" id="aptPhone" name="phone" required placeholder=" " autocomplete="off">
+                                <label for="aptPhone">Phone Number</label>
+                                <div id="aptPhoneDropdown" class="patient-suggest-dropdown" style="display: none;"></div>
+                            </div>
+                            <div id="aptRegisteredBadge" class="registered-patient-pill" style="display: none;">
+                                <span class="pill-icon">✓</span>
+                                <span class="pill-text">Registered Patient: <strong id="aptRegisteredName">-</strong> (<strong id="aptRegisteredOp">-</strong>) • Phone: <span id="aptRegisteredPhone">-</span></span>
+                                <button type="button" class="btn-clear-suggested" id="aptClearSuggestedBtn" title="Clear autofill" aria-label="Clear patient">&times;</button>
                             </div>
                             <div class="input-group">
                                 <input type="email" id="aptEmail" name="email" placeholder=" ">
@@ -377,10 +378,7 @@
                     <h2><span>📜</span> Search All Appointments History</h2>
                 </div>
                 <div class="search-box">
-                    <div class="patient-suggest-wrap" style="flex: 1;">
-                        <input type="text" id="aptHistorySearchInput" placeholder="Search by patient name, phone, or doctor..." autocomplete="off">
-                        <div id="aptHistorySuggestions" class="patient-suggest-dropdown" style="display: none;"></div>
-                    </div>
+                    <input type="text" id="aptHistorySearchInput" placeholder="Search by patient name, phone, or doctor...">
                     <button type="button" id="aptHistorySearchBtn" class="action-btn">
                         <span class="btn-text">Search</span>
                         <div class="loader loader-small" id="aptSearchLoader" style="display: none;"></div>

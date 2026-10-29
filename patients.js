@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPatientAvatar = document.getElementById('modalPatientAvatar');
     const modalPatientName = document.getElementById('modalPatientName');
     const modalPatientPhone = document.getElementById('modalPatientPhone');
+    const modalOpVal = document.getElementById('modalOpVal');
     const modalPhoneVal = document.getElementById('modalPhoneVal');
     const modalEmailVal = document.getElementById('modalEmailVal');
     const modalDobVal = document.getElementById('modalDobVal');
@@ -181,33 +182,25 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const cleanName = rawName.toLowerCase().replace(/\s+/g, ' ');
                                 const normDob = normalizeDateStr(rawDob);
 
-                                // Rule: A person with same phone number, name, and date of birth is the SAME PERSON!
+                                // Rule: A person with same phone number and name, or matching OP, is the SAME PERSON!
                                 let existingKey = null;
                                 for (const [k, p] of Object.entries(mergedMap)) {
                                     const pName = (p.fullName || '').toLowerCase().replace(/\s+/g, ' ').trim();
                                     const pDigits = (p.phone || '').toString().replace(/\D/g, '');
-                                    const pDob = normalizeDateStr(p.dob);
+                                    const vOp = (v.opNumber || '').toLowerCase().trim();
+                                    const pOp = (p.opNumber || '').toLowerCase().trim();
 
-                                    const nameMatch = cleanName === pName;
-                                    const phoneMatch = digits === pDigits;
+                                    const nameMatch = cleanName && pName && (cleanName === pName);
+                                    const phoneMatch = digits && pDigits && (digits === pDigits || (digits.length >= 10 && pDigits.length >= 10 && digits.slice(-10) === pDigits.slice(-10)));
+                                    const opMatch = vOp && pOp && (vOp === pOp);
 
-                                    if (nameMatch && phoneMatch) {
-                                        // Same name and phone: compare Date of Birth
-                                        if (normDob && pDob) {
-                                            if (normDob === pDob) {
-                                                existingKey = k;
-                                                break;
-                                            }
-                                        } else {
-                                            // One or both DOBs empty: treat as same person and backfill DOB
-                                            existingKey = k;
-                                            if (!p.dob && rawDob) p.dob = rawDob;
-                                            break;
-                                        }
+                                    if ((nameMatch && phoneMatch) || opMatch) {
+                                        existingKey = k;
+                                        break;
                                     }
                                 }
 
-                                const key = existingKey || (cleanName + '_' + digits + (normDob ? '_' + normDob : ''));
+                                const key = existingKey || (cleanName ? (cleanName + '_' + digits) : (v.opNumber ? ('op_' + v.opNumber) : ('pt_' + fetchedVisitsCount)));
 
                                 let doc = (v.doctorConsulted || '').trim();
                                 if (doc.toLowerCase().includes('consulting specialist')) doc = '';
@@ -227,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     mergedMap[key] = {
                                         fullName: rawName,
                                         phone: rawPhone,
+                                        opNumber: v.opNumber || '',
                                         email: v.email || '',
                                         dob: rawDob || '',
                                         gender: v.gender || 'Not Specified',
@@ -241,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     };
                                 } else {
                                     const exist = mergedMap[key];
+                                    if (!exist.opNumber && v.opNumber) exist.opNumber = v.opNumber;
                                     const alreadyHasVisit = exist.visits.some(ev => 
                                         (ev.timestamp && v.timestamp && ev.timestamp === v.timestamp) || 
                                         (ev.invoiceNo && v.invoiceNo && ev.invoiceNo === v.invoiceNo)
@@ -328,11 +323,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pPhone = (p.phone || '').toString();
                 const pDigits = pPhone.replace(/\D/g, '');
                 const pEmail = (p.email || '').toLowerCase();
+                const pOp = (p.opNumber || '').toLowerCase();
                 const pDoctor = (p.doctorConsulted || '').toLowerCase();
                 const pMed = (p.medicalHistory || '').toLowerCase();
 
                 matchQuery = pName.includes(query) ||
                              pPhone.includes(query) ||
+                             pOp.includes(query) ||
                              pEmail.includes(query) ||
                              pDoctor.includes(query) ||
                              pMed.includes(query);
@@ -407,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <h3 class="patient-name">${escapeHtml(patient.fullName || 'Valued Patient')}</h3>
                                     <div class="patient-sub-info">
                                         <span>📞 <a href="tel:${escapeHtml(patient.phone)}" style="color: #0d9488; font-weight: 600;">${escapeHtml(patient.phone || 'N/A')}</a></span>
+                                        ${patient.opNumber ? `<span class="badge-op" style="background:#ccfbf1;color:#0f766e;font-weight:700;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-family:monospace;">${escapeHtml(patient.opNumber)}</span>` : ''}
                                         ${patient.gender ? `<span>• ${escapeHtml(patient.gender)}</span>` : ''}
                                     </div>
                                 </div>
@@ -463,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalPatientName.textContent = patient.fullName || 'Patient Details';
         modalPatientPhone.textContent = `📞 ${patient.phone || 'N/A'}`;
 
+        if (modalOpVal) modalOpVal.textContent = patient.opNumber || 'N/A';
         modalPhoneVal.innerHTML = patient.phone ? `<a href="tel:${escapeHtml(patient.phone)}" style="color: #0d9488; font-weight: 600;">${escapeHtml(patient.phone)}</a>` : 'N/A';
         modalEmailVal.textContent = patient.email || 'None';
         modalDobVal.textContent = formatDate(patient.dob);
