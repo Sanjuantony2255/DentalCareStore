@@ -561,6 +561,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                         'POST & CORE',
                         'NORMAL EXTRACTION',
                         'CLEAR ALIGNERS',
+                        'OTHER / ANY OPTION',
                       ].map((t) {
                         final isSel = reasonCtrl.text == t;
                         return Padding(
@@ -609,7 +610,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Google Calendar Sync Active: Notification push reminders will be scheduled for this appointment.',
+                            'Google Calendar Sync Active (manjalymdc@gmail.com): Notification push reminders will be scheduled for this appointment.',
                             style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w500),
                           ),
                         ),
@@ -652,7 +653,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('✓ Appointment booked & synced to Google Calendar for ${apt.patientName}!'),
+                          content: Text('✓ Appointment booked & synced to Google Calendar (manjalymdc@gmail.com) for ${apt.patientName}!'),
                           backgroundColor: AppTheme.primaryTeal,
                         ),
                       );
@@ -737,7 +738,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 Navigator.pop(ctx);
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Appointment rescheduled successfully!')),
+                  const SnackBar(content: Text('✓ Appointment rescheduled & synced to Google Calendar (manjalymdc@gmail.com)!')),
                 );
               },
               child: const Text('Save Changes'),

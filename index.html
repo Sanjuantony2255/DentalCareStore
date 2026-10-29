@@ -246,10 +246,11 @@
                                 <button type="button" class="treatment-chip" data-treatment="POST & CORE">POST & CORE</button>
                                 <button type="button" class="treatment-chip" data-treatment="NORMAL EXTRACTION">NORMAL EXTRACTION</button>
                                 <button type="button" class="treatment-chip" data-treatment="CLEAR ALIGNERS">CLEAR ALIGNERS</button>
+                                <button type="button" class="treatment-chip" data-treatment="SELECT ANY OPTION / OTHER">OTHER / ANY OPTION</button>
                             </div>
                             <div class="treatment-suggest-wrap">
                                 <input type="text" id="treatmentInput" name="treatment" placeholder=" " autocomplete="off" list="treatmentsDatalist">
-                                <label for="treatmentInput" class="active-label">Treatment (Select above or type to search all 62 treatments)</label>
+                                <label for="treatmentInput" class="active-label">Treatment (Select any option or type to search all 62 treatments)</label>
                                 <div id="regTreatmentDropdown" class="treatment-suggest-dropdown" style="display: none;"></div>
                             </div>
                             <!-- Hidden inputs for backward compatibility -->
@@ -257,6 +258,9 @@
                             <input type="hidden" id="customTreatment" name="customTreatment" value="">
                         </div>
                         <datalist id="treatmentsDatalist">
+                            <option value="SELECT ANY OPTION / OTHER">
+                            <option value="GENERAL CONSULTATION / CHECKUP">
+                            <option value="OTHER / ANY TREATMENT">
                             <option value="POST & CORE">
                             <option value="CROWN METAL">
                             <option value="CROWN PFM">

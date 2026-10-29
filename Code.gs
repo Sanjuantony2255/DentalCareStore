@@ -10,7 +10,7 @@
 var SPREADSHEET_ID = "1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls";
 
 // CLINIC NOTIFICATION & GOOGLE CALENDAR EMAIL
-var CLINIC_NOTIFICATION_EMAIL = "sanjuantony01@gmail.com";
+var CLINIC_NOTIFICATION_EMAIL = "manjalymdc@gmail.com";
 
 function getSpreadsheet() {
   var ss = null;
@@ -37,7 +37,7 @@ function getSpreadsheet() {
 }
 
 /**
- * Retrieves the Google Calendar connected to the clinic doctor/admin (sanjuantony01@gmail.com).
+ * Retrieves the Google Calendar connected to the clinic doctor/admin (manjalymdc@gmail.com).
  * First checks by ID, then falls back to default calendar.
  */
 function getClinicCalendar() {
@@ -61,7 +61,7 @@ function getClinicCalendar() {
 
 /**
  * Safely creates or invites a Google Calendar event without throwing "Cannot invite organizer"
- * when the calendar or Session effective user matches CLINIC_NOTIFICATION_EMAIL (sanjuantony01@gmail.com).
+ * when the calendar or Session effective user matches CLINIC_NOTIFICATION_EMAIL (manjalymdc@gmail.com).
  */
 function createCalendarEventSafe(cal, title, startTime, endTime, desc, patientEmail) {
   var clinicEmail = (CLINIC_NOTIFICATION_EMAIL || '').toLowerCase().trim();
@@ -114,7 +114,7 @@ function createCalendarEventSafe(cal, title, startTime, endTime, desc, patientEm
 }
 
 /**
- * Sends a rich email alert to sanjuantony01@gmail.com whenever an appointment is booked or rescheduled.
+ * Sends a rich email alert to manjalymdc@gmail.com whenever an appointment is booked or rescheduled.
  */
 function sendAppointmentNotificationEmail(apt, isReschedule) {
   try {
@@ -814,7 +814,7 @@ function handleAddAppointment(ss, data) {
     notes: notes
   };
 
-  // Instant notification email delivered to sanjuantony01@gmail.com
+  // Instant notification email delivered to manjalymdc@gmail.com
   sendAppointmentNotificationEmail(appointmentObj, false);
 
   var msg = calEventId 

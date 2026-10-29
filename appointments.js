@@ -373,6 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptTreatmentDropdown = document.getElementById('aptTreatmentDropdown');
 
     const ALL_CLINIC_TREATMENTS = [
+        'SELECT ANY OPTION / OTHER',
+        'GENERAL CONSULTATION / CHECKUP',
         'POST & CORE', 'CROWN METAL', 'CROWN PFM', 'CROWN PFZ', 'EMAX CROWN, VENEER, INLAY',
         'CROWN REMOVAL', 'ACRYLIC PARTIAL DENTURE', 'FLEXIBLE PARTIAL DENTURE', 'COMPLETE DENTURE',
         'FLEXIBLE', 'BPS', 'SS CROWNS', 'SCALING', 'GINGIVECTOMY', 'SUBGINGIVAL SCALING/ CURETTAGE',
@@ -386,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'FIXED ORTHODONTICS PREADJUSTED- TOOTH COLORED', 'FIXED- SELF LIGATING',
         'HAWLEYS APPLIANCE- ACTIVE', 'RETENTION APPLIANCE- PASSIVE', 'FIXED LINGUAL RETAINERS',
         'VACCUFORM RETAINERS-', 'ORAL SCREEN', 'MYO FUNCTIONAL FIXED', 'MYOFUNCTIONAL REMOVABLE',
-        'CLEAR ALIGNERS'
+        'CLEAR ALIGNERS', 'OTHER / ANY OPTION'
     ];
 
     if (aptReasonInput) {
@@ -414,19 +416,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!aptTreatmentDropdown) return;
             const q = (query || '').trim().toLowerCase();
             const matches = ALL_CLINIC_TREATMENTS.filter(t => !q || t.toLowerCase().includes(q));
-            if (matches.length === 0) {
-                aptTreatmentDropdown.innerHTML = '<div style="padding: 0.65rem; color: #94a3b8; font-size: 0.8rem; text-align: center;">No matching treatments found</div>';
-                aptTreatmentDropdown.style.display = 'block';
-                return;
+
+            let html = '';
+
+            // Allow selecting typed custom text as any option
+            if (q.length > 0) {
+                html += `<div class="treatment-suggest-item custom-option" data-value="${escapeHtml(query.trim())}">
+                    <span>✨ Use "<strong>${escapeHtml(query.trim())}</strong>" (Select Any Option)</span>
+                    <span style="font-size:0.75rem;color:#0d9488;font-weight:700;">Select</span>
+                </div>`;
             }
-            aptTreatmentDropdown.innerHTML = matches.map(t => {
-                let display = t;
-                if (q) {
-                    const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
-                    display = t.replace(regex, '<mark>$1</mark>');
-                }
-                return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
-            }).join('');
+
+            if (matches.length > 0) {
+                html += matches.map(t => {
+                    let display = t;
+                    if (q) {
+                        const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+                        display = t.replace(regex, '<mark>$1</mark>');
+                    }
+                    return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
+                }).join('');
+            }
+
+            // Always offer choice to select any custom option
+            html += `<div class="treatment-suggest-item" data-value="SELECT ANY OPTION / OTHER">
+                <span>➕ Select Any Option / Other Treatment...</span>
+                <span style="font-size:0.72rem;color:#0d9488;font-weight:700;">Select</span>
+            </div>`;
+
+            aptTreatmentDropdown.innerHTML = html;
             aptTreatmentDropdown.style.display = 'block';
 
             aptTreatmentDropdown.querySelectorAll('.treatment-suggest-item').forEach(item => {
@@ -570,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         const location = encodeURIComponent('Dental Care Clinic');
 
-        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesStr}&details=${details}&location=${location}&add=sanjuantony01%40gmail.com`;
+        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesStr}&details=${details}&location=${location}&add=manjalymdc%40gmail.com`;
     }
 
     // Google Calendar Sync Button Handler
@@ -595,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = json.message || '✓ Synced all appointments with sanjuantony01@gmail.com Google Calendar with push notifications!';
+                    syncCalMessage.textContent = json.message || '✓ Synced all appointments with manjalymdc@gmail.com Google Calendar with push notifications!';
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }
@@ -606,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (syncErr) {
                 console.warn('Sync notice:', syncErr);
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = '✓ Google Calendar push notifications & email reminders connected for sanjuantony01@gmail.com.';
+                    syncCalMessage.textContent = '✓ Google Calendar push notifications & email reminders connected for manjalymdc@gmail.com.';
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }

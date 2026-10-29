@@ -327,8 +327,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // All 62 clinic dental treatments (matching app)
+    // All clinic dental treatments (matching app)
     const ALL_CLINIC_TREATMENTS = [
+        'SELECT ANY OPTION / OTHER',
+        'GENERAL CONSULTATION / CHECKUP',
         'POST & CORE', 'CROWN METAL', 'CROWN PFM', 'CROWN PFZ', 'EMAX CROWN, VENEER, INLAY',
         'CROWN REMOVAL', 'ACRYLIC PARTIAL DENTURE', 'FLEXIBLE PARTIAL DENTURE', 'COMPLETE DENTURE',
         'FLEXIBLE', 'BPS', 'SS CROWNS', 'SCALING', 'GINGIVECTOMY', 'SUBGINGIVAL SCALING/ CURETTAGE',
@@ -372,19 +374,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!regTreatmentDropdown) return;
             const q = (query || '').trim().toLowerCase();
             const matches = ALL_CLINIC_TREATMENTS.filter(t => !q || t.toLowerCase().includes(q));
-            if (matches.length === 0) {
-                regTreatmentDropdown.innerHTML = '<div style="padding: 0.65rem; color: #94a3b8; font-size: 0.8rem; text-align: center;">No matching treatments found</div>';
-                regTreatmentDropdown.style.display = 'block';
-                return;
+
+            let html = '';
+
+            // Allow selecting typed custom text as any option
+            if (q.length > 0) {
+                html += `<div class="treatment-suggest-item custom-option" data-value="${escapeHtml(query.trim())}">
+                    <span>✨ Use "<strong>${escapeHtml(query.trim())}</strong>" (Select Any Option)</span>
+                    <span style="font-size:0.75rem;color:#0d9488;font-weight:700;">Select</span>
+                </div>`;
             }
-            regTreatmentDropdown.innerHTML = matches.map(t => {
-                let display = t;
-                if (q) {
-                    const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
-                    display = t.replace(regex, '<mark>$1</mark>');
-                }
-                return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
-            }).join('');
+
+            if (matches.length > 0) {
+                html += matches.map(t => {
+                    let display = t;
+                    if (q) {
+                        const regex = new RegExp(`(${q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+                        display = t.replace(regex, '<mark>$1</mark>');
+                    }
+                    return `<div class="treatment-suggest-item" data-value="${t}"><span>${display}</span><span style="font-size:0.7rem;color:#0d9488;opacity:0.8;">Select</span></div>`;
+                }).join('');
+            }
+
+            // Always provide option to choose any custom option
+            html += `<div class="treatment-suggest-item" data-value="SELECT ANY OPTION / OTHER">
+                <span>➕ Select Any Option / Other Treatment...</span>
+                <span style="font-size:0.72rem;color:#0d9488;font-weight:700;">Select</span>
+            </div>`;
+
+            regTreatmentDropdown.innerHTML = html;
             regTreatmentDropdown.style.display = 'block';
 
             regTreatmentDropdown.querySelectorAll('.treatment-suggest-item').forEach(item => {

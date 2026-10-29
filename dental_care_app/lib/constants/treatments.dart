@@ -60,6 +60,8 @@ const List<String> kDentalTreatments = [
   'MYO FUNCTIONAL FIXED',
   'MYOFUNCTIONAL REMOVABLE',
   'CLEAR ALIGNERS',
+  'OTHER / ANY OPTION',
+  'SELECT ANY OPTION / OTHER',
 ];
 
 /// Clinic Doctors and Consultant Specialists for Manjaly Multi Speciality Dental Care
