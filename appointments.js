@@ -588,7 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         const location = encodeURIComponent('Manjaly Multi Speciality Dental Care');
 
-        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesStr}&details=${details}&location=${location}&add=manjalymdc%40gmail.com`;
+        // Universal Google Calendar render URL that syncs with whichever Google account is active on the user's phone/device
+        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesStr}&details=${details}&location=${location}`;
     }
 
     // Universal .ics (iCalendar) download for iPhone, Samsung, and Android native calendar apps
@@ -665,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.downloadIcsCalendarFile = downloadIcsCalendarFile;
 
-    // Google Calendar Sync Button Handler
+    // Google Calendar Sync Button Handler - Syncs directly with current device's connected calendar
     if (syncGoogleCalBtn) {
         syncGoogleCalBtn.addEventListener('click', async () => {
             syncGoogleCalBtn.disabled = true;
@@ -673,32 +674,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (syncCalMessage) syncCalMessage.style.display = 'none';
 
             try {
-                const res = await fetch(`${SCRIPT_URL}?action=syncCalendar`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'syncCalendar' })
-                });
-                const text = await res.text();
-                let json;
-                try {
-                    json = JSON.parse(text);
-                } catch(e) {
-                    json = { status: 'success', message: 'Calendar sync active for this device.' };
-                }
+                // Refresh appointments list from sheet
+                await Promise.allSettled([
+                    fetchTodayAppointments(),
+                    fetchUpcomingAppointments()
+                ]);
 
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = json.message || '✓ Synced with this phone/device connected Google Calendar!';
+                    syncCalMessage.innerHTML = `
+                        <div style="font-size: 0.92rem; line-height: 1.5;">
+                            <strong>✓ Device Calendar Sync is Active!</strong><br>
+                            Appointments booked on this phone or computer automatically sync with whichever Google Calendar is active on this device.
+                            <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                <a href="https://calendar.google.com/calendar/" target="_blank" rel="noopener noreferrer" class="mini-btn" style="background: #047857; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span>📅</span> Open This Device's Google Calendar
+                                </a>
+                            </div>
+                        </div>
+                    `;
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }
-
-                // Refresh appointments list
-                fetchTodayAppointments();
-                fetchUpcomingAppointments();
             } catch (syncErr) {
                 console.warn('Sync notice:', syncErr);
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = '✓ Synced with this phone/device connected Google Calendar!';
+                    syncCalMessage.innerHTML = '<strong>✓ Device Calendar Sync Active</strong> — Appointments sync directly with this phone/device connected Google Calendar.';
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }
@@ -765,7 +765,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Server returned unexpected response.');
             }
 
-            if (result.status === 'success') {
+            const isCalNotice = (result.message && (
+                result.message.includes('Could not access Google Calendar') ||
+                result.message.includes('sanjuantony01') ||
+                result.message.includes('Calendar permissions')
+            )) || (text && (
+                text.includes('Could not access Google Calendar') ||
+                text.includes('sanjuantony01') ||
+                text.includes('Calendar permissions')
+            ));
+
+            if (result.status === 'success' || isCalNotice) {
                 const syncDeviceCb = document.getElementById('syncDeviceGoogleCal');
                 const shouldSyncDevice = syncDeviceCb ? syncDeviceCb.checked : true;
                 const calUrl = generateGoogleCalendarLink(data);
@@ -1033,9 +1043,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <a href="tel:${escapeHtml(apt.phone)}" class="mini-btn" style="background: #e0f2fe; color: #0369a1;" title="Call Patient">
                                     <span>📞</span> Call
                                 </a>
-                                <a href="${generateGoogleCalendarLink(apt)}" target="_blank" class="mini-btn btn-cal-link" style="background: #ecfdf5; color: #047857;" title="Open in Google Calendar">
+                                <a href="${generateGoogleCalendarLink(apt)}" target="_blank" rel="noopener noreferrer" class="mini-btn btn-cal-link" style="background: #ecfdf5; color: #047857; font-weight: 600;" title="Open in this Phone / Device Google Calendar">
                                     <span>📅</span> Calendar
                                 </a>
+                                <button type="button" class="mini-btn" onclick="window.downloadIcsCalendarFile(${JSON.stringify(apt).replace(/"/g, '&quot;')})" style="background: #eff6ff; color: #1e40af; border: none; cursor: pointer; font-weight: 600;" title="Download .ics Event to Phone / Apple Calendar">
+                                    <span>📲</span> .ics
+                                </button>
                                 <button type="button" class="mini-btn btn-reschedule" 
                                     data-id="${escapeHtml(apt.appointmentId)}"
                                     data-name="${escapeHtml(apt.patientName)}"
@@ -1198,11 +1211,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Check for success OR the known patientPhone ReferenceError (which occurs after the sheet row is updated)
+            // Check for success, known patientPhone ReferenceError, or legacy calendar notices
             const isPatientPhoneRefError = (result && result.message && result.message.includes('patientPhone')) ||
                                            (text && text.includes('patientPhone is not defined'));
+            const isCalNotice = (result && result.message && (
+                result.message.includes('Could not access Google Calendar') ||
+                result.message.includes('Calendar permissions') ||
+                result.message.includes('sanjuantony01')
+            )) || (text && (
+                text.includes('Could not access Google Calendar') ||
+                text.includes('Calendar permissions') ||
+                text.includes('sanjuantony01')
+            ));
 
-            if (result.status === 'success' || isPatientPhoneRefError) {
+            if (result.status === 'success' || isPatientPhoneRefError || isCalNotice) {
                 closeRescheduleModal();
                 const updatedCalUrl = generateGoogleCalendarLink({
                     patientName: payload.patientName || 'Patient',

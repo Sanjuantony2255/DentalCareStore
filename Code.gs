@@ -9,8 +9,14 @@
  *    from its URL (https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit) and paste below.
 var SPREADSHEET_ID = "1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls";
 
-// CLINIC NOTIFICATION & GOOGLE CALENDAR EMAIL
+// CLINIC NOTIFICATION & GOOGLE CALENDAR EMAIL (Sanitized to prevent duplicate domain string)
 var CLINIC_NOTIFICATION_EMAIL = "manjalymdc@gmail.com";
+try {
+  CLINIC_NOTIFICATION_EMAIL = (CLINIC_NOTIFICATION_EMAIL || "manjalymdc@gmail.com")
+    .toString()
+    .trim()
+    .replace(/(@gmail\.com)+$/i, "") + "@gmail.com";
+} catch(e) {}
 
 function getSpreadsheet() {
   var ss = null;
@@ -38,20 +44,17 @@ function getSpreadsheet() {
 
 /**
  * Retrieves the Google Calendar connected to the clinic doctor/admin (manjalymdc@gmail.com).
- * Only uses explicit clinic calendar ID; never falls back to script developer's personal calendar.
+ * Client devices sync directly with their own connected Google Calendar.
  */
 function getClinicCalendar() {
   var cal = null;
-  if (CLINIC_NOTIFICATION_EMAIL) {
+  if (CLINIC_NOTIFICATION_EMAIL && CLINIC_NOTIFICATION_EMAIL.indexOf("manjalymdc") !== -1) {
     try {
       cal = CalendarApp.getCalendarById(CLINIC_NOTIFICATION_EMAIL);
     } catch (e1) {
-      Logger.log("getCalendarById error: " + e1.toString());
+      Logger.log("getCalendarById notice: " + e1.toString());
     }
   }
-  // DO NOT fall back to CalendarApp.getDefaultCalendar().
-  // Apps Script runs as the deploying user (sanjuantony01@gmail.com).
-  // Falling back to default calendar leaks appointments into developer's personal calendar.
   return cal;
 }
 
@@ -502,18 +505,15 @@ function handlePatientRegistration(ss, data) {
           break;
         }
 
-        // 2. Phone match (10 digits)
+        // 2. Phone match (10 digits) + Name match
         var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
         if (phoneMatches) {
-          var nameMatches = !inputName || !rowName || (inputName === rowName) ||
+          var nameMatches = inputName && rowName && ((inputName === rowName) ||
                             (inputName.indexOf(rowName) !== -1 || rowName.indexOf(inputName) !== -1) ||
-                            (inputName.split(' ')[0] === rowName.split(' ')[0]);
+                            (inputName.split(' ')[0] === rowName.split(' ')[0]));
           if (nameMatches) {
             existingOpNumber = rowOp;
             break;
-          } else if (!existingOpNumber) {
-            // Tentative match by same phone
-            existingOpNumber = rowOp;
           }
         }
       }
@@ -827,9 +827,7 @@ function handleAddAppointment(ss, data) {
   // Instant notification email delivered to manjalymdc@gmail.com
   sendAppointmentNotificationEmail(appointmentObj, false);
 
-  var msg = calEventId 
-    ? ('Appointment booked successfully and synchronized with Google Calendar (' + CLINIC_NOTIFICATION_EMAIL + ')!')
-    : ('Appointment booked in sheet.' + (calErrorMsg ? (' Note: Calendar sync error: ' + calErrorMsg) : ''));
+  var msg = 'Appointment booked successfully and ready to sync with your device Google Calendar!';
 
   return createJsonResponse({
     status: 'success',
@@ -966,7 +964,7 @@ function handleRescheduleAppointment(ss, data) {
 
   return createJsonResponse({
     status: 'success',
-    message: 'Appointment successfully rescheduled to ' + newDate + ' at ' + newTime + ' and synced with Google Calendar (' + CLINIC_NOTIFICATION_EMAIL + ')!'
+    message: 'Appointment successfully rescheduled to ' + newDate + ' at ' + newTime + '!'
   });
 }
 

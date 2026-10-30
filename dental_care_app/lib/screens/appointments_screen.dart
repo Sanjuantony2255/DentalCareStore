@@ -109,8 +109,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         '&text=${Uri.encodeComponent(title)}'
         '&dates=$datesParam'
         '&details=${Uri.encodeComponent(details)}'
-        '&location=${Uri.encodeComponent(location)}'
-        '&add=manjalymdc%40gmail.com',
+        '&location=${Uri.encodeComponent(location)}',
       );
 
       final launched = await launchUrl(calUri, mode: LaunchMode.externalApplication);

@@ -503,6 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setAlreadyRegisteredValidation(opNo) {
         if (opNumberInput && opNo) {
             opNumberInput.value = opNo;
+            opNumberInput.dataset.autoFilled = 'true';
         }
         if (suggestedOpBadge && opNo) {
             suggestedOpBadge.textContent = opNo;
@@ -515,6 +516,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearAlreadyRegisteredValidation() {
         if (alreadyRegisteredAlert) {
             alreadyRegisteredAlert.style.display = 'none';
+        }
+        if (opNumberInput && opNumberInput.dataset.autoFilled === 'true') {
+            opNumberInput.value = '';
+            delete opNumberInput.dataset.autoFilled;
         }
     }
 
@@ -531,23 +536,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const matchPatient = (list) => {
             if (!Array.isArray(list)) return null;
-            // 1. Try phone + name similarity match
+            // 1. If name is entered, match ONLY when both phone and name match (preserves other family members)
             if (nameVal.length >= 2) {
-                const bothMatch = list.find(p => {
+                return list.find(p => {
                     const cDigits = (p.phone || '').toString().replace(/\D/g, '');
                     const cName = (p.fullName || p.patientName || p.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
                     const phoneMatch = cDigits && (cDigits === phoneDigits || (cDigits.length >= 10 && phoneDigits.length >= 10 && cDigits.slice(-10) === phoneDigits.slice(-10)));
                     const nameMatch = cName === nameVal || cName.includes(nameVal) || nameVal.includes(cName) || (cName.split(' ')[0] === nameVal.split(' ')[0]);
                     return phoneMatch && nameMatch && (p.opNumber);
-                });
-                if (bothMatch) return bothMatch;
+                }) || null;
             }
-            // 2. Fall back to phone match
+            // 2. If no name entered yet, suggest the registered patient with this phone
             return list.find(p => {
                 const cDigits = (p.phone || '').toString().replace(/\D/g, '');
                 const phoneMatch = cDigits && (cDigits === phoneDigits || (cDigits.length >= 10 && phoneDigits.length >= 10 && cDigits.slice(-10) === phoneDigits.slice(-10)));
                 return phoneMatch && (p.opNumber);
-            });
+            }) || null;
         };
 
         const applyFoundPatient = (match) => {
@@ -558,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (addressInput && !addressInput.value && (match.address || match.email)) addressInput.value = match.address || match.email;
             if (ageInput && !ageInput.value && (match.age || match.dob)) ageInput.value = match.age || (match.dob ? match.dob.replace(/[^0-9]/g, '') : '');
             if (genderSelect && (!genderSelect.value || genderSelect.value === '') && match.gender) genderSelect.value = match.gender;
-            showToast('Already Registered Patient', `Recognized patient! Suggested OP: ${match.opNumber}`, 'info');
+            showToast('Already Registered Patient', `Recognized patient! Preserving OP: ${match.opNumber}`, 'info');
         };
 
         // 1. Check local cache
@@ -570,6 +574,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (match && match.opNumber) {
                     applyFoundPatient(match);
                     return;
+                } else if (nameVal.length >= 2) {
+                    // Name typed but does not match any registered person with this phone
+                    clearAlreadyRegisteredValidation();
                 }
             }
         } catch (e) {}
@@ -593,6 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('dental_cached_patients', JSON.stringify(list.slice(0, 50)));
                     } catch (err) {}
                     return;
+                } else if (nameVal.length >= 2) {
+                    clearAlreadyRegisteredValidation();
                 }
             }
         } catch (e) {
@@ -736,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const cDigits = (p.phone || '').toString().replace(/\D/g, '');
                         const cName = (p.fullName || p.patientName || p.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
                         const phoneMatch = cDigits && (cDigits === rawPhoneDigits || (cDigits.length >= 10 && rawPhoneDigits.length >= 10 && cDigits.slice(-10) === rawPhoneDigits.slice(-10)));
-                        const nameMatch = !rawName || (cName === rawName) || cName.includes(rawName) || rawName.includes(cName) || (cName.split(' ')[0] === rawName.split(' ')[0]);
+                        const nameMatch = rawName && cName && ((cName === rawName) || cName.includes(rawName) || rawName.includes(cName) || (cName.split(' ')[0] === rawName.split(' ')[0]));
                         return phoneMatch && nameMatch && p.opNumber;
                     });
                     if (found && found.opNumber) {

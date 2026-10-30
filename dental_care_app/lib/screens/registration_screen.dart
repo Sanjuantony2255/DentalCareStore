@@ -174,37 +174,46 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       }).toList();
 
       if (matches.isNotEmpty) {
-        // Find best match: exact name, partial name, first name, or sole phone match
+        // Find match: name similarity match or if name not entered yet
         Patient? bestMatch;
         if (cleanName.isNotEmpty) {
-          bestMatch = matches.firstWhere(
-            (p) {
-              final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-              return pName == cleanName ||
-                  pName.contains(cleanName) ||
-                  cleanName.contains(pName) ||
-                  (pName.split(' ').first == cleanName.split(' ').first);
-            },
-            orElse: () => matches.first,
-          );
+          final nameMatches = matches.where((p) {
+            final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+            return pName == cleanName ||
+                pName.contains(cleanName) ||
+                cleanName.contains(pName) ||
+                (pName.split(' ').first == cleanName.split(' ').first);
+          }).toList();
+          if (nameMatches.isNotEmpty) {
+            bestMatch = nameMatches.first;
+          }
         } else {
           bestMatch = matches.first;
         }
 
-        final op = bestMatch.opNumber.isNotEmpty ? bestMatch.opNumber : 'OP-${bestMatch.id.replaceAll(RegExp(r'\D'), '')}';
-        setState(() {
-          _isAlreadyRegistered = true;
-          _suggestedOpNumber = op;
-          _suggestedPatientName = bestMatch!.name;
-          _opController.text = op;
-          if (_nameController.text.trim().isEmpty) {
-            _nameController.text = bestMatch.name;
+        if (bestMatch != null) {
+          final op = bestMatch.opNumber.isNotEmpty ? bestMatch.opNumber : 'OP-${bestMatch.id.replaceAll(RegExp(r'\D'), '')}';
+          setState(() {
+            _isAlreadyRegistered = true;
+            _suggestedOpNumber = op;
+            _suggestedPatientName = bestMatch!.name;
+            _opController.text = op;
+            if (_nameController.text.trim().isEmpty) {
+              _nameController.text = bestMatch.name;
+            }
+          });
+          if (!_isRevisit) {
+            _populatePatientData(bestMatch);
           }
-        });
-        if (!_isRevisit) {
-          _populatePatientData(bestMatch);
+          return;
+        } else {
+          // Different person entered with same family phone - give them their own new OP number
+          setState(() {
+            _isAlreadyRegistered = false;
+            _suggestedOpNumber = null;
+            _suggestedPatientName = null;
+          });
         }
-        return;
       }
     }
 
@@ -528,7 +537,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
           }).toList();
           if (phoneMatches.isNotEmpty) {
-            return phoneMatches.firstWhere(
+            final nameMatches = phoneMatches.where(
               (p) {
                 final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
                 return pName == cleanName ||
@@ -536,8 +545,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     cleanName.contains(pName) ||
                     (pName.split(' ').first == cleanName.split(' ').first);
               },
-              orElse: () => phoneMatches.first,
-            );
+            ).toList();
+            if (nameMatches.isNotEmpty) {
+              return nameMatches.first;
+            }
           }
         }
         return Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: '');
