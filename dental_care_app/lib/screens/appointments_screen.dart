@@ -61,6 +61,67 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     }
   }
 
+  Future<void> _syncAppointmentToDeviceCalendar(Appointment apt) async {
+    try {
+      DateTime startDate = DateTime.tryParse(apt.date) ?? DateTime.now();
+      int startHour = 10;
+      int startMinute = 0;
+
+      final timeStr = apt.timeSlot.trim().toUpperCase();
+      final isPM = timeStr.contains('PM');
+      final isAM = timeStr.contains('AM');
+      final digitsOnly = timeStr.replaceAll(RegExp(r'[^0-9:]'), '');
+      final timeParts = digitsOnly.split(':');
+      if (timeParts.isNotEmpty) {
+        startHour = int.tryParse(timeParts[0]) ?? 10;
+        if (timeParts.length > 1) {
+          startMinute = int.tryParse(timeParts[1]) ?? 0;
+        }
+        if (isPM && startHour < 12) startHour += 12;
+        if (isAM && startHour == 12) startHour = 0;
+      }
+
+      final startDateTime = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        startHour,
+        startMinute,
+      );
+      final endDateTime = startDateTime.add(const Duration(minutes: 30));
+
+      final dateDigits = DateFormat('yyyyMMdd').format(startDateTime);
+      final startTimeDigits = DateFormat('HHmmss').format(startDateTime);
+      final endTimeDigits = DateFormat('HHmmss').format(endDateTime);
+      final datesParam = '${dateDigits}T$startTimeDigits/${dateDigits}T$endTimeDigits';
+
+      final title = 'Dental Appointment: ${apt.patientName}${apt.doctor.isNotEmpty ? ' (${apt.doctor})' : ''}';
+      final details = 'Patient: ${apt.patientName}\n'
+          'Phone: ${apt.phone}\n'
+          'Doctor: ${apt.doctor}\n'
+          'Treatment: ${apt.reason}\n'
+          'Notes: ${apt.notes.isNotEmpty ? apt.notes : "None"}\n'
+          'Clinic: Manjaly Multi Speciality Dental Care';
+      const location = 'Manjaly Multi Speciality Dental Care';
+
+      final calUri = Uri.parse(
+        'https://calendar.google.com/calendar/render?action=TEMPLATE'
+        '&text=${Uri.encodeComponent(title)}'
+        '&dates=$datesParam'
+        '&details=${Uri.encodeComponent(details)}'
+        '&location=${Uri.encodeComponent(location)}'
+        '&add=manjalymdc%40gmail.com',
+      );
+
+      final launched = await launchUrl(calUri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(calUri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Device calendar sync launch error: $e');
+    }
+  }
+
   void _openTreatmentSelectSheet(BuildContext parentCtx, void Function(String) onSelect) {
     final searchCtrl = TextEditingController();
 
@@ -184,6 +245,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     String timeSlot = '10:00 AM';
     String doctor = kClinicDoctors[0];
     final manualDoctorCtrl = TextEditingController();
+    bool syncPhoneCalendar = true;
 
     Patient? selectedPatient;
     List<Patient> nameSuggestions = [];
@@ -598,23 +660,52 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
+                      color: syncPhoneCalendar ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: syncPhoneCalendar ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+                      ),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.notifications_active_outlined, size: 16, color: Color(0xFF16A34A)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Google Calendar Sync Active (manjalymdc@gmail.com): Notification push reminders will be scheduled for this appointment.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w500),
+                    child: InkWell(
+                      onTap: () => setModalState(() => syncPhoneCalendar = !syncPhoneCalendar),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_rounded,
+                            size: 22,
+                            color: syncPhoneCalendar ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sync with Phone\'s Google Calendar',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: syncPhoneCalendar ? const Color(0xFF166534) : const Color(0xFF475569),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Syncs to this device\'s connected Google account with reminder push notifications.',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Checkbox(
+                            value: syncPhoneCalendar,
+                            activeColor: const Color(0xFF16A34A),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            onChanged: (v) => setModalState(() => syncPhoneCalendar = v ?? true),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -648,13 +739,26 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       await widget.storage.saveAppointment(apt);
                       ApiService.syncAppointmentOnline(apt);
 
+                      if (syncPhoneCalendar) {
+                        _syncAppointmentToDeviceCalendar(apt);
+                      }
+
                       if (!ctx.mounted) return;
                       Navigator.pop(ctx);
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('✓ Appointment booked & synced to Google Calendar (manjalymdc@gmail.com) for ${apt.patientName}!'),
+                          content: Text(
+                            syncPhoneCalendar
+                                ? '✓ Appointment booked & synced to this Phone\'s Google Calendar for ${apt.patientName}!'
+                                : '✓ Appointment booked for ${apt.patientName}!',
+                          ),
                           backgroundColor: AppTheme.primaryTeal,
+                          action: SnackBarAction(
+                            label: 'Open Calendar',
+                            textColor: Colors.white,
+                            onPressed: () => _syncAppointmentToDeviceCalendar(apt),
+                          ),
                         ),
                       );
                     },
@@ -674,6 +778,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     DateTime date = DateTime.tryParse(apt.date) ?? DateTime.now();
     String timeSlot = apt.timeSlot;
     final notesCtrl = TextEditingController(text: apt.notes);
+    bool syncPhoneCalendar = true;
 
     final timeSlots = [
       '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',
@@ -716,6 +821,44 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   controller: notesCtrl,
                   decoration: const InputDecoration(labelText: 'Reschedule Reason', prefixIcon: Icon(Icons.notes)),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: syncPhoneCalendar ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: syncPhoneCalendar ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1)),
+                  ),
+                  child: InkWell(
+                    onTap: () => setDialogState(() => syncPhoneCalendar = !syncPhoneCalendar),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month_rounded,
+                          size: 18,
+                          color: syncPhoneCalendar ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Sync updated time to Phone\'s Calendar',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: syncPhoneCalendar ? const Color(0xFF166534) : const Color(0xFF475569),
+                            ),
+                          ),
+                        ),
+                        Checkbox(
+                          value: syncPhoneCalendar,
+                          activeColor: const Color(0xFF16A34A),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (v) => setDialogState(() => syncPhoneCalendar = v ?? true),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -734,11 +877,40 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   apt.doctor,
                   notesCtrl.text.trim(),
                 );
+
+                final updatedApt = Appointment(
+                  id: apt.id,
+                  patientName: apt.patientName,
+                  phone: apt.phone,
+                  doctor: apt.doctor,
+                  date: dateStr,
+                  timeSlot: timeSlot,
+                  reason: apt.reason,
+                  notes: notesCtrl.text.trim(),
+                  status: apt.status,
+                );
+
+                if (syncPhoneCalendar) {
+                  _syncAppointmentToDeviceCalendar(updatedApt);
+                }
+
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✓ Appointment rescheduled & synced to Google Calendar (manjalymdc@gmail.com)!')),
+                  SnackBar(
+                    content: Text(
+                      syncPhoneCalendar
+                          ? '✓ Rescheduled & synced to this Phone\'s Google Calendar!'
+                          : '✓ Appointment rescheduled successfully!',
+                    ),
+                    backgroundColor: AppTheme.primaryTeal,
+                    action: SnackBarAction(
+                      label: 'Open',
+                      textColor: Colors.white,
+                      onPressed: () => _syncAppointmentToDeviceCalendar(updatedApt),
+                    ),
+                  ),
                 );
               },
               child: const Text('Save Changes'),
@@ -1072,6 +1244,24 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       icon: const Icon(Icons.phone, size: 20, color: AppTheme.primaryTeal),
                       tooltip: 'Call Patient',
                       onPressed: () => _callPatient(apt.phone),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.event_available_rounded, size: 20, color: Color(0xFF047857)),
+                      tooltip: 'Sync with Phone\'s Google Calendar',
+                      onPressed: () async {
+                        await _syncAppointmentToDeviceCalendar(apt);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Syncing ${apt.patientName}\'s appointment to Phone Google Calendar...'),
+                            action: SnackBarAction(
+                              label: 'Open',
+                              textColor: Colors.white,
+                              onPressed: () => _syncAppointmentToDeviceCalendar(apt),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     if (!isCompleted && !isCancelled) ...[
                       OutlinedButton(

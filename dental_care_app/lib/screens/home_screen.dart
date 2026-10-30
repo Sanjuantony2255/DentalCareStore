@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/patient.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/admin_password_dialog.dart';
@@ -19,6 +20,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  Patient? _selectedPatientForRevisit;
+
+  void _onRevisitPatient(Patient patient) {
+    setState(() {
+      _selectedPatientForRevisit = patient;
+      _currentIndex = 0;
+    });
+  }
 
   void _onBookAppointmentFromPatient(String name, String phone) {
     setState(() => _currentIndex = 1);
@@ -217,17 +226,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final screens = [
           RegistrationScreen(
+            key: _selectedPatientForRevisit != null
+                ? ValueKey('revisit_${_selectedPatientForRevisit!.id}_${_selectedPatientForRevisit!.opNumber}')
+                : null,
             storage: widget.storage,
+            initialPatient: _selectedPatientForRevisit,
             onNavigateToAppointments: () => setState(() => _currentIndex = 1),
           ),
           AppointmentsScreen(storage: widget.storage),
           PatientsScreen(
             storage: widget.storage,
             onBookAppointment: _onBookAppointmentFromPatient,
+            onSelectPatientForRevisit: _onRevisitPatient,
           ),
           SearchRecordsScreen(
             storage: widget.storage,
             onBookAppointment: _onBookAppointmentFromPatient,
+            onSelectPatientForRevisit: _onRevisitPatient,
           ),
           isAdmin ? AccountsScreen(storage: widget.storage) : _buildStaffAccountsRestrictedView(),
         ];

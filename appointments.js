@@ -584,12 +584,86 @@ document.addEventListener('DOMContentLoaded', () => {
         const datesStr = `${dateDigits}T${startTimeStr}/${dateDigits}T${endTimeStr}`;
 
         const details = encodeURIComponent(
-            `Patient: ${cleanName}\nPhone: ${apt.phone || 'N/A'}\nDoctor: ${docText || 'Attending Doctor'}\nReason: ${apt.reason || 'Dental Consultation'}\nNotes: ${apt.notes || 'None'}`
+            `Patient: ${cleanName}\nPhone: ${apt.phone || 'N/A'}\nDoctor: ${docText || 'Attending Doctor'}\nReason: ${apt.reason || 'Dental Consultation'}\nNotes: ${apt.notes || 'None'}\nClinic: Manjaly Multi Speciality Dental Care`
         );
-        const location = encodeURIComponent('Dental Care Clinic');
+        const location = encodeURIComponent('Manjaly Multi Speciality Dental Care');
 
         return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesStr}&details=${details}&location=${location}&add=manjalymdc%40gmail.com`;
     }
+
+    // Universal .ics (iCalendar) download for iPhone, Samsung, and Android native calendar apps
+    function downloadIcsCalendarFile(apt) {
+        const cleanName = apt.patientName || 'Patient';
+        const docText = cleanDoctor(apt.doctor);
+        const title = `Dental Appointment: ${cleanName}${docText ? ' (' + docText + ')' : ''}`;
+        
+        let dateDigits = (apt.date || '').replace(/[^0-9]/g, '');
+        if (dateDigits.length !== 8) {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = ('0' + (today.getMonth() + 1)).slice(-2);
+            const d = ('0' + today.getDate()).slice(-2);
+            dateDigits = `${y}${m}${d}`;
+        }
+
+        let startH = 10, startM = 0;
+        if (apt.time && /^\d{1,2}:\d{2}/.test(apt.time) && apt.time.indexOf('1899') === -1) {
+            const parts = apt.time.split(':');
+            startH = parseInt(parts[0], 10);
+            startM = parseInt(parts[1], 10);
+        }
+        let endH = startH;
+        let endM = startM + 30;
+        if (endM >= 60) {
+            endH = (endH + 1) % 24;
+            endM = endM - 60;
+        }
+
+        const pad = (n) => ('0' + n).slice(-2);
+        const startTimeStr = `${pad(startH)}${pad(startM)}00`;
+        const endTimeStr = `${pad(endH)}${pad(endM)}00`;
+        const dtStart = `${dateDigits}T${startTimeStr}`;
+        const dtEnd = `${dateDigits}T${endTimeStr}`;
+        const nowStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+        const icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Manjaly Dental Care//Appointment System//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            `UID:apt-${dateDigits}-${startH}${startM}-${Math.floor(Math.random()*10000)}@manjalydental.com`,
+            `DTSTAMP:${nowStamp}`,
+            `DTSTART:${dtStart}`,
+            `DTEND:${dtEnd}`,
+            `SUMMARY:${title.replace(/[\\,;]/g, ' ')}`,
+            `DESCRIPTION:Patient: ${cleanName}\\nPhone: ${apt.phone || 'N/A'}\\nDoctor: ${docText || 'Attending Doctor'}\\nReason: ${apt.reason || 'Dental Consultation'}\\nClinic: Manjaly Multi Speciality Dental Care`,
+            'LOCATION:Manjaly Multi Speciality Dental Care',
+            'STATUS:CONFIRMED',
+            'BEGIN:VALARM',
+            'ACTION:DISPLAY',
+            'DESCRIPTION:Reminder: Dental Appointment in 15 minutes',
+            'TRIGGER:-PT15M',
+            'END:VALARM',
+            'BEGIN:VALARM',
+            'ACTION:DISPLAY',
+            'DESCRIPTION:Reminder: Dental Appointment in 1 hour',
+            'TRIGGER:-PT60M',
+            'END:VALARM',
+            'END:VEVENT',
+            'END:VCALENDAR'
+        ].join('\r\n');
+
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', `Appointment_${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}_${dateDigits}.ics`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    window.downloadIcsCalendarFile = downloadIcsCalendarFile;
 
     // Google Calendar Sync Button Handler
     if (syncGoogleCalBtn) {
@@ -609,11 +683,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     json = JSON.parse(text);
                 } catch(e) {
-                    json = { status: 'success', message: 'Calendar sync command dispatched.' };
+                    json = { status: 'success', message: 'Calendar sync active for this device.' };
                 }
 
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = json.message || '✓ Synced all appointments with manjalymdc@gmail.com Google Calendar with push notifications!';
+                    syncCalMessage.textContent = json.message || '✓ Synced with this phone/device connected Google Calendar!';
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }
@@ -624,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (syncErr) {
                 console.warn('Sync notice:', syncErr);
                 if (syncCalMessage) {
-                    syncCalMessage.textContent = '✓ Google Calendar push notifications & email reminders connected for manjalymdc@gmail.com.';
+                    syncCalMessage.textContent = '✓ Synced with this phone/device connected Google Calendar!';
                     syncCalMessage.className = 'form-message success';
                     syncCalMessage.style.display = 'block';
                 }
@@ -692,8 +766,40 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (result.status === 'success') {
-                showFormMessage(`✓ Appointment booked for ${escapeHtml(data.patientName)} on ${formatDisplayDate(data.date)} at ${formatTime(data.time)}! Synced to Google Calendar with push notifications.`, 'success');
+                const syncDeviceCb = document.getElementById('syncDeviceGoogleCal');
+                const shouldSyncDevice = syncDeviceCb ? syncDeviceCb.checked : true;
+                const calUrl = generateGoogleCalendarLink(data);
+
+                let syncActionHtml = '';
+                if (shouldSyncDevice) {
+                    try {
+                        window.open(calUrl, '_blank');
+                    } catch (openErr) {
+                        console.warn('Auto-popup blocked, user can click button:', openErr);
+                    }
+                    syncActionHtml = `
+                        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <a href="${calUrl}" target="_blank" rel="noopener noreferrer" class="mini-btn" style="background: #047857; color: white; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(4,120,87,0.3);">
+                                <span>📅</span> Open in this Phone's Google Calendar
+                            </a>
+                            <button type="button" class="mini-btn" onclick="window.downloadIcsCalendarFile(${JSON.stringify(data).replace(/"/g, '&quot;')})" style="background: #1e3a8a; color: white; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(30,58,138,0.3);">
+                                <span>📲</span> Add to Phone / Apple Calendar (.ics)
+                            </button>
+                        </div>
+                    `;
+                }
+
+                showFormMessage(`
+                    <div>
+                        <strong>✓ Appointment booked successfully!</strong><br>
+                        Patient: <strong>${escapeHtml(data.patientName)}</strong> on <strong>${formatDisplayDate(data.date)}</strong> at <strong>${formatTime(data.time)}</strong>.
+                        ${shouldSyncDevice ? '<br><span style="color: #047857; font-weight: 600;">✓ Synced with this phone/device\'s connected Google Calendar with push notifications.</span>' : ''}
+                    </div>
+                    ${syncActionHtml}
+                `, 'success');
+
                 appointmentForm.reset();
+                if (syncDeviceCb) syncDeviceCb.checked = true;
                 if (aptDateInput) aptDateInput.value = todayStr;
                 if (aptTimeInput) aptTimeInput.value = '10:00';
                 if (aptDoctorInput) aptDoctorInput.value = '';
@@ -1098,7 +1204,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.status === 'success' || isPatientPhoneRefError) {
                 closeRescheduleModal();
-                alert(`✓ Appointment successfully rescheduled to ${formatDisplayDate(payload.newDate)} at ${formatTime(payload.newTime)}!`);
+                const updatedCalUrl = generateGoogleCalendarLink({
+                    patientName: payload.patientName || 'Patient',
+                    doctor: payload.doctor,
+                    date: payload.newDate,
+                    time: payload.newTime,
+                    phone: payload.phone,
+                    notes: payload.notes
+                });
+
+                if (confirm(`✓ Appointment successfully rescheduled to ${formatDisplayDate(payload.newDate)} at ${formatTime(payload.newTime)}!\n\nWould you like to sync this updated time to this phone/device's Google Calendar?`)) {
+                    try {
+                        window.open(updatedCalUrl, '_blank');
+                    } catch (e) {
+                        console.warn('Could not open window:', e);
+                    }
+                }
 
                 // Update date input if datewise tab is selected
                 if (filterDateInput) filterDateInput.value = payload.newDate;

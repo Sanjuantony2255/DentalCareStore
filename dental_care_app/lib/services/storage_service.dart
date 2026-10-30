@@ -218,18 +218,31 @@ class StorageService extends ChangeNotifier {
   Future<void> savePatient(Patient patient) async {
     final pDigits = patient.phone.replaceAll(RegExp(r'\D'), '');
     final pName = patient.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final pOp = patient.opNumber.trim().toLowerCase();
+
     final idx = _patients.indexWhere((p) {
       if (p.id == patient.id) return true;
       final cDigits = p.phone.replaceAll(RegExp(r'\D'), '');
       final cName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-      final phoneMatch = pDigits.isNotEmpty && cDigits.isNotEmpty && (pDigits == cDigits || (pDigits.length >= 10 && cDigits.length >= 10 && pDigits.endsWith(cDigits.substring(cDigits.length - 10))));
-      final nameMatch = pName.isNotEmpty && cName.isNotEmpty && pName == cName;
-      final opMatch = patient.opNumber.isNotEmpty && p.opNumber.isNotEmpty && p.opNumber.toLowerCase() == patient.opNumber.toLowerCase();
-      return (phoneMatch && nameMatch) || opMatch;
+      final cOp = p.opNumber.trim().toLowerCase();
+
+      final opMatch = pOp.isNotEmpty && cOp.isNotEmpty && pOp == cOp;
+      if (opMatch) return true;
+
+      final phoneMatch = pDigits.isNotEmpty && cDigits.isNotEmpty &&
+          (pDigits == cDigits || (pDigits.length >= 10 && cDigits.length >= 10 && pDigits.endsWith(cDigits.substring(cDigits.length - 10))));
+
+      if (phoneMatch) {
+        final nameMatch = pName.isNotEmpty && cName.isNotEmpty &&
+            (pName == cName || pName.contains(cName) || cName.contains(pName) || pName.split(' ').first == cName.split(' ').first);
+        return nameMatch;
+      }
+      return false;
     });
     if (idx >= 0) {
       final existing = _patients[idx];
-      final effectiveOp = patient.opNumber.isNotEmpty ? patient.opNumber : existing.opNumber;
+      // CRITICAL: Always preserve the already registered patient's existing OP number and do not change other patients!
+      final effectiveOp = existing.opNumber.isNotEmpty ? existing.opNumber : (patient.opNumber.isNotEmpty ? patient.opNumber : 'OP-${existing.id}');
       _patients[idx] = Patient(
         id: existing.id.isNotEmpty ? existing.id : patient.id,
         opNumber: effectiveOp,

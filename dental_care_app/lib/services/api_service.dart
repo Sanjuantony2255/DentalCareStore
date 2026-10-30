@@ -7,7 +7,7 @@ import '../models/inventory_item.dart';
 
 class ApiService {
   static const String githubCloudDataUrl =
-      'https://raw.githubusercontent.com/Sanjuantony2255/DentalCareStore/main/clinic_data.json';
+      'https://raw.githubusercontent.com/Sanjuantony2255/manjalydentalcare/main/clinic_data.json';
   static const String spreadsheetId = '1MuzymftW2wzDV5C-ljLKXHo_NyqK6Xxp-PlI7pqbhls';
   static const String defaultScriptUrl =
       'https://script.google.com/macros/s/AKfycbyC1zFwfNFa8w-wLJGdEE9ladkNL2rZk-gIfx68CX76upxyQrI1Lar8Tb6BGEvLX4q0/exec';

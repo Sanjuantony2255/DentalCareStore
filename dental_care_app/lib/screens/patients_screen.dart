@@ -11,11 +11,13 @@ import '../widgets/invoice_receipt_dialog.dart';
 class PatientsScreen extends StatefulWidget {
   final StorageService storage;
   final Function(String name, String phone)? onBookAppointment;
+  final Function(Patient patient)? onSelectPatientForRevisit;
 
   const PatientsScreen({
     super.key,
     required this.storage,
     this.onBookAppointment,
+    this.onSelectPatientForRevisit,
   });
 
   @override
@@ -173,26 +175,44 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _callPatient(patient.phone),
-                      icon: const Icon(Icons.phone, size: 16),
-                      label: Text(patient.phone),
+                      icon: const Icon(Icons.phone, size: 15),
+                      label: Text(patient.phone, style: const TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (widget.onSelectPatientForRevisit != null) {
+                          widget.onSelectPatientForRevisit!(patient);
+                        }
+                      },
+                      icon: const Icon(Icons.refresh_rounded, size: 15),
+                      label: const Text('Revisit', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
                         if (widget.onBookAppointment != null) {
                           widget.onBookAppointment!(patient.name, patient.phone);
                         }
                       },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: const Text('Book Visit'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      icon: const Icon(Icons.calendar_today, size: 15),
+                      label: const Text('Book', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                       ),
                     ),
                   ),

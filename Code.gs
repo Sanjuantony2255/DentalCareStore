@@ -38,7 +38,7 @@ function getSpreadsheet() {
 
 /**
  * Retrieves the Google Calendar connected to the clinic doctor/admin (manjalymdc@gmail.com).
- * First checks by ID, then falls back to default calendar.
+ * Only uses explicit clinic calendar ID; never falls back to script developer's personal calendar.
  */
 function getClinicCalendar() {
   var cal = null;
@@ -49,13 +49,9 @@ function getClinicCalendar() {
       Logger.log("getCalendarById error: " + e1.toString());
     }
   }
-  if (!cal) {
-    try {
-      cal = CalendarApp.getDefaultCalendar();
-    } catch (e2) {
-      Logger.log("getDefaultCalendar error: " + e2.toString());
-    }
-  }
+  // DO NOT fall back to CalendarApp.getDefaultCalendar().
+  // Apps Script runs as the deploying user (sanjuantony01@gmail.com).
+  // Falling back to default calendar leaks appointments into developer's personal calendar.
   return cal;
 }
 
@@ -469,10 +465,11 @@ function handlePatientRegistration(ss, data) {
   var timestamp = data.timestamp || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
   var phoneStr = data.phone ? "'" + data.phone.toString().trim() : '';
 
-  // Intelligent OP Number lookup & preservation for returning patient with same phone & name
+  // Intelligent OP Number lookup & preservation for returning patient
   var inputPhone = (data.phone || '').toString().trim();
   var inputPhoneDigits = extractDigits(inputPhone);
   var inputName = (data.fullName || data.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+  var inputOp = (data.opNumber || '').toString().trim();
   var existingOpNumber = '';
 
   var sheetsToCheck = [visitsSheet];
@@ -495,26 +492,39 @@ function handlePatientRegistration(ss, data) {
         var rowName = (cName >= 0 && cName < rowR.length ? formatCellValue(rowR[cName]) : '').toLowerCase().replace(/\s+/g, ' ').trim();
         var rowPhone = cPhone >= 0 && cPhone < rowR.length ? formatCellValue(rowR[cPhone]) : '';
         var rowPhoneDigits = extractDigits(rowPhone);
-        
-        var nameMatches = inputName && rowName && (inputName === rowName);
+        var rowOp = cOp >= 0 && cOp < rowR.length ? formatCellValue(rowR[cOp]) : '';
+
+        if (!rowOp) continue;
+
+        // 1. If explicit OP number was submitted and matches this row, keep it
+        if (inputOp && rowOp && inputOp.toLowerCase() === rowOp.toLowerCase()) {
+          existingOpNumber = rowOp;
+          break;
+        }
+
+        // 2. Phone match (10 digits)
         var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
-        
-        if (nameMatches && phoneMatches) {
-          if (cOp >= 0 && cOp < rowR.length) {
-            var foundOp = formatCellValue(rowR[cOp]);
-            if (foundOp) {
-              existingOpNumber = foundOp;
-              break;
-            }
+        if (phoneMatches) {
+          var nameMatches = !inputName || !rowName || (inputName === rowName) ||
+                            (inputName.indexOf(rowName) !== -1 || rowName.indexOf(inputName) !== -1) ||
+                            (inputName.split(' ')[0] === rowName.split(' ')[0]);
+          if (nameMatches) {
+            existingOpNumber = rowOp;
+            break;
+          } else if (!existingOpNumber) {
+            // Tentative match by same phone
+            existingOpNumber = rowOp;
           }
         }
       }
     }
   }
 
-  // If a registered person with same phone number and name has an OP number, ALWAYS use that exact same OP number!
+  // Already registered patients ALWAYS keep their already given OP number!
   if (existingOpNumber) {
     data.opNumber = existingOpNumber;
+  } else if (inputOp && inputOp.indexOf('OP-') === 0) {
+    data.opNumber = inputOp;
   } else if (!data.opNumber || data.opNumber.toString().trim() === '') {
     var randomCode = Math.floor(1000 + Math.random() * 9000);
     var pfx = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMM");
@@ -1571,7 +1581,11 @@ function handleSyncCalendar(ss) {
 
   var cal = getClinicCalendar();
   if (!cal) {
-    return createJsonResponse({ status: 'error', message: 'Could not access Google Calendar. Please check Calendar permissions for ' + CLINIC_NOTIFICATION_EMAIL });
+    return createJsonResponse({ 
+      status: 'success', 
+      message: 'Server-side sync to developer account is disabled. Appointments sync directly with each device connected Google Calendar when booked on that phone or device.',
+      count: 0 
+    });
   }
 
   var headers = data[0];
