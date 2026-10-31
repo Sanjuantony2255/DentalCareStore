@@ -231,18 +231,16 @@ class StorageService extends ChangeNotifier {
 
       final phoneMatch = pDigits.isNotEmpty && cDigits.isNotEmpty &&
           (pDigits == cDigits || (pDigits.length >= 10 && cDigits.length >= 10 && pDigits.endsWith(cDigits.substring(cDigits.length - 10))));
+      final nameMatch = pName.isNotEmpty && cName.isNotEmpty && pName == cName;
 
-      if (phoneMatch) {
-        final nameMatch = pName.isNotEmpty && cName.isNotEmpty &&
-            (pName == cName || pName.contains(cName) || cName.contains(pName) || pName.split(' ').first == cName.split(' ').first);
-        return nameMatch;
-      }
-      return false;
+      return phoneMatch && nameMatch;
     });
     if (idx >= 0) {
       final existing = _patients[idx];
-      // CRITICAL: Always preserve the already registered patient's existing OP number and do not change other patients!
-      final effectiveOp = existing.opNumber.isNotEmpty ? existing.opNumber : (patient.opNumber.isNotEmpty ? patient.opNumber : 'OP-${existing.id}');
+      // Preserve existing established OP or prioritize explicit input OP
+      final effectiveOp = patient.opNumber.isNotEmpty
+          ? patient.opNumber
+          : (existing.opNumber.isNotEmpty ? existing.opNumber : 'OP-${existing.id}');
       _patients[idx] = Patient(
         id: existing.id.isNotEmpty ? existing.id : patient.id,
         opNumber: effectiveOp,

@@ -165,59 +165,50 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void _checkExistingPatient() {
     final cleanName = _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     final qDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-
-    if (qDigits.length >= 10) {
+    if (qDigits.length >= 10 && cleanName.length >= 2) {
+      final existing = widget.storage.patients.firstWhere(
+        (p) {
+          final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+          final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+          final phoneMatch = pDigits.isNotEmpty &&
+              (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+          final nameMatch = pName.isNotEmpty && pName == cleanName;
+          return phoneMatch && nameMatch;
+        },
+        orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
+      );
+      if (existing.id.isNotEmpty) {
+        final op = existing.opNumber.isNotEmpty ? existing.opNumber : 'OP-${existing.id.replaceAll(RegExp(r'\D'), '')}';
+        setState(() {
+          _isAlreadyRegistered = true;
+          _suggestedOpNumber = op;
+          _suggestedPatientName = existing.name;
+          _opController.text = op;
+        });
+        if (!_isRevisit) {
+          _populatePatientData(existing);
+        }
+        return;
+      }
+    } else if (qDigits.length >= 10 && cleanName.isEmpty) {
       final matches = widget.storage.patients.where((p) {
         final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-        return pDigits.isNotEmpty &&
-            (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+        return pDigits.isNotEmpty && (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
       }).toList();
-
-      if (matches.isNotEmpty) {
-        // Find match: name similarity match or if name not entered yet
-        Patient? bestMatch;
-        if (cleanName.isNotEmpty) {
-          final nameMatches = matches.where((p) {
-            final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-            return pName == cleanName ||
-                pName.contains(cleanName) ||
-                cleanName.contains(pName) ||
-                (pName.split(' ').first == cleanName.split(' ').first);
-          }).toList();
-          if (nameMatches.isNotEmpty) {
-            bestMatch = nameMatches.first;
-          }
-        } else {
-          bestMatch = matches.first;
-        }
-
-        if (bestMatch != null) {
-          final op = bestMatch.opNumber.isNotEmpty ? bestMatch.opNumber : 'OP-${bestMatch.id.replaceAll(RegExp(r'\D'), '')}';
-          setState(() {
-            _isAlreadyRegistered = true;
-            _suggestedOpNumber = op;
-            _suggestedPatientName = bestMatch!.name;
-            _opController.text = op;
-            if (_nameController.text.trim().isEmpty) {
-              _nameController.text = bestMatch.name;
-            }
-          });
-          if (!_isRevisit) {
-            _populatePatientData(bestMatch);
-          }
-          return;
-        } else {
-          // Different person entered with same family phone - give them their own new OP number
-          setState(() {
-            _isAlreadyRegistered = false;
-            _suggestedOpNumber = null;
-            _suggestedPatientName = null;
-          });
-        }
+      if (matches.length == 1 && !_isRevisit) {
+        final p = matches.first;
+        final op = p.opNumber.isNotEmpty ? p.opNumber : 'OP-${p.id.replaceAll(RegExp(r'\D'), '')}';
+        setState(() {
+          _isAlreadyRegistered = true;
+          _suggestedOpNumber = op;
+          _suggestedPatientName = p.name;
+        });
+        _populatePatientData(p);
+        return;
       }
     }
 
-    if (_isAlreadyRegistered && _phoneController.text.replaceAll(RegExp(r'\D'), '').length < 10) {
+    if (_isAlreadyRegistered) {
       setState(() {
         _isAlreadyRegistered = false;
         _suggestedOpNumber = null;
@@ -521,38 +512,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         : DateFormat('yyyy-MM-dd').format(_selectedDate);
     final invId = 'INV-${now.year}-${DateFormat('MMddHHmm').format(now)}';
 
-    // When clicking Submit Registration / Revisit, preserve already given OP number for registered patients
     final cleanName = _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     final qDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-    final currentOp = _opController.text.trim().toLowerCase();
+    final currentOp = _opController.text.trim();
 
-    // Look up existing patient: first by current OP number, then by phone digits (10 digits) + name match
-    Patient existing = widget.storage.patients.firstWhere(
-      (p) => currentOp.isNotEmpty && p.opNumber.trim().toLowerCase() == currentOp,
-      orElse: () {
-        if (qDigits.length >= 10) {
-          final phoneMatches = widget.storage.patients.where((p) {
-            final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
-            return pDigits.isNotEmpty &&
-                (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
-          }).toList();
-          if (phoneMatches.isNotEmpty) {
-            final nameMatches = phoneMatches.where(
-              (p) {
-                final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-                return pName == cleanName ||
-                    pName.contains(cleanName) ||
-                    cleanName.contains(pName) ||
-                    (pName.split(' ').first == cleanName.split(' ').first);
-              },
-            ).toList();
-            if (nameMatches.isNotEmpty) {
-              return nameMatches.first;
-            }
-          }
+    // Look up existing patient: by current OP or exact phone + full name match
+    final existing = widget.storage.patients.firstWhere(
+      (p) {
+        if (currentOp.isNotEmpty && p.opNumber.trim().toLowerCase() == currentOp.toLowerCase()) {
+          return true;
         }
-        return Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: '');
+        final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+        final pName = p.name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+        final phoneMatch = pDigits.isNotEmpty && qDigits.isNotEmpty &&
+            (pDigits == qDigits || (pDigits.length >= 10 && qDigits.length >= 10 && pDigits.endsWith(qDigits.substring(qDigits.length - 10))));
+        final nameMatch = pName.isNotEmpty && cleanName.isNotEmpty && pName == cleanName;
+        return phoneMatch && nameMatch;
       },
+      orElse: () => Patient(id: '', opNumber: '', name: '', phone: '', gender: '', doctor: '', registrationDate: ''),
     );
 
     String opNumber = _opController.text.trim();
