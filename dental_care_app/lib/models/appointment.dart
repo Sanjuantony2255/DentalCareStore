@@ -1,5 +1,6 @@
 class Appointment {
   final String id;
+  final String opNumber;
   final String patientName;
   final String phone;
   final String doctor;
@@ -11,6 +12,7 @@ class Appointment {
 
   Appointment({
     required this.id,
+    this.opNumber = '',
     required this.patientName,
     required this.phone,
     required this.doctor,
@@ -23,6 +25,7 @@ class Appointment {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'opNumber': opNumber,
     'patientName': patientName,
     'phone': phone,
     'doctor': doctor,
@@ -35,6 +38,7 @@ class Appointment {
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
     id: json['id'] ?? '',
+    opNumber: json['opNumber'] ?? '',
     patientName: json['patientName'] ?? '',
     phone: json['phone'] ?? '',
     doctor: json['doctor'] ?? 'Dr. Jeswin Jose BDS',

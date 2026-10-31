@@ -27,7 +27,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     if (widget.storage.patients.isEmpty) {
       widget.storage.syncWithCloud();
     }
@@ -38,6 +38,322 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     _searchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _getPatientOp(Appointment apt) {
+    if (apt.opNumber.isNotEmpty) return apt.opNumber;
+    final cleanPhone = apt.phone.replaceAll(RegExp(r'\D'), '');
+    final cleanName = apt.patientName.trim().toLowerCase();
+    for (final p in widget.storage.patients) {
+      final pPhone = p.phone.replaceAll(RegExp(r'\D'), '');
+      final pName = p.name.trim().toLowerCase();
+      if ((cleanPhone.isNotEmpty && pPhone == cleanPhone && cleanName == pName) ||
+          (cleanPhone.isNotEmpty && pPhone == cleanPhone) ||
+          (cleanName.isNotEmpty && pName == cleanName)) {
+        if (p.opNumber.isNotEmpty) return p.opNumber;
+        if (p.id.isNotEmpty) return 'OP-${p.id.replaceAll(RegExp(r'\D'), '')}';
+      }
+    }
+    return '';
+  }
+
+  Future<void> _sendWhatsAppReminder(Appointment apt) async {
+    String cleanPhone = apt.phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No phone number for ${apt.patientName}')),
+      );
+      return;
+    }
+
+    if (cleanPhone.length == 10) {
+      cleanPhone = '91$cleanPhone';
+    } else if (cleanPhone.length == 11 && cleanPhone.startsWith('0')) {
+      cleanPhone = '91${cleanPhone.substring(1)}';
+    }
+
+    String dateFormatted = apt.date;
+    try {
+      final parsed = DateTime.parse(apt.date);
+      dateFormatted = DateFormat('EEE, dd MMM yyyy').format(parsed);
+    } catch (_) {}
+
+    final op = _getPatientOp(apt);
+    final opLine = op.isNotEmpty ? '📋 *OP No:* $op\n' : '';
+
+    final message = 'Hello ${apt.patientName},\n\n'
+        'This is a friendly reminder from *Manjaly Multi Speciality Dental Care* regarding your upcoming dental appointment:\n\n'
+        '📅 *Date:* $dateFormatted\n'
+        '⏰ *Time:* ${apt.timeSlot}\n'
+        '👨‍⚕️ *Doctor:* ${apt.doctor.isNotEmpty ? apt.doctor : "Attending Doctor"}\n'
+        '🩺 *Treatment:* ${apt.reason.isNotEmpty ? apt.reason : "Consultation"}\n'
+        '$opLine'
+        '📍 *Location:* Manjaly Multi Speciality Dental Care, Angamaly\n\n'
+        'Please let us know at least 2 hours in advance if you need to reschedule. Thank you!';
+
+    final uri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open WhatsApp for ${apt.patientName}: $e')),
+      );
+    }
+  }
+
+  void _openSendAllTomorrowModal(List<Appointment> tomorrowList, DateTime tomorrowDate) {
+    if (tomorrowList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No appointments scheduled for tomorrow.')),
+      );
+      return;
+    }
+
+    final dateFormatted = DateFormat('EEEE, dd MMM yyyy').format(tomorrowDate);
+    final sentSet = <String>{};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final nextIndex = tomorrowList.indexWhere((a) => !sentSet.contains(a.id));
+          final allDone = nextIndex == -1;
+          final nextApt = allDone ? null : tomorrowList[nextIndex];
+
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.send_rounded, color: Color(0xFF16A34A), size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Tomorrow's Appointment Reminders",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                '$dateFormatted • ${tomorrowList.length} patients',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Progress & Quick Send button
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF86EFAC)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Progress: ${sentSet.length} of ${tomorrowList.length} Sent',
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF166534)),
+                            ),
+                            Text(
+                              '${((sentSet.length / tomorrowList.length) * 100).toInt()}%',
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF166534)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: tomorrowList.isNotEmpty ? sentSet.length / tomorrowList.length : 0,
+                            backgroundColor: const Color(0xFFDCFCE7),
+                            color: const Color(0xFF16A34A),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: allDone
+                              ? null
+                              : () async {
+                                  final target = nextApt!;
+                                  setSheetState(() => sentSet.add(target.id));
+                                  await _sendWhatsAppReminder(target);
+                                },
+                          icon: Icon(allDone ? Icons.check_circle : Icons.chat, size: 18),
+                          label: Text(
+                            allDone
+                                ? 'All Tomorrow\'s Reminders Sent ✓'
+                                : 'Send Next (${sentSet.length + 1}/${tomorrowList.length}): ${nextApt?.patientName ?? ""}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: allDone ? const Color(0xFF94A3B8) : const Color(0xFF16A34A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Patient Reminders List',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: tomorrowList.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, idx) {
+                        final apt = tomorrowList[idx];
+                        final isSent = sentSet.contains(apt.id);
+                        final op = _getPatientOp(apt);
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSent ? const Color(0xFFF8FAFC) : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSent ? const Color(0xFFE2E8F0) : const Color(0xFFCBD5E1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: isSent ? const Color(0xFFDCFCE7) : AppTheme.primarySubtle,
+                                child: Icon(
+                                  isSent ? Icons.check : Icons.person_outline,
+                                  size: 16,
+                                  color: isSent ? const Color(0xFF16A34A) : AppTheme.primaryDark,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            apt.patientName,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13,
+                                              color: isSent ? const Color(0xFF64748B) : const Color(0xFF0F172A),
+                                              decoration: isSent ? TextDecoration.lineThrough : null,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (op.isNotEmpty) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primarySubtle,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              op,
+                                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.primaryDark),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${apt.timeSlot} • ${apt.phone} • ${apt.reason}',
+                                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  setSheetState(() => sentSet.add(apt.id));
+                                  await _sendWhatsAppReminder(apt);
+                                },
+                                icon: Icon(
+                                  isSent ? Icons.done_all : Icons.chat,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                label: Text(
+                                  isSent ? 'Sent' : 'Send',
+                                  style: const TextStyle(fontSize: 11, color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isSent ? const Color(0xFF64748B) : const Color(0xFF25D366),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _callPatient(String phone) async {
@@ -238,6 +554,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   void _openBookAppointmentModal([String? patientName, String? phone]) {
     final nameCtrl = TextEditingController(text: patientName ?? '');
     final phoneCtrl = TextEditingController(text: phone ?? '');
+    final opCtrl = TextEditingController();
     final reasonCtrl = TextEditingController(text: 'CONSULTATION');
     final notesCtrl = TextEditingController();
     DateTime date = DateTime.now();
@@ -255,11 +572,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
       final cleanP = (phone ?? '').replaceAll(RegExp(r'\D'), '');
       final cleanN = (patientName ?? '').trim().toLowerCase();
       try {
-        selectedPatient = widget.storage.patients.firstWhere((p) {
+        final matched = widget.storage.patients.firstWhere((p) {
           final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
           final pN = p.name.trim().toLowerCase();
           return (cleanP.isNotEmpty && pDigits == cleanP) || (cleanN.isNotEmpty && pN == cleanN);
         });
+        selectedPatient = matched;
+        opCtrl.text = matched.opNumber.isNotEmpty
+            ? matched.opNumber
+            : (matched.id.isNotEmpty ? 'OP-${matched.id.replaceAll(RegExp(r'\D'), '')}' : '');
       } catch (_) {}
     }
 
@@ -280,6 +601,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
           void selectPatient(Patient p) {
             nameCtrl.text = p.name;
             phoneCtrl.text = p.phone;
+            opCtrl.text = p.opNumber.isNotEmpty
+                ? p.opNumber
+                : (p.id.isNotEmpty ? 'OP-${p.id.replaceAll(RegExp(r'\D'), '')}' : '');
             if (p.doctor.isNotEmpty) {
               final docMatch = kClinicDoctors.firstWhere(
                 (d) => d.toLowerCase().contains(p.doctor.toLowerCase()) || p.doctor.toLowerCase().contains(d.toLowerCase()),
@@ -509,6 +833,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                     onChanged: onPhoneChanged,
                   ),
                   if (phoneSuggestions.isNotEmpty) buildSuggestionCard(phoneSuggestions),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: opCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'OP Number (Optional)',
+                      hintText: 'e.g. OP-2603-0001 or 105',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                  ),
                   if (selectedPatient != null) ...[
                     const SizedBox(height: 8),
                     Container(
@@ -733,6 +1066,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                         reason: reasonCtrl.text.trim(),
                         notes: notesCtrl.text.trim(),
                         status: 'Upcoming',
+                        opNumber: opCtrl.text.trim(),
                       );
 
                       await widget.storage.saveAppointment(apt);
@@ -887,6 +1221,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                   reason: apt.reason,
                   notes: notesCtrl.text.trim(),
                   status: apt.status,
+                  opNumber: apt.opNumber,
                 );
 
                 if (syncPhoneCalendar) {
@@ -923,12 +1258,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrowStr = DateFormat('yyyy-MM-dd').format(tomorrow);
 
     return AnimatedBuilder(
       animation: widget.storage,
       builder: (context, _) {
         final allApts = widget.storage.appointments;
         final todayApts = allApts.where((a) => a.date == todayStr).toList();
+        final tomorrowApts = allApts.where((a) => a.date == tomorrowStr).toList();
         final upcomingApts = allApts.where((a) {
           try {
             final dt = DateTime.parse(a.date);
@@ -958,6 +1296,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         }
 
         final filteredToday = todayApts.where(matchesQuery).toList();
+        final filteredTomorrow = tomorrowApts.where(matchesQuery).toList();
         final filteredUpcoming = upcomingApts.where(matchesQuery).toList();
         final filteredDatewise = datewiseApts.where(matchesQuery).toList();
         final filteredAll = allApts.where(matchesQuery).toList();
@@ -1006,6 +1345,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
               indicatorColor: AppTheme.primaryTeal,
               tabs: [
                 Tab(text: 'Today (${filteredToday.length})'),
+                Tab(text: 'Tomorrow (${filteredTomorrow.length})'),
                 Tab(text: 'Upcoming (${filteredUpcoming.length})'),
                 const Tab(text: 'Date Filter'),
                 Tab(text: 'All (${filteredAll.length})'),
@@ -1029,7 +1369,64 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                     : 'No appointments scheduled for today.',
               ),
 
-              // Tab 2: Upcoming
+              // Tab 2: Tomorrow
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: const Color(0xFFF0FDF4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.wb_sunny_outlined, size: 16, color: Color(0xFF16A34A)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    DateFormat('EEEE, dd MMM yyyy').format(tomorrow),
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF166534)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${filteredTomorrow.length} appointment${filteredTomorrow.length == 1 ? "" : "s"} scheduled',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: filteredTomorrow.isEmpty
+                              ? null
+                              : () => _openSendAllTomorrowModal(filteredTomorrow, tomorrow),
+                          icon: const Icon(Icons.send_rounded, size: 16),
+                          label: const Text('Send All to Patients', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF16A34A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFBBF7D0)),
+                  Expanded(
+                    child: _buildAppointmentsList(
+                      filteredTomorrow,
+                      query.isNotEmpty
+                          ? 'No appointments tomorrow matched "$query".'
+                          : 'No appointments scheduled for tomorrow.',
+                    ),
+                  ),
+                ],
+              ),
+
+              // Tab 3: Upcoming
               _buildAppointmentsList(
                 filteredUpcoming,
                 query.isNotEmpty
@@ -1037,7 +1434,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                     : 'No upcoming appointments.',
               ),
 
-              // Tab 3: Date Filter
+              // Tab 4: Date Filter
               Column(
                 children: [
                   Container(
@@ -1141,6 +1538,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
         final apt = list[index];
         final isCompleted = apt.status == 'Completed';
         final isCancelled = apt.status == 'Cancelled';
+        final opNum = _getPatientOp(apt);
 
         return Card(
           child: Padding(
@@ -1148,20 +1546,46 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top row: Patient Name + Status Badge
+                // Top row: Patient Name + OP Badge + Status Badge
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(
-                        apt.patientName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              apt.patientName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (opNum.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primarySubtle,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                opNum,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primaryDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -1243,6 +1667,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                       icon: const Icon(Icons.phone, size: 20, color: AppTheme.primaryTeal),
                       tooltip: 'Call Patient',
                       onPressed: () => _callPatient(apt.phone),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chat, size: 20, color: Color(0xFF25D366)),
+                      tooltip: 'Send WhatsApp Reminder',
+                      onPressed: () => _sendWhatsAppReminder(apt),
                     ),
                     IconButton(
                       icon: const Icon(Icons.event_available_rounded, size: 20, color: Color(0xFF047857)),

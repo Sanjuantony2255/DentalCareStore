@@ -3789,11 +3789,23 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.3rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.credit-developer:hover {
+    color: #0d9488;
+    transform: translateY(-1px);
 }
 
 .credit-developer strong {
     color: #0d9488;
     font-weight: 800;
+}
+
+.credit-developer:hover strong {
+    text-decoration: underline;
 }
 
 /* Mobile Top Bar */

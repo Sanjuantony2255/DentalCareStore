@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/patient.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -499,9 +500,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color(0xFFF8FAFC),
                     border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           CircleAvatar(
                             backgroundColor: AppTheme.primarySubtle,
@@ -520,24 +521,44 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
-                      Divider(height: 1, color: Color(0xFFE2E8F0)),
-                      SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.favorite, size: 14, color: Color(0xFFEF4444)),
-                          SizedBox(width: 6),
-                          Text(
-                            'Developed by Sanju Antony',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F766E),
-                              letterSpacing: 0.2,
-                            ),
+                      const SizedBox(height: 10),
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse('https://sanju-antony.vercel.app/');
+                          try {
+                            final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!launched) await launchUrl(uri);
+                          } catch (_) {
+                            try {
+                              await launchUrl(uri);
+                            } catch (_) {}
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.favorite, size: 14, color: Color(0xFFEF4444)),
+                              SizedBox(width: 6),
+                              Text(
+                                'Developed by Sanju Antony',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                  letterSpacing: 0.2,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.open_in_new, size: 12, color: Color(0xFF0F766E)),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),

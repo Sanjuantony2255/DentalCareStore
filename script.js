@@ -730,12 +730,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawPhoneDigits = (data.phone || (phoneInput ? phoneInput.value : '') || '').replace(/\D/g, '');
         let existingMatchOp = null;
 
-        // 1. If opNumberInput already contains an OP number, preserve it
-        if (opNumberInput && opNumberInput.value && opNumberInput.value.trim().indexOf('OP-') === 0) {
+        // 1. If opNumberInput already contains an OP number, preserve it (any custom or generated OP format)
+        if (opNumberInput && opNumberInput.value && opNumberInput.value.trim().length > 0) {
             existingMatchOp = opNumberInput.value.trim();
         }
 
-        // 2. If not yet determined, match against local cache by phone and name
+        // 2. If not yet determined, match against local cache by phone and full name
         if (!existingMatchOp && rawPhoneDigits.length >= 10) {
             try {
                 const rawCached = localStorage.getItem('dental_cached_patients');
@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const cDigits = (p.phone || '').toString().replace(/\D/g, '');
                         const cName = (p.fullName || p.patientName || p.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
                         const phoneMatch = cDigits && (cDigits === rawPhoneDigits || (cDigits.length >= 10 && rawPhoneDigits.length >= 10 && cDigits.slice(-10) === rawPhoneDigits.slice(-10)));
-                        const nameMatch = rawName && cName && ((cName === rawName) || cName.includes(rawName) || rawName.includes(cName) || (cName.split(' ')[0] === rawName.split(' ')[0]));
+                        const nameMatch = rawName && cName && ((cName === rawName) || cName.includes(rawName) || rawName.includes(cName));
                         return phoneMatch && nameMatch && p.opNumber;
                     });
                     if (found && found.opNumber) {

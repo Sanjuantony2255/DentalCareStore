@@ -82,7 +82,7 @@
                     </div>
                 <div class="sidebar-brand-credit">
                     <div class="credit-clinic-name">Manjaly Multi Speciality Dental Care</div>
-                    <div class="credit-developer">Developed with ❤️ by <strong>Sanju Antony</strong></div>
+                    <a href="https://sanju-antony.vercel.app/" target="_blank" rel="noopener noreferrer" class="credit-developer" title="Developed by Sanju Antony - Click to view portfolio">Developed with ❤️ by <strong>Sanju Antony</strong></a>
                 </div>
             </div>
         </aside>
@@ -145,6 +145,9 @@
                 <button type="button" class="apt-tab-btn" data-tab="todayTab" id="todayTabBtn">
                     <span>📅</span> Today's Schedule <span class="tab-badge" id="todayBadge">0</span>
                 </button>
+                <button type="button" class="apt-tab-btn" data-tab="tomorrowTab" id="tomorrowTabBtn">
+                    <span>🌅</span> Tomorrow's Appointments <span class="tab-badge" id="tomorrowBadge">0</span>
+                </button>
                 <button type="button" class="apt-tab-btn" data-tab="upcomingTab" id="upcomingTabBtn">
                     <span>🗓️</span> Upcoming <span class="tab-badge" id="upcomingBadge">0</span>
                 </button>
@@ -172,6 +175,10 @@
                                 <input type="tel" id="aptPhone" name="phone" required placeholder=" " autocomplete="off">
                                 <label for="aptPhone">Phone Number</label>
                                 <div id="aptPhoneDropdown" class="patient-suggest-dropdown" style="display: none;"></div>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="aptOpNumber" name="opNumber" placeholder=" " autocomplete="off">
+                                <label for="aptOpNumber">OP Number (Auto-filled or Enter Custom)</label>
                             </div>
                             <div id="aptRegisteredBadge" class="registered-patient-pill" style="display: none;">
                                 <span class="pill-icon">✓</span>
@@ -344,6 +351,30 @@
                 </div>
             </div>
 
+            <!-- Tab: Tomorrow's Appointments Section -->
+            <div id="tomorrowTab" class="apt-tab-content">
+                <div class="section-sub-header" style="flex-wrap: wrap; gap: 0.8rem; align-items: center;">
+                    <div>
+                        <h2><span>🌅</span> Tomorrow's Appointments</h2>
+                        <span id="tomorrowDateDisplay" style="font-size: 0.85rem; color: #64748b; font-weight: 600; display: block; margin-top: 3px;"></span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-left: auto;">
+                        <button type="button" class="mini-btn" id="sendAllTomorrowBtn" style="background: #25D366; color: white; font-weight: 700; padding: 0.6rem 1.25rem; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 3px 8px rgba(37,211,102,0.35);" title="Send WhatsApp appointment reminders to all tomorrow's patients">
+                            <span style="font-size: 1.15rem;">💬</span> Send All Tomorrow's Appointments to Patient
+                        </button>
+                        <button type="button" class="mini-btn" id="refreshTomorrowBtn" style="background: #0d9488; color: white;">
+                            <span>🔄</span> Refresh Tomorrow
+                        </button>
+                    </div>
+                </div>
+                <div id="tomorrowAppointmentsContainer">
+                    <div style="text-align: center; padding: 2rem; color: #64748b;">
+                        <div class="loader loader-small" style="margin: auto; margin-bottom: 0.5rem;"></div>
+                        Loading tomorrow's schedule...
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab: Upcoming Schedule -->
             <div id="upcomingTab" class="apt-tab-content">
                 <div class="section-sub-header">
@@ -454,6 +485,45 @@
                 </div>
                 <div id="rescheduleMessage" class="form-message" style="margin-top: 1rem; display: none;"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Send All Tomorrow's Appointments Modal -->
+    <div id="sendTomorrowModalOverlay" class="invoice-modal-overlay">
+        <div class="invoice-modal" style="max-width: 620px;">
+            <div class="modal-header-bar" style="background: linear-gradient(135deg, #0f766e, #0d9488);">
+                <h3 style="color: white; margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>💬</span> Send Tomorrow's Reminders via WhatsApp
+                </h3>
+                <button type="button" class="btn-close-modal" id="closeSendTomorrowModalBtn" style="color: white;">&times;</button>
+            </div>
+            
+            <div style="padding: 1.5rem 1.8rem;">
+                <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.2rem;">
+                    <div style="font-weight: 700; color: #166534; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                        <span>📱</span> Instant WhatsApp Reminders for Tomorrow
+                    </div>
+                    <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #15803d; line-height: 1.45;">
+                        Patients will receive an appointment reminder including time, attending doctor, treatment, clinic location, and phone numbers. Click <strong>"Send WhatsApp"</strong> on each or use <strong>"Send Next"</strong> to progress sequentially.
+                    </p>
+                </div>
+
+                <div id="sendTomorrowPatientList" style="max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.2rem;">
+                    <!-- Dynamically generated patient cards -->
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                    <div id="sendTomorrowSummary" style="font-size: 0.88rem; color: #475569; font-weight: 600;">
+                        0 Patients scheduled for tomorrow
+                    </div>
+                    <div style="display: flex; gap: 0.6rem;">
+                        <button type="button" class="btn-close-inv" id="cancelSendTomorrowBtn">Close</button>
+                        <button type="button" id="startBatchSendBtn" class="action-btn" style="background: #25D366; color: white; font-weight: 700; padding: 0.65rem 1.3rem; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem;">
+                            <span>⚡</span> Send Next WhatsApp Reminder
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

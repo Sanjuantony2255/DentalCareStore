@@ -505,12 +505,11 @@ function handlePatientRegistration(ss, data) {
           break;
         }
 
-        // 2. Phone match (10 digits) + Name match
+        // 2. Phone match (10 digits) + Full Name match (prevents collisions between family members sharing phone)
         var phoneMatches = inputPhoneDigits && rowPhoneDigits && (inputPhoneDigits === rowPhoneDigits || (inputPhoneDigits.length >= 10 && rowPhoneDigits.length >= 10 && inputPhoneDigits.slice(-10) === rowPhoneDigits.slice(-10)));
         if (phoneMatches) {
           var nameMatches = inputName && rowName && ((inputName === rowName) ||
-                            (inputName.indexOf(rowName) !== -1 || rowName.indexOf(inputName) !== -1) ||
-                            (inputName.split(' ')[0] === rowName.split(' ')[0]));
+                            (inputName.indexOf(rowName) !== -1 || rowName.indexOf(inputName) !== -1));
           if (nameMatches) {
             existingOpNumber = rowOp;
             break;
@@ -520,12 +519,15 @@ function handlePatientRegistration(ss, data) {
     }
   }
 
-  // Already registered patients ALWAYS keep their already given OP number!
-  if (existingOpNumber) {
-    data.opNumber = existingOpNumber;
-  } else if (inputOp && inputOp.indexOf('OP-') === 0) {
+  // OP Number Resolution:
+  // 1. If explicit OP number was entered by user/staff, preserve it directly (supports custom formats and numbers)
+  if (inputOp && inputOp.length > 0) {
     data.opNumber = inputOp;
+  } else if (existingOpNumber) {
+    // 2. If recognized registered patient, preserve their established OP number
+    data.opNumber = existingOpNumber;
   } else if (!data.opNumber || data.opNumber.toString().trim() === '') {
+    // 3. Auto-generate standard clinic OP number
     var randomCode = Math.floor(1000 + Math.random() * 9000);
     var pfx = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMM");
     data.opNumber = 'OP-' + pfx + '-' + randomCode;

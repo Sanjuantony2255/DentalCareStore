@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabBtns = document.querySelectorAll('.apt-tab-btn');
     const tabContents = document.querySelectorAll('.apt-tab-content');
     const todayBadge = document.getElementById('todayBadge');
+    const tomorrowBadge = document.getElementById('tomorrowBadge');
+    const tomorrowHeaderBadge = document.getElementById('tomorrowHeaderBadge');
+    const tomorrowDateDisplay = document.getElementById('tomorrowDateDisplay');
     const upcomingBadge = document.getElementById('upcomingBadge');
 
     // Tab 1: Book Appointment elements
@@ -39,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptDoctorInput = document.getElementById('aptDoctor');
     const aptDoctorSelect = document.getElementById('aptDoctorSelect');
     const aptDoctorGroup = document.getElementById('aptDoctorGroup');
+    const aptOpNumber = document.getElementById('aptOpNumber');
     if (aptDoctorSelect && aptDoctorInput) {
         aptDoctorSelect.addEventListener('change', () => {
             const val = aptDoctorSelect.value;
@@ -70,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aptClearSuggestedBtn = document.getElementById('aptClearSuggestedBtn');
 
     let registeredPatients = [];
+    let tomorrowAppointmentsList = [];
 
     // Helper: Normalize patient records from various storage schemas
     function normalizePatient(p) {
@@ -156,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Auto-fill OP Number input
+        if (aptOpNumber && p.opNumber) {
+            aptOpNumber.value = p.opNumber;
+        }
+
         // Display recognized registered badge
         if (aptRegisteredBadge) {
             if (aptRegisteredName) aptRegisteredName.textContent = p.name;
@@ -173,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aptClearSuggestedBtn && aptRegisteredBadge) {
         aptClearSuggestedBtn.addEventListener('click', () => {
             aptRegisteredBadge.style.display = 'none';
+            if (aptOpNumber) aptOpNumber.value = '';
         });
     }
 
@@ -479,6 +490,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const todayAppointmentsContainer = document.getElementById('todayAppointmentsContainer');
     const refreshTodayBtn = document.getElementById('refreshTodayBtn');
 
+    // Tab: Tomorrow elements
+    const tomorrowAppointmentsContainer = document.getElementById('tomorrowAppointmentsContainer');
+    const refreshTomorrowBtn = document.getElementById('refreshTomorrowBtn');
+    const sendAllTomorrowBtn = document.getElementById('sendAllTomorrowBtn');
+
+    // Send Tomorrow Modal Elements
+    const sendTomorrowModalOverlay = document.getElementById('sendTomorrowModalOverlay');
+    const closeSendTomorrowModalBtn = document.getElementById('closeSendTomorrowModalBtn');
+    const cancelSendTomorrowBtn = document.getElementById('cancelSendTomorrowBtn');
+    const sendTomorrowPatientList = document.getElementById('sendTomorrowPatientList');
+    const sendTomorrowSummary = document.getElementById('sendTomorrowSummary');
+    const startBatchSendBtn = document.getElementById('startBatchSendBtn');
+
     // Tab 3: Upcoming elements
     const upcomingAppointmentsContainer = document.getElementById('upcomingAppointmentsContainer');
     const refreshUpcomingBtn = document.getElementById('refreshUpcomingBtn');
@@ -517,12 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncCalLoader = document.getElementById('syncCalLoader');
     const syncCalMessage = document.getElementById('syncCalMessage');
 
-    // Set today's date as default in inputs
-    const todayStr = getLocalDateString(new Date());
-    if (aptDateInput) aptDateInput.value = todayStr;
-    if (filterDateInput) filterDateInput.value = todayStr;
-    if (rescheduleDate) rescheduleDate.min = todayStr;
-
     // Helper: format Date object to YYYY-MM-DD
     function getLocalDateString(d) {
         const year = d.getFullYear();
@@ -530,6 +548,66 @@ document.addEventListener('DOMContentLoaded', () => {
         const day = ('0' + d.getDate()).slice(-2);
         return `${year}-${month}-${day}`;
     }
+
+    // Helper: get tomorrow's date YYYY-MM-DD
+    function getTomorrowDateString() {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return getLocalDateString(d);
+    }
+
+    // Set today's date as default in inputs
+    const todayStr = getLocalDateString(new Date());
+    const tomorrowStr = getTomorrowDateString();
+    if (aptDateInput) aptDateInput.value = todayStr;
+    if (filterDateInput) filterDateInput.value = todayStr;
+    if (rescheduleDate) rescheduleDate.min = todayStr;
+    if (tomorrowDateDisplay) tomorrowDateDisplay.textContent = `Schedule for ${formatDisplayDate(tomorrowStr)}`;
+
+    // Helper: Lookup OP number for patient
+    function getPatientOp(apt) {
+        if (!apt) return '';
+        if (apt.opNumber) return apt.opNumber;
+        if (apt.op) return apt.op;
+        const cleanPhone = (apt.phone || '').toString().replace(/\D/g, '');
+        const cleanName = (apt.patientName || apt.name || '').toString().toLowerCase().trim();
+        const match = registeredPatients.find(p => {
+            const pPhone = (p.phone || '').toString().replace(/\D/g, '');
+            const pName = (p.name || '').toString().toLowerCase().trim();
+            const phoneMatch = cleanPhone.length >= 10 && pPhone.length >= 10 && pPhone.slice(-10) === cleanPhone.slice(-10);
+            const nameMatch = cleanName && pName && (cleanName === pName || pName.includes(cleanName) || cleanName.includes(pName));
+            return (phoneMatch && nameMatch) || (cleanPhone.length >= 10 && pPhone.endsWith(cleanPhone.slice(-10)));
+        });
+        return (match && match.opNumber) ? match.opNumber : '';
+    }
+
+    // WhatsApp Reminder Link Generator
+    function generateWhatsAppReminderLink(apt) {
+        const cleanName = apt.patientName || apt.fullName || 'Valued Patient';
+        let rawPhone = (apt.phone || '').toString().trim();
+        let phoneDigits = rawPhone.replace(/\D/g, '');
+        if (phoneDigits.length === 10) {
+            phoneDigits = '91' + phoneDigits;
+        } else if (phoneDigits.startsWith('0') && phoneDigits.length === 11) {
+            phoneDigits = '91' + phoneDigits.substring(1);
+        }
+
+        const docText = cleanDoctor(apt.doctor) || 'Attending Doctor';
+        const dateText = formatDisplayDate(apt.date);
+        const timeText = formatTime(apt.time);
+        const reasonText = apt.reason || 'Dental Consultation & Checkup';
+
+        const text = `🦷 *Manjaly Multi Speciality Dental Care*\n*Appointment Reminder*\n\nDear *${cleanName}*,\nThis is a friendly reminder regarding your scheduled dental appointment:\n\n📅 *Date:* ${dateText}\n⏰ *Time:* ${timeText}\n👨‍⚕️ *Doctor:* ${docText}\n🩺 *Treatment / Reason:* ${reasonText}\n\n📍 *Clinic:* Manjaly Multi Speciality Dental Care\n📞 *Contact:* +91 9072467117 / +91 6238497517\n\n_Please arrive 10 minutes prior to your appointment time. If you need to reschedule or have questions, kindly contact us._\n\nThank you!`;
+
+        return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(text)}`;
+    }
+    window.generateWhatsAppReminderLink = generateWhatsAppReminderLink;
+
+    function sendWhatsAppReminder(apt) {
+        const url = generateWhatsAppReminderLink(apt);
+        window.open(url, '_blank');
+    }
+    window.sendWhatsAppReminder = sendWhatsAppReminder;
 
     // Auto-fill booking form if coming from Registered Patients page (?name=...&phone=...)
     try {
@@ -721,6 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetContent) targetContent.classList.add('active');
 
             if (targetId === 'todayTab') fetchTodayAppointments();
+            if (targetId === 'tomorrowTab') fetchTomorrowAppointments();
             if (targetId === 'upcomingTab') fetchUpcomingAppointments();
             if (targetId === 'datewiseTab') fetchDatewiseAppointments(filterDateInput.value);
             if (targetId === 'historyTab') fetchAllAppointments();
@@ -745,6 +824,9 @@ document.addEventListener('DOMContentLoaded', () => {
             data.doctor = aptDoctorSelect.value;
         }
         data.doctor = (data.doctor || '').trim();
+        if (!data.opNumber) {
+            data.opNumber = getPatientOp(data);
+        }
 
         try {
             const response = await fetch(SCRIPT_URL, {
@@ -820,6 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Refresh counts
                 fetchTodayAppointments();
+                fetchTomorrowAppointments();
                 fetchUpcomingAppointments();
             } else {
                 showFormMessage(result.message || 'Error booking appointment. Please try again.', 'error');
@@ -871,6 +954,169 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (refreshTodayBtn) refreshTodayBtn.addEventListener('click', fetchTodayAppointments);
+
+    // --- Tab: Fetch Tomorrow's Appointments ---
+    async function fetchTomorrowAppointments() {
+        const tomorrowDate = getTomorrowDateString();
+        if (tomorrowDateDisplay) {
+            tomorrowDateDisplay.textContent = `Schedule for ${formatDisplayDate(tomorrowDate)}`;
+        }
+        if (tomorrowAppointmentsContainer) {
+            tomorrowAppointmentsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #64748b;">
+                    <div class="loader loader-small" style="margin: auto; margin-bottom: 0.5rem;"></div>
+                    Loading tomorrow's schedule (${formatDisplayDate(tomorrowDate)})...
+                </div>
+            `;
+        }
+
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=getAppointments&type=date&date=${encodeURIComponent(tomorrowDate)}`);
+            const text = await res.text();
+            const result = JSON.parse(text);
+
+            if (result.status === 'success') {
+                tomorrowAppointmentsList = result.data || [];
+                if (tomorrowBadge) tomorrowBadge.textContent = tomorrowAppointmentsList.length;
+                if (tomorrowHeaderBadge) tomorrowHeaderBadge.textContent = tomorrowAppointmentsList.length;
+                if (tomorrowAppointmentsContainer) {
+                    renderAppointmentCards(tomorrowAppointmentsList, tomorrowAppointmentsContainer, `No appointments scheduled for tomorrow (${formatDisplayDate(tomorrowDate)}).`);
+                }
+            } else {
+                if (tomorrowAppointmentsContainer) {
+                    tomorrowAppointmentsContainer.innerHTML = `<p style="text-align: center; color: #ef4444; padding: 1.5rem;">${result.message || 'Error loading tomorrow appointments.'}</p>`;
+                }
+            }
+        } catch (err) {
+            console.error('Fetch tomorrow error:', err);
+            if (tomorrowAppointmentsContainer) {
+                tomorrowAppointmentsContainer.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 1.5rem;">Failed to connect to Google Apps Script.</p>';
+            }
+        }
+    }
+
+    if (refreshTomorrowBtn) refreshTomorrowBtn.addEventListener('click', fetchTomorrowAppointments);
+
+    // --- Tomorrow WhatsApp Reminders Modal & Batch Flow ---
+    let tomorrowSentStatuses = {}; // key: appointmentId or phone -> boolean
+
+    function openSendTomorrowModal() {
+        if (!sendTomorrowModalOverlay) return;
+        renderSendTomorrowModalList();
+        sendTomorrowModalOverlay.classList.add('active');
+    }
+
+    function closeSendTomorrowModal() {
+        if (sendTomorrowModalOverlay) {
+            sendTomorrowModalOverlay.classList.remove('active');
+        }
+    }
+
+    function renderSendTomorrowModalList() {
+        if (!sendTomorrowPatientList) return;
+        if (!tomorrowAppointmentsList || tomorrowAppointmentsList.length === 0) {
+            sendTomorrowPatientList.innerHTML = `
+                <div style="text-align:center; padding:2rem 1rem; color:#64748b;">
+                    <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">📅</span>
+                    <p style="margin:0; font-weight:600;">No appointments scheduled for tomorrow (${formatDisplayDate(getTomorrowDateString())}).</p>
+                </div>
+            `;
+            if (sendTomorrowSummary) sendTomorrowSummary.textContent = '0 Patients scheduled for tomorrow';
+            return;
+        }
+
+        const sentCount = tomorrowAppointmentsList.filter(apt => tomorrowSentStatuses[apt.appointmentId || apt.phone]).length;
+        if (sendTomorrowSummary) {
+            sendTomorrowSummary.textContent = `${sentCount} of ${tomorrowAppointmentsList.length} reminders sent`;
+        }
+
+        sendTomorrowPatientList.innerHTML = tomorrowAppointmentsList.map((apt, idx) => {
+            const key = apt.appointmentId || apt.phone;
+            const isSent = !!tomorrowSentStatuses[key];
+            const opNo = apt.opNumber || apt.op || getPatientOp(apt);
+            const opHtml = opNo ? `<span style="font-size:0.75rem; background:#ccfbf1; color:#0f766e; font-weight:700; padding:2px 8px; border-radius:6px; border:1px solid #99f6e4;">${escapeHtml(opNo)}</span>` : '';
+            const statusBadge = isSent 
+                ? `<span style="font-size:0.8rem; background:#dcfce7; color:#15803d; font-weight:700; padding:3px 10px; border-radius:6px;">✓ Sent</span>`
+                : `<span style="font-size:0.8rem; background:#f1f5f9; color:#64748b; font-weight:600; padding:3px 10px; border-radius:6px;">Pending</span>`;
+
+            return `
+                <div class="patient-remind-row" style="background:${isSent ? '#f0fdf4' : '#ffffff'}; border:1px solid ${isSent ? '#86efac' : '#e2e8f0'}; border-radius:10px; padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <strong style="font-size:0.95rem; color:#0f172a;">${idx + 1}. ${escapeHtml(apt.patientName)}</strong>
+                            ${opHtml}
+                        </div>
+                        <div style="font-size:0.82rem; color:#64748b; margin-top:2px;">
+                            <span>⏰ ${formatTime(apt.time)}</span> • 
+                            <span>👨‍⚕️ ${escapeHtml(cleanDoctor(apt.doctor) || 'Attending Doctor')}</span> • 
+                            <span>📞 <a href="tel:${escapeHtml(apt.phone)}" style="color:#0d9488; text-decoration:none; font-weight:600;">${escapeHtml(apt.phone)}</a></span>
+                        </div>
+                        <div style="font-size:0.78rem; color:#64748b; margin-top:2px;">
+                            <span>🩺 ${escapeHtml(apt.reason || 'Dental Consultation')}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${statusBadge}
+                        <button type="button" class="mini-btn btn-send-single-wa" data-idx="${idx}" style="background:#25D366; color:white; font-weight:700; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;" title="Open WhatsApp Reminder">
+                            <span>💬</span> ${isSent ? 'Resend' : 'Send WhatsApp'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Attach click handlers
+        sendTomorrowPatientList.querySelectorAll('.btn-send-single-wa').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-idx'), 10);
+                const apt = tomorrowAppointmentsList[idx];
+                if (apt) {
+                    const key = apt.appointmentId || apt.phone;
+                    tomorrowSentStatuses[key] = true;
+                    sendWhatsAppReminder(apt);
+                    renderSendTomorrowModalList();
+                }
+            });
+        });
+    }
+
+    if (sendAllTomorrowBtn) {
+        sendAllTomorrowBtn.addEventListener('click', async () => {
+            if (!tomorrowAppointmentsList || tomorrowAppointmentsList.length === 0) {
+                await fetchTomorrowAppointments();
+            }
+            if (!tomorrowAppointmentsList || tomorrowAppointmentsList.length === 0) {
+                alert(`No appointments scheduled for tomorrow (${formatDisplayDate(getTomorrowDateString())}) to send reminders to.`);
+                return;
+            }
+            openSendTomorrowModal();
+        });
+    }
+
+    if (closeSendTomorrowModalBtn) closeSendTomorrowModalBtn.addEventListener('click', closeSendTomorrowModal);
+    if (cancelSendTomorrowBtn) cancelSendTomorrowBtn.addEventListener('click', closeSendTomorrowModal);
+    if (sendTomorrowModalOverlay) {
+        sendTomorrowModalOverlay.addEventListener('click', (e) => {
+            if (e.target === sendTomorrowModalOverlay) closeSendTomorrowModal();
+        });
+    }
+
+    if (startBatchSendBtn) {
+        startBatchSendBtn.addEventListener('click', () => {
+            if (!tomorrowAppointmentsList || tomorrowAppointmentsList.length === 0) return;
+            // Find first unsent patient
+            const unsentIdx = tomorrowAppointmentsList.findIndex(apt => !tomorrowSentStatuses[apt.appointmentId || apt.phone]);
+            if (unsentIdx >= 0) {
+                const apt = tomorrowAppointmentsList[unsentIdx];
+                const key = apt.appointmentId || apt.phone;
+                tomorrowSentStatuses[key] = true;
+                sendWhatsAppReminder(apt);
+                renderSendTomorrowModalList();
+            } else {
+                alert('All tomorrow\'s appointment reminders have been sent! You can still resend individually if needed.');
+            }
+        });
+    }
 
     // --- Tab 3: Fetch Upcoming Appointments ---
     async function fetchUpcomingAppointments() {
@@ -1020,6 +1266,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
                 ${appointments.map(apt => {
                     const statusClass = (apt.status || 'Scheduled').toLowerCase();
+                    const patientOp = getPatientOp(apt);
+                    const opBadge = patientOp ? `<span class="patient-suggest-op" style="font-size:0.75rem; padding: 2px 8px; border-radius: 6px; background: #ccfbf1; color: #0f766e; font-weight:700; border: 1px solid #99f6e4;">${escapeHtml(patientOp)}</span>` : '';
                     return `
                         <div class="apt-card">
                             <div class="apt-time-box">
@@ -1028,7 +1276,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="apt-info-box">
                                 <div class="apt-patient-header">
-                                    <h4 class="apt-patient-name">${escapeHtml(apt.patientName)}</h4>
+                                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                        <h4 class="apt-patient-name" style="margin: 0;">${escapeHtml(apt.patientName)}</h4>
+                                        ${opBadge}
+                                    </div>
                                     <span class="apt-status-tag ${statusClass}">${escapeHtml(apt.status || 'Scheduled')}</span>
                                 </div>
                                 <div class="apt-details-grid">
@@ -1042,6 +1293,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="apt-actions-box">
                                 <a href="tel:${escapeHtml(apt.phone)}" class="mini-btn" style="background: #e0f2fe; color: #0369a1;" title="Call Patient">
                                     <span>📞</span> Call
+                                </a>
+                                <a href="${generateWhatsAppReminderLink(apt)}" target="_blank" rel="noopener noreferrer" class="mini-btn btn-whatsapp" style="background: #25D366; color: white; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(37,211,102,0.25);" title="Send WhatsApp Appointment Reminder to Patient">
+                                    <span style="font-size: 1rem;">💬</span> WhatsApp
                                 </a>
                                 <a href="${generateGoogleCalendarLink(apt)}" target="_blank" rel="noopener noreferrer" class="mini-btn btn-cal-link" style="background: #ecfdf5; color: #047857; font-weight: 600;" title="Open in this Phone / Device Google Calendar">
                                     <span>📅</span> Calendar
@@ -1344,7 +1598,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Initial load: fetch today's appointments and upcoming appointments
+    // Initial load: fetch today's, tomorrow's, and upcoming appointments
     fetchTodayAppointments();
+    fetchTomorrowAppointments();
     fetchUpcomingAppointments();
 });
