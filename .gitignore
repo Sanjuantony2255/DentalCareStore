@@ -23,6 +23,7 @@ dental_care_app/.dart_tool/
 *.log
 *.sqlite
 dist/
+*.apk
 
 # Operating System & IDE
 .DS_Store
