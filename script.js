@@ -487,6 +487,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Keep most recent 50 patients cached
             localStorage.setItem(cacheKey, JSON.stringify(cachedList.slice(0, 50)));
+
+            if (invoiceRecord) {
+                try {
+                    const rawInvs = localStorage.getItem('dental_cached_invoices');
+                    const invList = rawInvs ? JSON.parse(rawInvs) : [];
+                    const invIdx = invList.findIndex(i => (i.invoiceNo || i.id) === (invoiceRecord.invoiceNo || invoiceRecord.id));
+                    if (invIdx !== -1) {
+                        invList[invIdx] = { ...invList[invIdx], ...invoiceRecord };
+                    } else {
+                        invList.unshift(invoiceRecord);
+                    }
+                    localStorage.setItem('dental_cached_invoices', JSON.stringify(invList.slice(0, 100)));
+                } catch(e) {}
+            }
         } catch(err) {
             console.warn('Local cache error:', err);
         }
@@ -908,25 +922,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 8. Invoice Modal Presentation
     function openInvoiceModal(inv) {
-        invModalNumber.textContent = inv.invoiceNo;
-        const displayDate = inv.date || (inv.timestamp ? inv.timestamp.split(' ')[0] : '') || inv.timestamp;
-        invModalDate.textContent = 'Date: ' + displayDate;
-        invModalPatientName.textContent = inv.fullName;
-        invModalPhone.textContent = inv.phone || 'N/A';
-        const displayAge = inv.age ? (inv.age + ' yrs') : (inv.dob || 'N/A');
-        if (invModalDob) invModalDob.textContent = displayAge;
-        const invModalOp = document.getElementById('invModalOp');
-        if (invModalOp) invModalOp.textContent = inv.opNumber ? ('OP: ' + inv.opNumber) : 'Official Receipt';
-        invModalDoctor.textContent = inv.doctorConsulted || 'Attending Doctor';
-        invModalPayment.textContent = 'PAID (' + (inv.paymentMode || 'Cash') + ')';
+        if (invModalNumber) invModalNumber.textContent = inv.invoiceNo;
+        const displayDate = inv.date || (inv.timestamp ? (inv.timestamp.toString().indexOf('T') !== -1 ? inv.timestamp.split('T')[0] : inv.timestamp.toString().split(' ')[0]) : new Date().toLocaleDateString('en-GB'));
+        if (invModalDate) invModalDate.textContent = 'Date: ' + displayDate;
+        if (invModalPatientName) invModalPatientName.textContent = inv.fullName || inv.patientName || 'Valued Patient';
+        if (invModalPhone) invModalPhone.textContent = inv.phone || 'N/A';
+        const invModalAddress = document.getElementById('invModalAddress');
+        const displayAddress = inv.address || (addressInput ? addressInput.value : '') || (inv.email && inv.email.indexOf('@') === -1 ? inv.email : '') || 'Thrissur, Kerala';
+        if (invModalAddress) invModalAddress.textContent = displayAddress;
 
-        const invModalTreatment = document.getElementById('invModalTreatment');
-        if (invModalTreatment) {
-            invModalTreatment.textContent = inv.treatment || inv.diseaseHistory || 'General Consultation';
-        }
-
-        // Dynamically build itemized billing table including treatment details and custom charges
+        // Dynamically build itemized billing table including treatment details and custom charges (# | Treatment | Nos | Rate | Amount)
         const invModalTableBody = document.getElementById('invModalTableBody');
+        const invModalTotal = document.getElementById('invModalTotal');
         if (invModalTableBody) {
             let rowHtml = '';
             let rowIdx = 1;
@@ -934,33 +941,78 @@ document.addEventListener('DOMContentLoaded', () => {
             const treatAmt = parseFloat(inv.treatmentCharge) || 0;
             const xrayAmt = parseFloat(inv.xrayCharge) || 0;
             const pharmAmt = parseFloat(inv.pharmacyCharge) || 0;
+            const total = parseFloat(inv.totalAmount) || (consultAmt + treatAmt + xrayAmt + pharmAmt);
             const customList = Array.isArray(inv.customCharges) ? inv.customCharges : [];
 
-            if (consultAmt > 0 || (treatAmt === 0 && xrayAmt === 0 && pharmAmt === 0 && customList.length === 0)) {
-                rowHtml += `<tr><td>${rowIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${consultAmt.toFixed(2)}</td></tr>`;
+            if (inv.treatment && inv.treatment.trim().length > 0) {
+                const nos = inv.nos || 1;
+                const amt = treatAmt > 0 ? treatAmt : (total > 0 ? total : 0);
+                const rate = inv.rate ? parseFloat(inv.rate) : amt;
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>${escapeHtml(inv.treatment.toUpperCase())}</td>
+                    <td style="text-align: center;">${nos}</td>
+                    <td style="text-align: right;">${rate.toFixed(2)}</td>
+                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                </tr>`;
+            } else if (consultAmt > 0 || (treatAmt === 0 && xrayAmt === 0 && pharmAmt === 0 && customList.length === 0)) {
+                const amt = consultAmt > 0 ? consultAmt : total;
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>CONSULTATION & DENTAL CARE</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                </tr>`;
             }
-            if (treatAmt > 0 || (inv.treatment && inv.treatment.trim().length > 0 && treatAmt > 0)) {
-                const treatDesc = inv.treatment ? `Dental Treatment: ${escapeHtml(inv.treatment)}` : 'Treatment / Procedure Charge';
-                rowHtml += `<tr><td>${rowIdx++}</td><td>${treatDesc}</td><td class="amt">${treatAmt.toFixed(2)}</td></tr>`;
+
+            if (treatAmt > 0 && !(inv.treatment && inv.treatment.trim().length > 0)) {
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>DENTAL TREATMENT & PROCEDURE</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${treatAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${treatAmt.toFixed(2)}</td>
+                </tr>`;
             }
+
             if (xrayAmt > 0) {
-                rowHtml += `<tr><td>${rowIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xrayAmt.toFixed(2)}</td></tr>`;
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>X-RAY RADIOLOGY EXAMINATION</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${xrayAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${xrayAmt.toFixed(2)}</td>
+                </tr>`;
             }
+
             if (pharmAmt > 0) {
-                rowHtml += `<tr><td>${rowIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pharmAmt.toFixed(2)}</td></tr>`;
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>PHARMACY & MEDICINES</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${pharmAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${pharmAmt.toFixed(2)}</td>
+                </tr>`;
             }
+
             customList.forEach(c => {
                 const amt = parseFloat(c.amount) || 0;
-                rowHtml += `<tr><td>${rowIdx++}</td><td>${escapeHtml(c.title || 'Custom Fee')}</td><td class="amt">${amt.toFixed(2)}</td></tr>`;
+                rowHtml += `<tr>
+                    <td style="text-align: center;">${rowIdx++}</td>
+                    <td>${escapeHtml((c.title || 'CLINICAL PROCEDURE').toUpperCase())}</td>
+                    <td style="text-align: center;">${c.nos || 1}</td>
+                    <td style="text-align: right;">${(parseFloat(c.rate) || amt).toFixed(2)}</td>
+                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                </tr>`;
             });
 
-            rowHtml += `<tr class="total-row"><td colspan="2" style="text-align: right;">Total Amount:</td><td class="amt" id="invModalTotal">${(parseFloat(inv.totalAmount) || 0).toFixed(2)}</td></tr>`;
             invModalTableBody.innerHTML = rowHtml;
-        } else {
-            invModalConsultation.textContent = parseFloat(inv.consultationCharge).toFixed(2);
-            invModalXray.textContent = parseFloat(inv.xrayCharge).toFixed(2);
-            invModalPharmacy.textContent = parseFloat(inv.pharmacyCharge).toFixed(2);
-            invModalTotal.textContent = parseFloat(inv.totalAmount).toFixed(2);
+        }
+
+        if (invModalTotal) {
+            const tot = parseFloat(inv.totalAmount) || 0;
+            invModalTotal.textContent = tot.toFixed(2);
         }
 
         const invModalSign = document.getElementById('invModalSign');
@@ -974,6 +1026,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const invModalDrSeal = document.getElementById('invModalDrSeal');
         if (invModalDrSeal && typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) {
             invModalDrSeal.src = window.INVOICE_DR_SEAL_BASE64;
+        } else if (invModalDrSeal) {
+            invModalDrSeal.src = 'assets/img/drseal.jpg';
+        }
+        const invModalSeal = document.getElementById('invModalSeal');
+        if (invModalSeal && typeof window !== 'undefined' && window.INVOICE_HOSPITAL_SEAL_BASE64) {
+            invModalSeal.src = window.INVOICE_HOSPITAL_SEAL_BASE64;
+        } else if (invModalSeal) {
+            invModalSeal.src = 'assets/img/Hospital Seal.jpg';
         }
 
         if (inv.driveFileUrl) {
@@ -982,6 +1042,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             invDriveNotice.style.display = 'none';
         }
+
+        // Cache invoice to dental_cached_invoices
+        try {
+            const rawInv = localStorage.getItem('dental_cached_invoices');
+            const list = rawInv ? JSON.parse(rawInv) : [];
+            const idx = list.findIndex(i => (i.invoiceNo || i.id) === (inv.invoiceNo || inv.id));
+            if (idx === -1) {
+                list.unshift(inv);
+                localStorage.setItem('dental_cached_invoices', JSON.stringify(list.slice(0, 100)));
+            }
+        } catch(e) {}
 
         invoiceModalOverlay.classList.add('active');
     }
@@ -1096,131 +1167,176 @@ Wishing you good oral health!
     }
 
     function generatePrintableHtml(inv) {
-        const displayAge = inv.age ? (inv.age + ' yrs') : (inv.dob || 'N/A');
-        const displayAddress = inv.address || inv.email || 'N/A';
+        const displayDate = inv.date || (inv.timestamp ? (inv.timestamp.toString().indexOf('T') !== -1 ? inv.timestamp.split('T')[0] : inv.timestamp.toString().split(' ')[0]) : new Date().toLocaleDateString('en-GB'));
+        const displayAddress = inv.address || (inv.email && inv.email.indexOf('@') === -1 ? inv.email : '') || 'Thrissur, Kerala';
         const logoSrc = (typeof window !== 'undefined' && window.INVOICE_LOGO_BASE64) ? window.INVOICE_LOGO_BASE64 : 'assets/img/logo.png';
         const signSrc = (typeof window !== 'undefined' && window.INVOICE_SIGN_BASE64) ? window.INVOICE_SIGN_BASE64 : 'assets/img/sign.jpg';
-        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) ? window.INVOICE_DR_SEAL_BASE64 : 'assets/img/seal.jpg';
+        const drSealSrc = (typeof window !== 'undefined' && window.INVOICE_DR_SEAL_BASE64) ? window.INVOICE_DR_SEAL_BASE64 : 'assets/img/drseal.jpg';
         const hospSealSrc = (typeof window !== 'undefined' && window.INVOICE_HOSPITAL_SEAL_BASE64) ? window.INVOICE_HOSPITAL_SEAL_BASE64 : 'assets/img/Hospital Seal.jpg';
+
+        const cAmt = parseFloat(inv.consultationCharge) || 0;
+        const tAmt = parseFloat(inv.treatmentCharge) || 0;
+        const xAmt = parseFloat(inv.xrayCharge) || 0;
+        const pAmt = parseFloat(inv.pharmacyCharge) || 0;
+        const total = parseFloat(inv.totalAmount) || (cAmt + tAmt + xAmt + pAmt);
+        const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
+
+        let rowsHtml = '';
+        let rIdx = 1;
+
+        if (inv.treatment && inv.treatment.trim().length > 0) {
+            const nos = inv.nos || 1;
+            const amt = tAmt > 0 ? tAmt : (total > 0 ? total : 0);
+            const rate = inv.rate ? parseFloat(inv.rate) : amt;
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">${escapeHtml(inv.treatment.toUpperCase())}</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${nos}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${rate.toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+            </tr>`;
+        } else if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
+            const amt = cAmt > 0 ? cAmt : total;
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">CONSULTATION & DENTAL CARE</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+            </tr>`;
+        }
+
+        if (tAmt > 0 && !(inv.treatment && inv.treatment.trim().length > 0)) {
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">DENTAL TREATMENT & PROCEDURE</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${tAmt.toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${tAmt.toFixed(2)}</td>
+            </tr>`;
+        }
+
+        if (xAmt > 0) {
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">X-RAY RADIOLOGY EXAMINATION</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${xAmt.toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${xAmt.toFixed(2)}</td>
+            </tr>`;
+        }
+
+        if (pAmt > 0) {
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">PHARMACY & MEDICINES</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${pAmt.toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${pAmt.toFixed(2)}</td>
+            </tr>`;
+        }
+
+        customs.forEach(c => {
+            const amt = parseFloat(c.amount) || 0;
+            rowsHtml += `<tr>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border: 1px solid #000; padding: 7px 10px;">${escapeHtml((c.title || 'CLINICAL PROCEDURE').toUpperCase())}</td>
+                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${c.nos || 1}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${(parseFloat(c.rate) || amt).toFixed(2)}</td>
+                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+            </tr>`;
+        });
+
         return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Invoice - ${inv.invoiceNo}</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; color: #000; background: #fff; margin: 0; }
-        .invoice-box { max-width: 680px; margin: auto; border: 2px solid #000; padding: 24px; border-radius: 6px; }
-        .hospital-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
-        .hospital-logo { max-height: 55px; max-width: 180px; display: block; margin: 0 auto 8px auto; object-fit: contain; }
-        .hospital-seal { max-height: 65px; max-width: 130px; display: block; margin: 0 auto 6px auto; object-fit: contain; }
-        .hospital-name { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; color: #000; }
-        .hospital-sub { font-size: 12px; font-weight: 600; color: #222; margin-top: 4px; }
-        .hospital-contact { font-size: 11px; color: #444; margin-top: 3px; }
-        .doc-header { display: flex; justify-content: space-between; border-bottom: 1.5px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
-        .title { font-size: 16px; font-weight: bold; color: #000; }
-        .sub { font-size: 12px; color: #444; margin-top: 2px; }
-        .meta { text-align: right; }
-        .meta h2 { margin: 0; font-size: 15px; color: #000; font-weight: bold; }
-        .meta p { margin: 2px 0; font-size: 12px; color: #222; }
-        .patient { background: #fff; border: 1.5px solid #000; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
-        .patient div strong { color: #000; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 18px; border: 1px solid #000; }
-        th { background: #f2f2f2; color: #000; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: bold; border: 1px solid #000; }
-        td { padding: 8px 10px; border: 1px solid #000; font-size: 12px; color: #000; }
-        td.amt { text-align: right; font-weight: 600; }
-        th.amt { text-align: right; }
-        tr.total td { font-size: 14px; font-weight: bold; color: #000; border-top: 2px solid #000; border-bottom: 3px double #000; background: #fafafa; }
-        .signatures { display: flex; justify-content: flex-end; margin-top: 35px; margin-bottom: 15px; padding: 0 10px; }
-        .sign-col { text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .sign-line { height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px; }
-        .footer { text-align: center; font-size: 10.5px; color: #333; margin-top: 15px; border-top: 1px solid #000; padding-top: 8px; font-style: italic; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding: 25px; color: #000; background: #fff; margin: 0; }
+        .invoice-box { max-width: 680px; margin: auto; border: 1.5px solid #000; padding: 20px 24px; border-radius: 6px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
+        .clinic-title { font-size: 20px; font-weight: 900; color: #15803d; letter-spacing: 0.3px; text-transform: uppercase; margin: 0; line-height: 1.25; }
+        .clinic-addr { font-size: 12px; font-weight: 500; color: #222; margin-top: 4px; }
+        .clinic-phone { font-size: 12px; font-weight: 600; color: #000; margin-top: 2px; }
+        .logo { max-height: 65px; max-width: 110px; object-fit: contain; }
+        .divider { height: 2px; background: #000; margin: 8px 0 14px 0; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 14px; }
+        .meta-left { display: flex; flex-direction: column; gap: 4px; }
+        .meta-line { display: flex; }
+        .meta-lbl { width: 70px; font-weight: bold; }
+        .meta-sep { margin: 0 8px 0 2px; font-weight: bold; }
+        .meta-val { font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 16px; font-size: 12.5px; }
+        th { border: 1px solid #000; background: #f5f5f5; padding: 8px 10px; font-weight: bold; }
+        td { border: 1px solid #000; padding: 7px 10px; }
+        .net-row td { border-top: 1.5px solid #000; font-weight: bold; font-size: 13.5px; padding: 8px 10px; }
+        .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 25px; padding: 0 5px; }
+        .hosp-seal { max-height: 85px; max-width: 130px; object-fit: contain; }
+        .company-text { font-size: 11px; font-weight: bold; text-transform: uppercase; text-align: center; flex: 1; padding-bottom: 8px; }
+        .sign-wrap { display: flex; justify-content: flex-end; align-items: flex-end; gap: 8px; margin-bottom: 4px; }
+        .sign-img { max-height: 48px; max-width: 90px; object-fit: contain; }
+        .drseal-img { max-height: 52px; max-width: 80px; object-fit: contain; }
+        .sign-caption { font-size: 11px; font-weight: bold; text-align: right; color: #444; }
         @media print {
             body { padding: 0; }
             .invoice-box { border: none; padding: 0; }
+            .clinic-title { color: #000 !important; }
         }
     </style>
 </head>
 <body onload="window.print()">
     <div class="invoice-box">
-        <div class="hospital-header">
-            <img src="${logoSrc}" alt="Manjaly Multi Speciality Dental Care" class="hospital-logo">
-            <h1 class="hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</h1>
-            <div class="hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
-            <div class="hospital-contact">Phone: +91 9072467117, +91 6238497517 • Email: manjalymdc@gmail.com</div>
-        </div>
-        <div class="doc-header">
+        <div class="header">
             <div>
-                <div class="title">Clinical Patient Invoice</div>
-                <div class="sub">Official Medical Consultation & Services Receipt</div>
+                <h1 class="clinic-title">MANJALY MULTI SPECIALITY DENTAL CARE</h1>
+                <div class="clinic-addr">Near MJ Supermarket ,Valakkavu Mulayam p.o,Thrissur,Kerala-680751</div>
+                <div class="clinic-phone">Mobile: 6238497517,9072467117</div>
             </div>
-            <div class="meta">
-                <h2>${inv.invoiceNo}</h2>
-                <p>Date: ${inv.date || inv.timestamp}</p>
-                <p><strong>PAID (${inv.paymentMode || 'Cash'})</strong></p>
-            </div>
+            <img src="${logoSrc}" alt="Dental Care Logo" class="logo">
         </div>
-        <div class="patient">
-            <div><strong>Patient Name:</strong> ${inv.fullName}</div>
-            <div><strong>Phone:</strong> ${inv.phone || 'N/A'}</div>
-            <div><strong>Age:</strong> ${displayAge}</div>
-            <div><strong>OP Number:</strong> ${inv.opNumber || 'N/A'}</div>
-            <div><strong>Doctor Consulted:</strong> ${inv.doctorConsulted}</div>
-            <div><strong>Payment Mode:</strong> ${inv.paymentMode || 'Cash'}</div>
-            <div style="grid-column: span 2;"><strong>Treatment Details:</strong> ${inv.treatment || inv.diseaseHistory || 'General Consultation'}</div>
-            <div style="grid-column: span 2;"><strong>Address of Patient:</strong> ${displayAddress}</div>
+        <div class="divider"></div>
+        <div class="meta-row">
+            <div class="meta-left">
+                <div class="meta-line"><span class="meta-lbl">Bill No</span><span class="meta-sep">:</span><span class="meta-val">${inv.invoiceNo}</span></div>
+                <div class="meta-line"><span class="meta-lbl">Name</span><span class="meta-sep">:</span><span class="meta-val">${inv.fullName}</span></div>
+                <div class="meta-line"><span class="meta-lbl">Address</span><span class="meta-sep">:</span><span class="meta-val">${displayAddress}</span></div>
+            </div>
+            <div>
+                <div class="meta-line"><span class="meta-lbl">Date</span><span class="meta-sep">:</span><span class="meta-val">${displayDate}</span></div>
+            </div>
         </div>
         <table>
             <thead>
-                <tr><th>#</th><th>Description</th><th class="amt">Amount</th></tr>
+                <tr>
+                    <th style="width: 8%; text-align: center;">#</th>
+                    <th style="width: 48%; text-align: left;">Treatment</th>
+                    <th style="width: 12%; text-align: center;">Nos</th>
+                    <th style="width: 16%; text-align: right;">Rate</th>
+                    <th style="width: 16%; text-align: right;">Amount</th>
+                </tr>
             </thead>
             <tbody>
-                ${(() => {
-                    let rows = [];
-                    let rIdx = 1;
-                    const cAmt = parseFloat(inv.consultationCharge) || 0;
-                    const tAmt = parseFloat(inv.treatmentCharge) || 0;
-                    const xAmt = parseFloat(inv.xrayCharge) || 0;
-                    const pAmt = parseFloat(inv.pharmacyCharge) || 0;
-                    const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
-
-                    if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
-                        rows.push(`<tr><td>${rIdx++}</td><td>Doctor Consultation Charge</td><td class="amt">${cAmt.toFixed(2)}</td></tr>`);
-                    }
-                    if (tAmt > 0) {
-                        rows.push(`<tr><td>${rIdx++}</td><td>Dental Treatment: ${inv.treatment || 'Clinical Procedure'}</td><td class="amt">${tAmt.toFixed(2)}</td></tr>`);
-                    }
-                    if (xAmt > 0) {
-                        rows.push(`<tr><td>${rIdx++}</td><td>X-Ray Examination Charge</td><td class="amt">${xAmt.toFixed(2)}</td></tr>`);
-                    }
-                    if (pAmt > 0) {
-                        rows.push(`<tr><td>${rIdx++}</td><td>Pharmacy / Medicines Charge</td><td class="amt">${pAmt.toFixed(2)}</td></tr>`);
-                    }
-                    customs.forEach(c => {
-                        rows.push(`<tr><td>${rIdx++}</td><td>${c.title || 'Custom Charge'}</td><td class="amt">${(parseFloat(c.amount) || 0).toFixed(2)}</td></tr>`);
-                    });
-                    rows.push(`<tr class="total"><td colspan="2" style="text-align:right;">Total Amount:</td><td class="amt">${parseFloat(inv.totalAmount).toFixed(2)}</td></tr>`);
-                    return rows.join('');
-                })()}
+                ${rowsHtml}
             </tbody>
+            <tfoot>
+                <tr class="net-row">
+                    <td colspan="4" style="text-align: right;">Net Amount Rs:</td>
+                    <td style="text-align: right;">${total.toFixed(2)}</td>
+                </tr>
+            </tfoot>
         </table>
-        <div class="signatures" style="display: flex; justify-content: space-between; margin-top: 35px; margin-bottom: 15px; padding: 0 10px;">
-            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-                <div style="display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin-bottom: 6px;">
-                    <img src="${signSrc}" onerror="this.onerror=null; if(this.src.indexOf('assets/sign.jpg')===-1){this.src='assets/sign.jpg';}else{this.src='assets/img/Sign.jpg';}" alt="Doctor Signature" class="hospital-seal" style="max-height: 52px; max-width: 95px; object-fit: contain;">
-                    <img src="${drSealSrc}" onerror="this.onerror=null; if(this.src.indexOf('drseal.jpg')===-1){this.src='assets/img/drseal.jpg';}" alt="Doctor Seal" class="hospital-seal" style="max-height: 52px; max-width: 80px; object-fit: contain;">
+        <div class="footer">
+            <img src="${hospSealSrc}" alt="Hospital Seal" class="hosp-seal">
+            <div class="company-text">FOR MANJALY MULTI SPECIALITY DENTAL CARE</div>
+            <div>
+                <div class="sign-wrap">
+                    <img src="${signSrc}" alt="Doctor Signature" class="sign-img">
+                    <img src="${drSealSrc}" alt="Doctor Seal" class="drseal-img">
                 </div>
-                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
-                Doctor's Seal & Signature
-            </div>
-            <div class="sign-col" style="text-align: center; width: 220px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-                <div style="display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px;">
-                    <img src="${hospSealSrc}" alt="Authorized Hospital Seal" class="hospital-seal" style="max-height: 58px; max-width: 125px; object-fit: contain;">
-                </div>
-                <div class="sign-line" style="height: 15px; border-bottom: 1.5px solid #000; margin-bottom: 4px;"></div>
-                Authorized Hospital Seal
+                <div class="sign-caption">Doctor's Signature</div>
             </div>
         </div>
-        <div class="footer">* Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and claim purposes.</div>
     </div>
 </body>
 </html>`;

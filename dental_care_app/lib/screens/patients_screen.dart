@@ -63,6 +63,17 @@ class _PatientsScreenState extends State<PatientsScreen> {
     );
   }
 
+  List<Invoice> _getInvoicesForPatient(Patient p) {
+    final pDigits = p.phone.replaceAll(RegExp(r'\D'), '');
+    return widget.storage.invoices.where((inv) {
+      final invDigits = inv.phone.replaceAll(RegExp(r'\D'), '');
+      final phoneMatch = p.phone.isNotEmpty && (inv.phone == p.phone || (pDigits.length >= 8 && invDigits.contains(pDigits)));
+      final nameMatch = inv.patientName.trim().toLowerCase() == p.name.trim().toLowerCase();
+      final opMatch = p.opNumber.isNotEmpty && inv.opNumber.trim().toLowerCase() == p.opNumber.trim().toLowerCase();
+      return phoneMatch || nameMatch || opMatch;
+    }).toList();
+  }
+
   Invoice _findOrCreateInvoiceForVisit(Patient p, VisitRecord v) {
     if (v.invoiceId.isNotEmpty) {
       final found = widget.storage.invoices.where((i) => i.id == v.invoiceId || i.id.toLowerCase() == v.invoiceId.toLowerCase());
@@ -85,6 +96,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
       totalAmount: v.amount,
       paymentMode: 'Cash',
       notes: v.notes,
+      address: p.address,
+      opNumber: p.opNumber,
+      treatmentNos: 1,
+      treatmentRate: v.amount,
     );
   }
 
@@ -291,6 +306,151 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+
+              // Saved Invoices & Bills Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    '🧾 Saved Invoices & Bills',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    '${_getInvoicesForPatient(patient).length} recorded',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              Builder(
+                builder: (context) {
+                  final invoices = _getInvoicesForPatient(patient);
+                  if (invoices.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 16, color: Color(0xFF64748B)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              patient.visits.isNotEmpty
+                                  ? 'No separate invoice saved yet. Invoices can be viewed from visits below.'
+                                  : 'No billing invoices recorded yet for this patient profile.',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: invoices.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, idx) {
+                      final inv = invoices[idx];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primarySubtle,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    inv.id,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: AppTheme.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  currency.format(inv.totalAmount),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: AppTheme.primaryTeal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Date: ${inv.date} • Dr. ${inv.doctor} • Paid (${inv.paymentMode})',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            if (inv.notes.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                inv.notes,
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => _openInvoice(inv),
+                                  icon: const Icon(Icons.receipt_long, size: 14),
+                                  label: const Text('Show Invoice'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryTeal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    minimumSize: Size.zero,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => InvoiceReceiptDialog.downloadInvoiceFile(context, inv),
+                                  icon: const Icon(Icons.download, size: 14),
+                                  label: const Text('Download Invoice'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.primaryDark,
+                                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    minimumSize: Size.zero,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 20),
 
@@ -570,83 +730,138 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               borderRadius: BorderRadius.circular(16),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
-                                child: Row(
+                                child: Column(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: AppTheme.primarySubtle,
-                                      child: Text(
-                                        p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppTheme.primaryDark,
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 24,
+                                          backgroundColor: AppTheme.primarySubtle,
+                                          child: Text(
+                                            p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTheme.primaryDark,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Expanded(
-                                                child: Text(
-                                                  p.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF0F172A),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      p.name,
+                                                      style: const TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: Color(0xFF0F172A),
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
+                                                  Text(
+                                                    p.opNumber,
+                                                    style: const TextStyle(
+                                                      fontFamily: 'monospace',
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
+                                              const SizedBox(height: 4),
                                               Text(
-                                                p.opNumber,
-                                                style: const TextStyle(
-                                                  fontFamily: 'monospace',
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF64748B),
-                                                ),
+                                                '${p.phone} • ${p.age > 0 ? '${p.age}y • ' : ''}${p.gender}',
+                                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFF1F5F9),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      '${p.totalVisits} ${p.totalVisits == 1 ? 'visit' : 'visits'}',
+                                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    'Billed: ${currency.format(p.totalBilled)}',
+                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${p.phone} • ${p.age > 0 ? '${p.age}y • ' : ''}${p.gender}',
-                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFF1F5F9),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  '${p.totalVisits} ${p.totalVisits == 1 ? 'visit' : 'visits'}',
-                                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Billed: ${currency.format(p.totalBilled)}',
-                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTeal),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          icon: const Icon(Icons.phone_outlined, size: 20, color: AppTheme.primaryTeal),
+                                          tooltip: 'Call Patient',
+                                          onPressed: () => _callPatient(p.phone),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.phone_outlined, size: 20, color: AppTheme.primaryTeal),
-                                      tooltip: 'Call Patient',
-                                      onPressed: () => _callPatient(p.phone),
+                                    const SizedBox(height: 12),
+                                    Builder(
+                                      builder: (context) {
+                                        final patientInvoices = _getInvoicesForPatient(p);
+                                        return Row(
+                                          children: [
+                                            Expanded(
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  if (patientInvoices.isNotEmpty) {
+                                                    _openInvoice(patientInvoices.first);
+                                                  } else if (p.visits.isNotEmpty) {
+                                                    _openInvoice(_findOrCreateInvoiceForVisit(p, p.visits.first));
+                                                  } else {
+                                                    _showPatientDetailsModal(p);
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.receipt_long, size: 14),
+                                                label: Text(
+                                                  patientInvoices.length > 1
+                                                      ? 'Show Saved Invoice (${patientInvoices.length})'
+                                                      : 'Show Saved Invoice',
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppTheme.primaryTeal,
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            OutlinedButton.icon(
+                                              onPressed: () => _showPatientDetailsModal(p),
+                                              icon: const Icon(Icons.person_search_outlined, size: 14),
+                                              label: const Text('View Record'),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: AppTheme.primaryDark,
+                                                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

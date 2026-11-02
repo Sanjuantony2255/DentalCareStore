@@ -586,17 +586,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         .where((c) => c.title.isNotEmpty || c.amount > 0)
         .toList();
 
+    final tChargeVal = double.tryParse(_treatmentChargeController.text) ?? 0.0;
     final invoice = Invoice(
       id: invId,
       patientName: patient.name,
       phone: patient.phone,
       doctor: effectiveDoctor,
       date: selectedDateStr,
+      address: patient.address,
+      opNumber: patient.opNumber,
       consultationCharge: double.tryParse(_consultationController.text) ?? 0.0,
-      treatmentCharge: double.tryParse(_treatmentChargeController.text) ?? 0.0,
+      treatmentCharge: tChargeVal,
       treatment: _treatmentController.text.trim().isNotEmpty
           ? _treatmentController.text.trim()
           : effectiveDisease,
+      treatmentNos: 1,
+      treatmentRate: tChargeVal,
       xrayCharge: double.tryParse(_xrayController.text) ?? 0.0,
       pharmacyCharge: double.tryParse(_pharmacyController.text) ?? 0.0,
       customCharges: customChargesList,

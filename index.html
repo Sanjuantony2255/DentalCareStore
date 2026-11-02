@@ -530,109 +530,80 @@
             </div>
             
             <div class="invoice-paper" id="invoicePaper">
-                <!-- Hospital Name & Branding -->
-                <div class="inv-hospital-brand">
-                    <img src="assets/img/logo.png" alt="Manjaly Dental Care Logo" class="inv-brand-logo-img">
-                    <div class="inv-hospital-name">MANJALY MULTI SPECIALITY DENTAL CARE</div>
-                    <div class="inv-hospital-sub">Valakkavu, above MJ supermarket, Thrissur, Kerala 680751</div>
-                    <div class="inv-hospital-contact">Phone: +91 9072467117, +91 6238497517 • Email: manjalymdc@gmail.com</div>
-                </div>
-
-                <div class="inv-doc-header">
-                    <div>
-                        <div class="inv-doc-title"><span>🏥</span> Clinical Patient Invoice</div>
-                        <div class="inv-doc-sub">Official Consultation & Medical Services Receipt</div>
-                    </div>
-                    <div class="inv-doc-meta">
-                        <div class="inv-num-tag" id="invModalNumber">INV-20261013-0000</div>
-                        <div class="inv-date-tag" id="invModalDate">Date: 2026-10-13</div>
-                    </div>
-                </div>
-
-                <div class="inv-patient-card">
-                    <div>
-                        <div class="inv-field-label">Patient Name</div>
-                        <div class="inv-field-val" id="invModalPatientName">-</div>
-                    </div>
-                    <div>
-                        <div class="inv-field-label">Phone Number</div>
-                        <div class="inv-field-val" id="invModalPhone">-</div>
-                    </div>
-                    <div>
-                        <div class="inv-field-label">Age</div>
-                        <div class="inv-field-val" id="invModalDob">-</div>
-                    </div>
-                    <div>
-                        <div class="inv-field-label">Doctor Consulted</div>
-                        <div class="inv-field-val" id="invModalDoctor">-</div>
-                    </div>
-                    <div>
-                        <div class="inv-field-label">Payment Status</div>
-                        <div class="inv-field-val" id="invModalPayment">PAID (Cash)</div>
-                    </div>
-                    <div>
-                        <div class="inv-field-label">OP Number / Mode</div>
-                        <div class="inv-field-val" id="invModalOp">Official Receipt</div>
-                    </div>
-                    <div style="grid-column: span 2;">
-                        <div class="inv-field-label">Treatment / Clinical Procedure</div>
-                        <div class="inv-field-val" id="invModalTreatment" style="color: var(--primary-dark); font-weight: 700;">-</div>
-                    </div>
-                </div>
-
-                <table class="inv-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Description</th>
-                            <th>Amount (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invModalTableBody">
-                        <tr>
-                            <td>1</td>
-                            <td>Doctor Consultation Charge</td>
-                            <td id="invModalConsultation">0.00</td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>X-Ray Examination Charge</td>
-                            <td id="invModalXray">0.00</td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>Pharmacy / Medicines Charge</td>
-                            <td id="invModalPharmacy">0.00</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td colspan="2" style="text-align: right;">Total Amount:</td>
-                            <td id="invModalTotal">0.00</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Signatures & Hospital Seal Row for Black and White Printing -->
-                <div class="inv-signatures-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;">
-                    <div class="inv-sign-col" style="text-align: center;">
-                        <div class="inv-sign-wrap" style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 4px;">
-                            <img src="assets/img/sign.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_SIGN_BASE64){this.src=window.INVOICE_SIGN_BASE64;}else if(this.src.indexOf('assets/sign.jpg')===-1){this.src='assets/sign.jpg';}else{this.src='assets/img/Sign.jpg';}" alt="Doctor Signature" class="inv-seal-img" id="invModalSign" style="max-height: 52px; max-width: 90px; object-fit: contain;">
-                            <img src="assets/img/seal.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_DR_SEAL_BASE64){this.src=window.INVOICE_DR_SEAL_BASE64;}else{this.src='assets/img/drseal.jpg';}" alt="Doctor Seal" class="inv-seal-img" id="invModalDrSeal" style="max-height: 52px; max-width: 75px; object-fit: contain;">
+                <div class="ref-inv-wrapper">
+                    <!-- Clinic Header -->
+                    <div class="ref-inv-header">
+                        <div class="ref-inv-header-left">
+                            <div class="ref-inv-clinic-title">MANJALY MULTI SPECIALITY DENTAL CARE</div>
+                            <div class="ref-inv-clinic-addr">Near MJ Supermarket ,Valakkavu Mulayam p.o,Thrissur,Kerala-680751</div>
+                            <div class="ref-inv-clinic-phone">Mobile: 6238497517,9072467117</div>
                         </div>
-                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
-                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Doctor's Seal & Signature</div>
+                        <div class="ref-inv-header-right">
+                            <img src="assets/img/logo.png" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_LOGO_BASE64){this.src=window.INVOICE_LOGO_BASE64;}else{this.src='assets/logo.png';}" alt="Manjaly Dental Care Logo" class="ref-inv-logo" id="invModalLogo">
+                        </div>
                     </div>
-                    <div class="inv-sign-col" style="text-align: center;">
-                        <img src="assets/img/Hospital Seal.jpg" alt="Authorized Hospital Seal" class="inv-seal-img" id="invModalSeal" style="max-height: 58px; max-width: 130px; object-fit: contain; margin-bottom: 4px;">
-                        <div class="inv-sign-space" style="height: 12px; border-bottom: 1px solid #334155;"></div>
-                        <div class="inv-sign-label" style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 4px;">Authorized Hospital Seal</div>
+
+                    <div class="ref-inv-divider"></div>
+
+                    <!-- Metadata Header -->
+                    <div class="ref-inv-meta-row">
+                        <div class="ref-inv-meta-left">
+                            <div class="ref-inv-meta-line"><span class="ref-lbl">Bill No</span><span class="ref-sep">:</span><span class="ref-val" id="invModalNumber">INV-20261013-0000</span></div>
+                            <div class="ref-inv-meta-line"><span class="ref-lbl">Name</span><span class="ref-sep">:</span><span class="ref-val" id="invModalPatientName">-</span></div>
+                            <div class="ref-inv-meta-line"><span class="ref-lbl">Address</span><span class="ref-sep">:</span><span class="ref-val" id="invModalAddress">-</span></div>
+                        </div>
+                        <div class="ref-inv-meta-right">
+                            <div class="ref-inv-meta-line"><span class="ref-lbl">Date</span><span class="ref-sep">:</span><span class="ref-val" id="invModalDate">Date: 2026-10-13</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Itemized Table (# | Treatment | Nos | Rate | Amount) -->
+                    <table class="ref-inv-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 8%; text-align: center;">#</th>
+                                <th style="width: 48%; text-align: left;">Treatment</th>
+                                <th style="width: 12%; text-align: center;">Nos</th>
+                                <th style="width: 16%; text-align: right;">Rate</th>
+                                <th style="width: 16%; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invModalTableBody">
+                            <tr>
+                                <td style="text-align: center;">1</td>
+                                <td>Doctor Consultation Charge</td>
+                                <td style="text-align: center;">1</td>
+                                <td style="text-align: right;" id="invModalConsultation">0.00</td>
+                                <td style="text-align: right;">0.00</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="ref-inv-net-row">
+                                <td colspan="4" class="ref-inv-net-label">Net Amount Rs:</td>
+                                <td class="ref-inv-net-val" id="invModalTotal">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Footer: Hospital Seal, Company text, Signature & Seal -->
+                    <div class="ref-inv-footer">
+                        <div class="ref-inv-footer-seal">
+                            <img src="assets/img/Hospital Seal.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_HOSPITAL_SEAL_BASE64){this.src=window.INVOICE_HOSPITAL_SEAL_BASE64;}else{this.src='assets/Hospital Seal.jpg';}" alt="Authorized Hospital Seal" class="ref-inv-hosp-seal" id="invModalSeal">
+                        </div>
+                        <div class="ref-inv-footer-company">
+                            FOR MANJALY MULTI SPECIALITY DENTAL CARE
+                        </div>
+                        <div class="ref-inv-footer-sign">
+                            <div class="ref-inv-sign-wrap">
+                                <img src="assets/img/sign.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_SIGN_BASE64){this.src=window.INVOICE_SIGN_BASE64;}else{this.src='assets/sign.jpg';}" alt="Doctor Signature" class="ref-inv-sign-img" id="invModalSign">
+                                <img src="assets/img/drseal.jpg" onerror="this.onerror=null; if(typeof window!=='undefined'&&window.INVOICE_DR_SEAL_BASE64){this.src=window.INVOICE_DR_SEAL_BASE64;}else{this.src='assets/drseal.jpg';}" alt="Doctor Seal" class="ref-inv-drseal-img" id="invModalDrSeal">
+                            </div>
+                            <div class="ref-inv-sign-caption">Doctor's Signature</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="inv-hospital-footer">
-                    * Computer generated clinical invoice issued by Manjaly Multi Speciality Dental Care. Valid for all official and medical claim purposes.
-                </div>
-
-                <div class="inv-drive-notice" id="invDriveNotice" style="display: none;">
+                <div class="inv-drive-notice" id="invDriveNotice" style="display: none; margin-top: 1rem;">
                     <span>📁</span> 
                     <span>Stored in Google Drive: <a href="#" target="_blank" id="invDriveLink">Open File in Google Drive</a></span>
                 </div>
