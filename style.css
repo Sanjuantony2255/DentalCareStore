@@ -2087,7 +2087,7 @@ body {
 .ref-inv-clinic-title {
     font-size: 1.32rem;
     font-weight: 900;
-    color: #15803d;
+    color: #000000;
     letter-spacing: 0.2px;
     text-transform: uppercase;
     line-height: 1.25;
@@ -2120,9 +2120,9 @@ body {
 }
 
 .ref-inv-divider {
-    height: 2px;
-    background-color: #0f172a;
-    margin: 0.5rem 0 0.9rem 0;
+    height: 1.2rem;
+    background: transparent;
+    margin: 0;
 }
 
 .ref-inv-meta-row {
@@ -2266,12 +2266,14 @@ body {
     object-fit: contain;
 }
 
+.ref-inv-table tbody tr.spacer-row td {
+    height: 180px;
+    border-left: 1px solid #0f172a;
+    border-right: 1px solid #0f172a;
+}
+
 .ref-inv-sign-caption {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #475569;
-    text-align: right;
-    padding-right: 6px;
+    display: none !important;
 }
 
 /* Hospital Name & Branding Header (Legacy fallback) */

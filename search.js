@@ -1119,55 +1119,57 @@ document.addEventListener('DOMContentLoaded', () => {
             const total = parseFloat(inv.totalAmount) || (cAmt + tAmt + xAmt + pAmt);
             const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
 
+            const formatNum = (n) => (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
             if (inv.treatment && inv.treatment.trim().length > 0) {
                 const nos = inv.nos || 1;
                 const amt = tAmt > 0 ? tAmt : (total > 0 ? total : 0);
-                const rate = inv.rate ? parseFloat(inv.rate) : amt;
+                const rate = inv.rate ? parseFloat(inv.rate) : (amt / nos);
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>${escapeHtml(inv.treatment.toUpperCase())}</td>
+                    <td>${escapeHtml(inv.treatment)}</td>
                     <td style="text-align: center;">${nos}</td>
-                    <td style="text-align: right;">${rate.toFixed(2)}</td>
-                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(rate)}</td>
+                    <td style="text-align: right;">${formatNum(amt)}</td>
                 </tr>`;
             } else if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
                 const amt = cAmt > 0 ? cAmt : total;
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>CONSULTATION & DENTAL CARE</td>
+                    <td>Consultation & Dental Examination</td>
                     <td style="text-align: center;">1</td>
-                    <td style="text-align: right;">${amt.toFixed(2)}</td>
-                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(amt)}</td>
+                    <td style="text-align: right;">${formatNum(amt)}</td>
                 </tr>`;
             }
 
             if (tAmt > 0 && !(inv.treatment && inv.treatment.trim().length > 0)) {
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>DENTAL TREATMENT & PROCEDURE</td>
+                    <td>Dental Treatment & Procedure</td>
                     <td style="text-align: center;">1</td>
-                    <td style="text-align: right;">${tAmt.toFixed(2)}</td>
-                    <td style="text-align: right;">${tAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(tAmt)}</td>
+                    <td style="text-align: right;">${formatNum(tAmt)}</td>
                 </tr>`;
             }
 
             if (xAmt > 0) {
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>X-RAY RADIOLOGY EXAMINATION</td>
+                    <td>X-Ray Radiology Examination</td>
                     <td style="text-align: center;">1</td>
-                    <td style="text-align: right;">${xAmt.toFixed(2)}</td>
-                    <td style="text-align: right;">${xAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(xAmt)}</td>
+                    <td style="text-align: right;">${formatNum(xAmt)}</td>
                 </tr>`;
             }
 
             if (pAmt > 0) {
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>PHARMACY & MEDICINES</td>
+                    <td>Pharmacy & Medicines</td>
                     <td style="text-align: center;">1</td>
-                    <td style="text-align: right;">${pAmt.toFixed(2)}</td>
-                    <td style="text-align: right;">${pAmt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(pAmt)}</td>
+                    <td style="text-align: right;">${formatNum(pAmt)}</td>
                 </tr>`;
             }
 
@@ -1175,19 +1177,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const amt = parseFloat(c.amount) || 0;
                 rowHtml += `<tr>
                     <td style="text-align: center;">${rIdx++}</td>
-                    <td>${escapeHtml((c.title || 'CLINICAL PROCEDURE').toUpperCase())}</td>
+                    <td>${escapeHtml(c.title || 'Clinical Procedure')}</td>
                     <td style="text-align: center;">${c.nos || 1}</td>
-                    <td style="text-align: right;">${(parseFloat(c.rate) || amt).toFixed(2)}</td>
-                    <td style="text-align: right;">${amt.toFixed(2)}</td>
+                    <td style="text-align: right;">${formatNum(parseFloat(c.rate) || amt)}</td>
+                    <td style="text-align: right;">${formatNum(amt)}</td>
                 </tr>`;
             });
+
+            // Blank spacer row to match reference receipt pad
+            rowHtml += `<tr class="spacer-row"><td></td><td></td><td></td><td></td><td></td></tr>`;
 
             invModalTableBody.innerHTML = rowHtml;
         }
 
         if (invModalTotal) {
             const tot = parseFloat(inv.totalAmount) || 0;
-            invModalTotal.textContent = tot.toFixed(2);
+            invModalTotal.textContent = tot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         const invModalSign = document.getElementById('invModalSign');
@@ -1472,71 +1477,75 @@ Wishing you good oral health!
         const total = parseFloat(inv.totalAmount) || (cAmt + tAmt + xAmt + pAmt);
         const customs = Array.isArray(inv.customCharges) ? inv.customCharges : [];
 
+        const formatNum = (n) => (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         let rowsHtml = '';
         let rIdx = 1;
 
         if (inv.treatment && inv.treatment.trim().length > 0) {
             const nos = inv.nos || 1;
             const amt = tAmt > 0 ? tAmt : (total > 0 ? total : 0);
-            const rate = inv.rate ? parseFloat(inv.rate) : amt;
+            const rate = inv.rate ? parseFloat(inv.rate) : (amt / nos);
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">${escapeHtml(inv.treatment.toUpperCase())}</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${nos}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${rate.toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">${escapeHtml(inv.treatment)}</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">${nos}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(rate)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(amt)}</td>
             </tr>`;
         } else if (cAmt > 0 || (tAmt === 0 && xAmt === 0 && pAmt === 0 && customs.length === 0)) {
             const amt = cAmt > 0 ? cAmt : total;
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">CONSULTATION & DENTAL CARE</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">Consultation & Dental Examination</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(amt)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(amt)}</td>
             </tr>`;
         }
 
         if (tAmt > 0 && !(inv.treatment && inv.treatment.trim().length > 0)) {
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">DENTAL TREATMENT & PROCEDURE</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${tAmt.toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${tAmt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">Dental Treatment & Procedure</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(tAmt)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(tAmt)}</td>
             </tr>`;
         }
 
         if (xAmt > 0) {
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">X-RAY RADIOLOGY EXAMINATION</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${xAmt.toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${xAmt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">X-Ray Radiology Examination</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(xAmt)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(xAmt)}</td>
             </tr>`;
         }
 
         if (pAmt > 0) {
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">PHARMACY & MEDICINES</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">1</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${pAmt.toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${pAmt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">Pharmacy & Medicines</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">1</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(pAmt)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(pAmt)}</td>
             </tr>`;
         }
 
         customs.forEach(c => {
             const amt = parseFloat(c.amount) || 0;
             rowsHtml += `<tr>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
-                <td style="border: 1px solid #000; padding: 7px 10px;">${escapeHtml((c.title || 'CLINICAL PROCEDURE').toUpperCase())}</td>
-                <td style="text-align: center; border: 1px solid #000; padding: 7px 10px;">${c.nos || 1}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${(parseFloat(c.rate) || amt).toFixed(2)}</td>
-                <td style="text-align: right; border: 1px solid #000; padding: 7px 10px;">${amt.toFixed(2)}</td>
+                <td style="text-align: center; border-left: 1px solid #000; border-right: 1px solid #000; padding: 7px 10px;">${rIdx++}</td>
+                <td style="border-right: 1px solid #000; padding: 7px 10px;">${escapeHtml(c.title || 'Clinical Procedure')}</td>
+                <td style="text-align: center; border-right: 1px solid #000; padding: 7px 10px;">${c.nos || 1}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(parseFloat(c.rate) || amt)}</td>
+                <td style="text-align: right; border-right: 1px solid #000; padding: 7px 10px;">${formatNum(amt)}</td>
             </tr>`;
         });
+
+        // Blank spacer row to match reference receipt pad
+        rowsHtml += `<tr><td style="height: 180px; border-left: 1px solid #000; border-right: 1px solid #000;"></td><td style="border-right: 1px solid #000;"></td><td style="border-right: 1px solid #000;"></td><td style="border-right: 1px solid #000;"></td><td style="border-right: 1px solid #000;"></td></tr>`;
 
         return `<!DOCTYPE html>
 <html>
@@ -1545,34 +1554,32 @@ Wishing you good oral health!
     <title>Invoice - ${inv.invoiceNo}</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding: 25px; color: #000; background: #fff; margin: 0; }
-        .invoice-box { max-width: 680px; margin: auto; border: 1.5px solid #000; padding: 20px 24px; border-radius: 6px; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
-        .clinic-title { font-size: 20px; font-weight: 900; color: #15803d; letter-spacing: 0.3px; text-transform: uppercase; margin: 0; line-height: 1.25; }
+        .invoice-box { max-width: 680px; margin: auto; padding: 20px 24px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
+        .clinic-title { font-size: 20px; font-weight: 900; color: #000000; letter-spacing: 0.3px; text-transform: uppercase; margin: 0; line-height: 1.25; }
         .clinic-addr { font-size: 12px; font-weight: 500; color: #222; margin-top: 4px; }
         .clinic-phone { font-size: 12px; font-weight: 600; color: #000; margin-top: 2px; }
-        .logo { max-height: 65px; max-width: 110px; object-fit: contain; }
-        .divider { height: 2px; background: #000; margin: 8px 0 14px 0; }
-        .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 14px; }
+        .logo { max-height: 72px; max-width: 110px; object-fit: contain; }
+        .divider { height: 18px; margin: 0; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 16px; }
         .meta-left { display: flex; flex-direction: column; gap: 4px; }
         .meta-line { display: flex; }
         .meta-lbl { width: 70px; font-weight: bold; }
-        .meta-sep { margin: 0 8px 0 2px; font-weight: bold; }
-        .meta-val { font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 16px; font-size: 12.5px; }
-        th { border: 1px solid #000; background: #f5f5f5; padding: 8px 10px; font-weight: bold; }
-        td { border: 1px solid #000; padding: 7px 10px; }
-        .net-row td { border-top: 1.5px solid #000; font-weight: bold; font-size: 13.5px; padding: 8px 10px; }
-        .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 25px; padding: 0 5px; }
-        .hosp-seal { max-height: 85px; max-width: 130px; object-fit: contain; }
-        .company-text { font-size: 11px; font-weight: bold; text-transform: uppercase; text-align: center; flex: 1; padding-bottom: 8px; }
-        .sign-wrap { display: flex; justify-content: flex-end; align-items: flex-end; gap: 8px; margin-bottom: 4px; }
-        .sign-img { max-height: 48px; max-width: 90px; object-fit: contain; }
-        .drseal-img { max-height: 52px; max-width: 80px; object-fit: contain; }
-        .sign-caption { font-size: 11px; font-weight: bold; text-align: right; color: #444; }
+        .meta-sep { margin: 0 10px 0 2px; font-weight: bold; }
+        .meta-val { font-weight: normal; }
+        table { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 24px; font-size: 12.5px; }
+        th { border: 1px solid #000; background: #fff; padding: 8px 10px; font-weight: bold; }
+        td { border-top: 1px solid #000; padding: 7px 10px; }
+        .net-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; font-weight: bold; font-size: 13.5px; padding: 8px 10px; }
+        .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 0 5px; }
+        .hosp-seal { max-height: 95px; max-width: 140px; object-fit: contain; }
+        .company-text { font-size: 11px; font-weight: bold; text-transform: uppercase; text-align: center; flex: 1; padding: 0 12px; }
+        .sign-wrap { display: flex; justify-content: flex-end; align-items: flex-end; gap: 8px; }
+        .sign-img { max-height: 52px; max-width: 95px; object-fit: contain; }
+        .drseal-img { max-height: 55px; max-width: 85px; object-fit: contain; }
         @media print {
             body { padding: 0; }
             .invoice-box { border: none; padding: 0; }
-            .clinic-title { color: #000 !important; }
         }
     </style>
 </head>
@@ -1589,20 +1596,20 @@ Wishing you good oral health!
         <div class="divider"></div>
         <div class="meta-row">
             <div class="meta-left">
-                <div class="meta-line"><span class="meta-lbl">Bill No</span><span class="meta-sep">:</span><span class="meta-val">${inv.invoiceNo}</span></div>
+                <div class="meta-line"><span class="meta-lbl">Bill No</span><span class="meta-sep">:</span><span class="meta-val" style="font-weight: bold;">${inv.invoiceNo.replace(/^INV-/, '')}</span></div>
                 <div class="meta-line"><span class="meta-lbl">Name</span><span class="meta-sep">:</span><span class="meta-val">${inv.fullName}</span></div>
                 <div class="meta-line"><span class="meta-lbl">Address</span><span class="meta-sep">:</span><span class="meta-val">${displayAddress}</span></div>
             </div>
             <div>
-                <div class="meta-line"><span class="meta-lbl">Date</span><span class="meta-sep">:</span><span class="meta-val">${displayDate}</span></div>
+                <div class="meta-line"><span class="meta-lbl">Date</span><span class="meta-sep">:</span><span class="meta-val" style="font-weight: bold;">${displayDate}</span></div>
             </div>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th style="width: 8%; text-align: center;">#</th>
-                    <th style="width: 48%; text-align: left;">Treatment</th>
-                    <th style="width: 12%; text-align: center;">Nos</th>
+                    <th style="width: 7%; text-align: center;">#</th>
+                    <th style="width: 50%; text-align: left;">Treatment</th>
+                    <th style="width: 11%; text-align: center;">Nos</th>
                     <th style="width: 16%; text-align: right;">Rate</th>
                     <th style="width: 16%; text-align: right;">Amount</th>
                 </tr>
@@ -1612,20 +1619,17 @@ Wishing you good oral health!
             </tbody>
             <tfoot>
                 <tr class="net-row">
-                    <td colspan="4" style="text-align: right;">Net Amount Rs:</td>
-                    <td style="text-align: right;">${total.toFixed(2)}</td>
+                    <td colspan="4" style="text-align: right; border-right: 1px solid #000;">Net Amount Rs:</td>
+                    <td style="text-align: right;">${formatNum(total)}</td>
                 </tr>
             </tfoot>
         </table>
         <div class="footer">
             <img src="${hospSealSrc}" alt="Hospital Seal" class="hosp-seal">
             <div class="company-text">FOR MANJALY MULTI SPECIALITY DENTAL CARE</div>
-            <div>
-                <div class="sign-wrap">
-                    <img src="${signSrc}" alt="Doctor Signature" class="sign-img">
-                    <img src="${drSealSrc}" alt="Doctor Seal" class="drseal-img">
-                </div>
-                <div class="sign-caption">Doctor's Signature</div>
+            <div class="sign-wrap">
+                <img src="${signSrc}" alt="Doctor Signature" class="sign-img">
+                <img src="${drSealSrc}" alt="Doctor Seal" class="drseal-img">
             </div>
         </div>
     </div>
